@@ -2,7 +2,7 @@ import xobjects as xo
 from .default_tracker import get_default_tracker
 from .sim_data import LineMetaData, SimState, SimConfig
 
-def generate_default_executable_source(write_soutce_files=True,
+def generate_executable_source(write_soutce_files=True,
                                        _context=None):
 
     assert _context is None
