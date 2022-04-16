@@ -1,5 +1,6 @@
 import xtrack as xt
 import xfields as xf
+import xobjects as xo
 
 # Dummy line containing all supported element types
 default_line = xt.Line(elements=[
@@ -14,7 +15,7 @@ default_line = xt.Line(elements=[
     xt.RFMultipole(knl=[0], pn=[0]),
     xt.DipoleEdge(),
     xt.LinearTransferMatrix(),
-    xt.EnergyChange(),
+    # xt.EnergyChange(), # not working!!!
     xf.BeamBeamBiGaussian2D(beta0=1),
     xf.BeamBeamBiGaussian3D(
         N_part_per_slice=[0],
@@ -32,5 +33,5 @@ def get_default_tracker(_context=None):
     Returns a default tracker object.
     """
     if _context is None:
-        _context = xt.ContextCpu()
+        _context = xo.ContextCpu()
     return xt.Tracker(line=default_line, _context=_context)
