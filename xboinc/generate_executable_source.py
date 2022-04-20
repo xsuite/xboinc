@@ -3,10 +3,11 @@ from .default_tracker import get_default_tracker
 from .sim_data import LineMetaData, SimState, SimConfig
 from .general import _pkg_root
 
-def generate_executable_source(write_soutce_files=True,
+def generate_executable_source(write_source_files=True,
                                        _context=None):
 
     assert _context is None
+    assert write_source_files
 
     sim_config_sources = [
         xo.specialize_source(LineMetaData._gen_c_api(),
@@ -24,7 +25,6 @@ def generate_executable_source(write_soutce_files=True,
 
     with open(_pkg_root.joinpath('executable_src/main.c'), 'r') as fid:
         main_c = fid.read()
-
 
     dct_sources = {
         'sim_config.h': sim_config_h,
