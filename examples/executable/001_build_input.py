@@ -1,36 +1,12 @@
-import xobject as xo
 import xtrack as xt
+import xpart as xp
+import xboinc as xb
 
-from .default_tracker import get_default_tracker
-from .sim_data import LineMetaData, SimState, SimConfig
+# Simulation input
+num_turns = 10
+line = xt.Line(elements=[
+    xt.Drift(length=1.0), xt.Multipole(knl=[1e-6]), xt.Drift(length=1.0)])
+particles = xp.Particles(mass0=xp.PROTON_MASS_EV, p0c=7e12, x=[1e-3,2e-3,3e-3])
 
-def build_input_file(num_turns, line, particles):
-
-    # Assemble data structure
-    simbuf = xo.ContextCpu().new_buffer()
-    sim_config = SimConfig(buffer_size=-1, _buffer=simbuf)
-    default_tracker = get_default_tracker()
-    tracker = xt.Tracker(line=line, _buffer=simbuf,
-                        track_kernel=default_tracker.track_kernel,
-                        element_classes=default_tracker.element_classes)
-    line_metadata = LineMetaData(_buffer=simbuf,
-                                ele_offsets=tracker.ele_offsets_dev,
-                                ele_typeids=tracker.ele_typeids_dev)
-
-    sim_state = SimState(_buffer=simbuf, particles=particles._xobject, i_turn=0)
-    sim_config.line_metadata = line_metadata
-    sim_config.num_turns = num_turns
-    sim_config.sim_state = sim_state
-    sim_state.size = sim_state._size # store size of sim_state
-
-    assert sim_config._offset == 0
-    assert sim_config._fields[0].offset == 0
-    assert sim_config._fields[0].name == 'buffer_size'
-
-    sim_config.buffer_size = simbuf.capacity
-
-    # Write sim buffer to file
-    with open('sim.bin', 'wb') as fid:
-        fid.write(simbuf.buffer.tobytes())
-
-    return sim_config
+# Assemble data structure
+xb.build_input_file(line=line, particles=particles, num_turns=num_turns)

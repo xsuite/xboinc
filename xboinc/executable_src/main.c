@@ -11,7 +11,7 @@ int main(){
     FILE *sim_fid;
 
     // Get buffer size
-    sim_fid = fopen("./sim.bin", "rb");
+    sim_fid = fopen("./xboinc_input.bin", "rb");
     int64_t sim_buffer_size;
     fread(&sim_buffer_size, sizeof(int64_t), 1, sim_fid);
     fclose(sim_fid);
@@ -19,7 +19,7 @@ int main(){
     printf("sim buffer size: %d\n", (int) sim_buffer_size);
 
     // Get buffer
-    sim_fid = fopen("./sim.bin", "rb");
+    sim_fid = fopen("./xboinc_input.bin", "rb");
     int8_t* sim_buffer = malloc(sim_buffer_size*sizeof(int8_t));
     fread(sim_buffer, sizeof(int8_t), sim_buffer_size, sim_fid);
     fclose(sim_fid);
