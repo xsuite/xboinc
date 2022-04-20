@@ -8,10 +8,13 @@ class LineMetaData(xo.Struct):
     ele_offsets = xo.Int64[:]
     ele_typeids = xo.Int64[:]
 
-class SimState(xo.Struct):
+class SimStateData(xo.Struct):
     particles = xp.Particles.XoStruct
     i_turn = xo.Int64
     size = xo.Int64
+
+class SimState(xo.dress(SimStateData)):
+    pass
 
 class SimConfig(xo.Struct):
     buffer_size = xo.Int64
@@ -32,11 +35,11 @@ def build_input_file(num_turns, line, particles):
                                 ele_offsets=tracker.ele_offsets_dev,
                                 ele_typeids=tracker.ele_typeids_dev)
 
-    sim_state = SimState(_buffer=simbuf, particles=particles._xobject, i_turn=0)
+    sim_state = SimState(_buffer=simbuf, particles=particles, i_turn=0)
     sim_config.line_metadata = line_metadata
     sim_config.num_turns = num_turns
     sim_config.sim_state = sim_state
-    sim_state.size = sim_state._size # store size of sim_state
+    sim_state.size = sim_state._xobject._size # store size of sim_state
 
     assert sim_config._offset == 0
     assert sim_config._fields[0].offset == 0
@@ -49,3 +52,4 @@ def build_input_file(num_turns, line, particles):
         fid.write(simbuf.buffer.tobytes())
 
     return sim_config
+
