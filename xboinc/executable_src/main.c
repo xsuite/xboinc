@@ -11,7 +11,10 @@ int8_t* file_to_buffer(char *filename){
     FILE *sim_fid;
 
     // Get buffer
-    sim_fid = fopen("./xboinc_input.bin", "rb");
+    sim_fid = fopen(filename, "rb");
+    if (!sim_fid){
+        return NULL;
+    }
     fseek(sim_fid, 0L, SEEK_END);
     unsigned long filesize = ftell(sim_fid);
     fseek(sim_fid, 0L, SEEK_SET);
@@ -26,6 +29,10 @@ int main(){
 
 
     int8_t* sim_buffer = file_to_buffer("./xboinc_input.bin");
+    if (!sim_buffer){
+        printf("Error: could not read simulation input file\n");
+        return -1;
+    }
 
     // Get sim config
     SimConfig sim_config = (SimConfig) sim_buffer;
