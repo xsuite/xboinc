@@ -19,7 +19,6 @@ class SimState(xo.dress(SimStateData)):
     pass
 
 class SimConfig(xo.Struct):
-    buffer_size = xo.Int64
     line_metadata = xo.Ref(LineMetaData)
     num_turns = xo.Int64
     sim_state = xo.Ref(SimStateData)
@@ -28,7 +27,7 @@ def build_input_file(num_turns, line, particles):
 
     # Assemble data structure
     simbuf = xo.ContextCpu().new_buffer()
-    sim_config = SimConfig(buffer_size=-1, _buffer=simbuf)
+    sim_config = SimConfig(_buffer=simbuf)
     default_tracker = get_default_tracker()
     tracker = xt.Tracker(line=line, _buffer=simbuf,
                         track_kernel=default_tracker.track_kernel,
@@ -45,9 +44,6 @@ def build_input_file(num_turns, line, particles):
 
     assert sim_config._offset == 0
     assert sim_config._fields[0].offset == 0
-    assert sim_config._fields[0].name == 'buffer_size'
-
-    sim_config.buffer_size = simbuf.capacity
 
     # Write sim buffer to file
     with open('xboinc_input.bin', 'wb') as fid:
