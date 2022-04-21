@@ -6,6 +6,22 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+int8_t* file_to_buffer(char *filename){
+
+    FILE *sim_fid;
+
+    // Get buffer
+    sim_fid = fopen("./xboinc_input.bin", "rb");
+    fseek(sim_fid, 0L, SEEK_END);
+    unsigned long filesize = ftell(sim_fid);
+    fseek(sim_fid, 0L, SEEK_SET);
+    int8_t* buf = malloc(filesize*sizeof(int8_t));
+    fread(buf, sizeof(int8_t), filesize, sim_fid);
+    fclose(sim_fid);
+
+    return (buf);
+}
+
 int main(){
 
     FILE *sim_fid;
