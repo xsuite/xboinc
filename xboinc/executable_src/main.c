@@ -10,24 +10,16 @@ int main(){
 
     FILE *sim_fid;
 
-    // Get buffer size
-    sim_fid = fopen("./xboinc_input.bin", "rb");
-    int64_t sim_buffer_size;
-    fread(&sim_buffer_size, sizeof(int64_t), 1, sim_fid);
-    fclose(sim_fid);
-
-    printf("sim buffer size: %d\n", (int) sim_buffer_size);
-
     // Get buffer
     sim_fid = fopen("./xboinc_input.bin", "rb");
     fseek(sim_fid, 0L, SEEK_END);
-    unsigned long filesize = ftell(sim_fid) + 1;
-    fseek(sim_fid, 0, SEEK_SET);
-    int8_t* sim_buffer = malloc(sim_buffer_size*sizeof(int8_t));
-    fread(sim_buffer, sizeof(int8_t), sim_buffer_size, sim_fid);
+    unsigned long filesize = ftell(sim_fid);
+    fseek(sim_fid, 0L, SEEK_SET);
+    int8_t* sim_buffer = malloc(filesize*sizeof(int8_t));
+    fread(sim_buffer, sizeof(int8_t), filesize, sim_fid);
     fclose(sim_fid);
 
-    printf("sim buffer size (from file size): %d\n", (int) sim_buffer_size);
+    printf("sim buffer size (from file size): %d\n", (int) filesize);
 
     // Get sim config
     SimConfig sim_config = (SimConfig) sim_buffer;
