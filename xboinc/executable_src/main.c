@@ -46,22 +46,26 @@ int main(){
     int64_t* line_ele_offsets = SimConfig_getp1_line_metadata_ele_offsets(sim_config, 0);
     int64_t* line_ele_typeids = SimConfig_getp1_line_metadata_ele_typeids(sim_config, 0);
     ParticlesData particles = SimConfig_getp_sim_state_particles(sim_config);
+    SimStateData sim_state = SimConfig_getp_sim_state(sim_config);
 
     // This is what we want to call
-    track_line(
-          sim_buffer, //    int8_t* buffer,
-          line_ele_offsets, //    int64_t* ele_offsets,
-          line_ele_typeids, //    int64_t* ele_typeids,
-          particles, //    ParticlesData particles,
-          (int) num_turns, //    int num_turns,
-          0, //    int ele_start,
-          (int) num_elements, //    int num_ele_track,
-          0, //int flag_end_turn_actions,
-          0, //int flag_reset_s_at_end_turn,
-          0, //    int flag_monitor,
-          NULL,//    int8_t* buffer_tbt_monitor,
-          0//    int64_t offset_tbt_monitor
-    );
+    while (SimStateData_get_i_turn(sim_state) < num_turns){
+        track_line(
+            sim_buffer, //    int8_t* buffer,
+            line_ele_offsets, //    int64_t* ele_offsets,
+            line_ele_typeids, //    int64_t* ele_typeids,
+            particles, //    ParticlesData particles,
+            1, //    int num_turns,
+            0, //    int ele_start,
+            (int) num_elements, //    int num_ele_track,
+            1, //int flag_end_turn_actions,
+            0, //int flag_reset_s_at_end_turn,
+            0, //    int flag_monitor,
+            NULL,//    int8_t* buffer_tbt_monitor,
+            0//    int64_t offset_tbt_monitor
+        );
+        SimStateData_set_i_turn(sim_state, SimStateData_get_i_turn(sim_state) + 1);
+    }
 
     // Quick check
     for (int ii=0; ii<ParticlesData_get__capacity(particles); ii++){
