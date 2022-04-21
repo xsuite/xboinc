@@ -12,7 +12,7 @@ def generate_executable_source(write_source_files=True,
     sim_config_sources = [
         xo.specialize_source(LineMetaData._gen_c_api(),
                                     specialize_for='cpu_serial'),
-        xo.specialize_source(SimState._gen_c_api(),
+        xo.specialize_source(SimState.XoStruct._gen_c_api(),
                                     specialize_for='cpu_serial'),
         xo.specialize_source(SimConfig._gen_c_api(),
                                     specialize_for='cpu_serial'),
