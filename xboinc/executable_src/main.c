@@ -24,18 +24,8 @@ int8_t* file_to_buffer(char *filename){
 
 int main(){
 
-    FILE *sim_fid;
 
-    // Get buffer
-    sim_fid = fopen("./xboinc_input.bin", "rb");
-    fseek(sim_fid, 0L, SEEK_END);
-    unsigned long filesize = ftell(sim_fid);
-    fseek(sim_fid, 0L, SEEK_SET);
-    int8_t* sim_buffer = malloc(filesize*sizeof(int8_t));
-    fread(sim_buffer, sizeof(int8_t), filesize, sim_fid);
-    fclose(sim_fid);
-
-    printf("sim buffer size (from file size): %d\n", (int) filesize);
+    int8_t* sim_buffer = file_to_buffer("./xboinc_input.bin");
 
     // Get sim config
     SimConfig sim_config = (SimConfig) sim_buffer;
