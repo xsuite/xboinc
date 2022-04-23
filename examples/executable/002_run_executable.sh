@@ -1,1 +1,0 @@
-./xboinc_executable
