@@ -62,7 +62,8 @@ int main(){
             0, //int flag_reset_s_at_end_turn,
             0, //    int flag_monitor,
             NULL,//    int8_t* buffer_tbt_monitor,
-            0//    int64_t offset_tbt_monitor
+            0, //    int64_t offset_tbt_monitor
+            NULL//    int8_t* io_buffer,
         );
         SimStateData_set_i_turn(sim_state, SimStateData_get_i_turn(sim_state) + 1);
     }
