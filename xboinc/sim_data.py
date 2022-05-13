@@ -21,9 +21,10 @@ class SimState(xo.dress(SimStateData)):
 class SimConfig(xo.Struct):
     line_metadata = xo.Ref(LineMetaData)
     num_turns = xo.Int64
+    checkpoint_every = xo.Int64
     sim_state = xo.Ref(SimStateData)
 
-def build_input_file(num_turns, line, particles):
+def build_input_file(num_turns, line, particles, checkpoint_every=-1):
 
     # Assemble data structure
     simbuf = xo.ContextCpu().new_buffer()
@@ -39,6 +40,7 @@ def build_input_file(num_turns, line, particles):
     sim_state = SimState(_buffer=simbuf, particles=particles, i_turn=0)
     sim_config.line_metadata = line_metadata
     sim_config.num_turns = num_turns
+    sim_config.checkpoint_every = checkpoint_every
     sim_config.sim_state = sim_state._xobject
     sim_state.size = sim_state._xobject._size # store size of sim_state
 
