@@ -82,15 +82,18 @@ int main(){
             0, //    int64_t offset_tbt_monitor
             NULL//    int8_t* io_buffer,
         );
-        if (SimStateData_get_i_turn(sim_state) % checkpoint_every == 0){
-            printf("Checkpointing turn %d!\n", (int) SimStateData_get_i_turn(sim_state));
-            FILE *chkp_fid;
-            chkp_fid = fopen("./checkpoint.bin", "wb");
-            fwrite(SimConfig_getp_sim_state(sim_config), sizeof(int8_t),
-                SimConfig_get_sim_state_size(sim_config), chkp_fid);
-            fclose(chkp_fid);
-        }
         SimStateData_set_i_turn(sim_state, SimStateData_get_i_turn(sim_state) + 1);
+
+        if (checkpoint_every>0){
+            if (SimStateData_get_i_turn(sim_state) % checkpoint_every == 0){
+                printf("Checkpointing turn %d!\n", (int) SimStateData_get_i_turn(sim_state));
+                FILE *chkp_fid;
+                chkp_fid = fopen("./checkpoint.bin", "wb");
+                fwrite(SimConfig_getp_sim_state(sim_config), sizeof(int8_t),
+                    SimConfig_get_sim_state_size(sim_config), chkp_fid);
+                fclose(chkp_fid);
+            }
+        }
     }
 
     // Quick check
@@ -98,12 +101,14 @@ int main(){
         printf("s[%d] = %e\n", ii, ParticlesData_get_s(particles, (int64_t) ii));
     }
 
+    // Save output
     FILE *out_fid;
     out_fid = fopen("./sim_state_out.bin", "wb");
     fwrite(SimConfig_getp_sim_state(sim_config), sizeof(int8_t),
            SimConfig_get_sim_state_size(sim_config), out_fid);
     fclose(out_fid);
 
+    // Remove checkpoint
     if (remove("./checkpoint.bin") != 0){
         printf("Error: could not remove checkpoint file\n");
         return -1;  // error
