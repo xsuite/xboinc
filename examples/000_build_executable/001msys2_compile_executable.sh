@@ -1,1 +1,1 @@
-gcc main.c -o xboinc_executable
+gcc main.c -o xboinc_executable -lm
