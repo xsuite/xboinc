@@ -15,19 +15,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with BOINC.  If not, see <http://www.gnu.org/licenses/>.
 
-// This program serves as both
-// - An example BOINC application, illustrating the use of the BOINC API
-// - A program for testing various features of BOINC
-//
-// NOTE: this file exists as both
-// boinc/apps/upper_case.cpp
-// and
-// boinc_samples/example_app/xtrack.cpp
-// If you update one, please update the other!
-
-// The program converts a mixed-case file to upper case:
-// read "in", convert to upper case, write to "out"
-//
 // command line options
 // --cpu_time N: use about N CPU seconds after copying files
 // --critical_section: run most of the time in a critical section
@@ -74,8 +61,8 @@ UC_SHMEM* shmem;
 
 using std::string;
 
-#define CHECKPOINT_FILE "upper_case_state"
-#define INPUT_FILENAME "in"
+#define CHECKPOINT_FILE "checkpoint.bin"
+#define INPUT_FILENAME "xboinc_input.bin"
 #define OUTPUT_FILENAME "out"
 
 bool run_slow = false;
@@ -89,28 +76,13 @@ bool report_fraction_done = true;
 bool network_usage = false;
 double cpu_time = 20, comp_result;
 
-// do about .5 seconds of computing
-// (note: I needed to add an arg to this;
-// otherwise the MS C++ compiler optimizes away
-// all but the first call to it!)
-//
-static double do_some_computing(int foo) {
-    double x = 3.14159*foo;
-    int i;
-    for (i=0; i<50000000; i++) {
-        x += 5.12313123;
-        x *= 0.5398394834;
-    }
-    return x;
-}
+int8_t* file_to_buffer(FILE* sim_fid, int8_t* buf_in){
 
-int8_t* file_to_buffer(char *filename, int8_t* buf_in){
-
-    FILE *sim_fid;
+    //FILE *sim_fid;
     int8_t *buf;
 
     // Get buffer
-    sim_fid = fopen(filename, "rb");
+    //sim_fid = fopen(filename, "rb");
     if (!sim_fid){
         return NULL;
     }
@@ -130,20 +102,28 @@ int8_t* file_to_buffer(char *filename, int8_t* buf_in){
     return (buf);
 }
 
-int do_checkpoint(MFILE& mf, int nchars) {
+
+int do_checkpoint(SimConfig sim_config, SimStateData sim_state) {
+
     int retval;
-    string resolved_name;
+    FILE *chkp_fid;
+    char resolved_name[512], buf[256];
 
-    FILE* f = fopen("temp", "w");
-    if (!f) return 1;
-    fprintf(f, "%d", nchars);
-    fclose(f);
+    boinc_resolve_filename(CHECKPOINT_FILE, resolved_name, sizeof(resolved_name));
 
-    retval = mf.flush();
-    if (retval) return retval;
-    boinc_resolve_filename_s(CHECKPOINT_FILE, resolved_name);
-    retval = boinc_rename("temp", resolved_name.c_str());
-    if (retval) return retval;
+    chkp_fid = boinc_fopen(resolved_name, "wb");
+    if (!chkp_fid) {
+        fprintf(stderr,
+            "%s Couldn't find checkpoint file, name %s.\n",
+            boinc_msg_prefix(buf, sizeof(buf)), resolved_name);
+        return 1;
+    }
+
+    printf("Checkpointing turn %d!\n", (int) SimStateData_get_i_turn(sim_state));
+
+    fwrite(SimConfig_getp_sim_state(sim_config), sizeof(int8_t), SimConfig_get_sim_state_size(sim_config), chkp_fid);
+
+    fclose(chkp_fid);
 
     return 0;
 }
@@ -178,7 +158,7 @@ int main(int argc, char **argv) {
     int c, nchars = 0, retval, n;
     double fsize, fd;
     char input_path[512], output_path[512], chkpt_path[512], buf[256];
-    MFILE out;
+    FILE* out;
     FILE* state, *infile;
 
     for (i=0; i<argc; i++) {
@@ -217,7 +197,7 @@ int main(int argc, char **argv) {
     // open the input file (resolve logical name first)
     //
     boinc_resolve_filename(INPUT_FILENAME, input_path, sizeof(input_path));
-    infile = boinc_fopen(input_path, "r");
+    infile = boinc_fopen(input_path, "rb");
     if (!infile) {
         fprintf(stderr,
             "%s Couldn't find input file, resolved name %s.\n",
@@ -226,38 +206,7 @@ int main(int argc, char **argv) {
         exit(-1);
     }
 
-    // get size of input file (used to compute fraction done)
-    //
-    file_size(input_path, fsize);
-
     boinc_resolve_filename(OUTPUT_FILENAME, output_path, sizeof(output_path));
-
-    // See if there's a valid checkpoint file.
-    // If so seek input file and truncate output file
-    //
-    boinc_resolve_filename(CHECKPOINT_FILE, chkpt_path, sizeof(chkpt_path));
-    state = boinc_fopen(chkpt_path, "r");
-    if (state) {
-        n = fscanf(state, "%d", &nchars);
-        fclose(state);
-    }
-    if (state && n==1) {
-        fseek(infile, nchars, SEEK_SET);
-        boinc_truncate(output_path, nchars);
-        retval = out.open(output_path, "ab");
-    } else {
-        retval = out.open(output_path, "wb");
-    }
-    if (retval) {
-        fprintf(stderr, "%s APP: upper_case output open failed:\n",
-            boinc_msg_prefix(buf, sizeof(buf))
-        );
-        fprintf(stderr, "%s resolved name %s, retval %d\n",
-            boinc_msg_prefix(buf, sizeof(buf)), output_path, retval
-        );
-        perror("open");
-        exit(1);
-    }
 
 #ifdef APP_GRAPHICS
     // create shared mem segment for graphics, and arrange to update it
@@ -276,55 +225,100 @@ int main(int argc, char **argv) {
         boinc_network_usage(5., 17.);
     }
 
-    // main loop - read characters, convert to UC, write
-    for (i=0; ; i++) {
-        c = fgetc(infile);
-        if (c == EOF) break;
-
-        c = toupper(c);
-        out._putchar(c);
-        nchars++;
-
-        if (run_slow) {
-            boinc_sleep(1.);
-        }
-
-        if (early_exit && i>30) {
-            exit(-10);
-        }
-
-        if (early_crash && i>30) {
-            boinc_crash();
-        }
-        if (early_sleep && i>30) {
-            boinc_disable_timer_thread = true;
-            while (1) boinc_sleep(1);
-        }
-
-        if (boinc_time_to_checkpoint()) {
-            retval = do_checkpoint(out, nchars);
-            if (retval) {
-                fprintf(stderr, "%s APP: upper_case checkpoint failed %d\n",
-                    boinc_msg_prefix(buf, sizeof(buf)), retval
-                );
-                exit(retval);
-            }
-            boinc_checkpoint_completed();
-        }
-
-		if (report_fraction_done) {
-			fd = nchars/fsize;
-			if (cpu_time) fd /= 2;
-			boinc_fraction_done(fd);
-		}
+    // Read input file
+    int8_t* sim_buffer = file_to_buffer(infile, NULL);
+    if (!sim_buffer){
+        printf("Error: could not read simulation input file\n");
+        return -1;
     }
 
-    retval = out.flush();
-    if (retval) {
-        fprintf(stderr, "%s APP: upper_case flush failed %d\n",
-            boinc_msg_prefix(buf, sizeof(buf)), retval
-        );
+    // Get sim config
+    SimConfig sim_config = (SimConfig) sim_buffer;
+
+    const int64_t num_turns = SimConfig_get_num_turns(sim_config);
+    const int64_t num_elements = SimConfig_len_line_metadata_ele_offsets(sim_config);
+
+    printf("num_turns: %d\n", (int) num_turns);
+    printf("num_elements: %d\n", (int) num_elements);
+
+    int64_t* line_ele_offsets = SimConfig_getp1_line_metadata_ele_offsets(sim_config, 0);
+    int64_t* line_ele_typeids = SimConfig_getp1_line_metadata_ele_typeids(sim_config, 0);
+    ParticlesData particles = SimConfig_getp_sim_state_particles(sim_config);
+    SimStateData sim_state = SimConfig_getp_sim_state(sim_config);
+    int64_t checkpoint_every = SimConfig_get_checkpoint_every(sim_config);
+
+
+    // See if there's a valid checkpoint file.
+    boinc_resolve_filename(CHECKPOINT_FILE, chkpt_path, sizeof(chkpt_path));
+    state = boinc_fopen(chkpt_path, "rb");
+    printf("sim_state: %p\n", (int8_t*) sim_state);
+    int8_t* loaded = file_to_buffer(state, (int8_t*) sim_state);
+    if (loaded){
+        printf("Loaded checkpoint\n");
+    }
+    else{
+        printf("No checkpoint found\n");
+    }
+
+
+    // Check on the output file
+    out = boinc_fopen(output_path, "wb");
+    if (!out) {
+        fprintf(stderr, "%s APP: xtrack output file failed: %s.\n",
+            boinc_msg_prefix(buf, sizeof(buf)), output_path);
         exit(1);
+    }
+
+    // !!!!!!!!  MAIN LOOP  !!!!!!!!!!!!!!!!
+    
+    while (SimStateData_get_i_turn(sim_state) < num_turns){
+        track_line(
+            sim_buffer, //    int8_t* buffer,
+            line_ele_offsets, //    int64_t* ele_offsets,
+            line_ele_typeids, //    int64_t* ele_typeids,
+            particles, //    ParticlesData particles,
+            1, //    int num_turns,
+            0, //    int ele_start,
+            (int) num_elements, //    int num_ele_track,
+            1, //int flag_end_turn_actions,
+            0, //int flag_reset_s_at_end_turn,
+            0, //    int flag_monitor,
+            NULL,//    int8_t* buffer_tbt_monitor,
+            0, //    int64_t offset_tbt_monitor
+            NULL//    int8_t* io_buffer,
+        );
+        SimStateData_set_i_turn(sim_state, SimStateData_get_i_turn(sim_state) + 1);
+
+        if ( boinc_time_to_checkpoint() && checkpoint_every > 0 ){
+            if (SimStateData_get_i_turn(sim_state) % checkpoint_every == 0){
+	        retval = do_checkpoint(sim_config, sim_state);
+                if (retval) {
+	            fprintf(stderr, "%s APP: xtrack checkpoint failed %d\n",
+	                boinc_msg_prefix(buf, sizeof(buf))		
+	            );
+	            exit(retval);
+	        }
+                boinc_checkpoint_completed();
+	    }
+        }
+
+        // Quick check
+        for (int ii=0; ii<ParticlesData_get__capacity(particles); ii++){
+            printf("s[%d] = %e\n", ii, ParticlesData_get_s(particles, (int64_t) ii));
+        }
+
+	// Write output
+        fwrite(SimConfig_getp_sim_state(sim_config), sizeof(int8_t),
+               SimConfig_get_sim_state_size(sim_config), out);
+        fclose(out);
+
+
+	if (report_fraction_done) {
+	    fd = (int)SimStateData_get_i_turn(sim_state) / (int)num_turns;
+	    if (cpu_time) fd /= 2;
+	    boinc_fraction_done(fd);
+	}
+	
     }
 
     if (trickle_up) {
@@ -342,37 +336,6 @@ int main(int argc, char **argv) {
         }
     }
 
-    // burn up some CPU time if needed
-    //
-    if (cpu_time) {
-        double start = dtime();
-        for (i=0; ; i++) {
-            double e = dtime()-start;
-            if (e > cpu_time) break;
-			if (report_fraction_done) {
-				fd = .5 + .5*(e/cpu_time);
-				boinc_fraction_done(fd);
-			}
-
-            if (boinc_time_to_checkpoint()) {
-                retval = do_checkpoint(out, nchars);
-                if (retval) {
-                    fprintf(stderr, "%s APP: upper_case checkpoint failed %d\n",
-                        boinc_msg_prefix(buf, sizeof(buf)), retval
-                    );
-                    exit(1);
-                }
-                boinc_checkpoint_completed();
-            }
-            if (critical_section) {
-                boinc_begin_critical_section();
-            }
-            comp_result = do_some_computing(i);
-            if (critical_section) {
-                boinc_end_critical_section();
-            }
-        }
-    }
     boinc_fraction_done(1);
 #ifdef APP_GRAPHICS
     update_shmem();
