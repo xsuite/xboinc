@@ -55,6 +55,8 @@
 #include "graphics2.h"
 #include "xtrack.h"
 
+#include <iostream>
+
 #ifdef APP_GRAPHICS
 UC_SHMEM* shmem;
 #endif
@@ -77,7 +79,7 @@ bool network_usage = false;
 double cpu_time = 20, comp_result;
 
 int8_t* file_to_buffer(FILE* sim_fid, int8_t* buf_in){
-
+    
     //FILE *sim_fid;
     int8_t *buf;
 
@@ -101,7 +103,6 @@ int8_t* file_to_buffer(FILE* sim_fid, int8_t* buf_in){
 
     return (buf);
 }
-
 
 int do_checkpoint(SimConfig sim_config, SimStateData sim_state) {
 
@@ -128,8 +129,10 @@ int do_checkpoint(SimConfig sim_config, SimStateData sim_state) {
     return 0;
 }
 
+
 #ifdef APP_GRAPHICS
 void update_shmem() {
+
     if (!shmem) return;
 
     // always do this; otherwise a graphics app will immediately
@@ -150,8 +153,10 @@ void update_shmem() {
     shmem->fraction_done = boinc_get_fraction_done();
     shmem->cpu_time = boinc_worker_thread_cpu_time();;
     boinc_get_status(&shmem->status);
+
 }
 #endif
+
 
 int main(int argc, char **argv) {
     int i;
@@ -205,7 +210,6 @@ int main(int argc, char **argv) {
         );
         exit(-1);
     }
-
     boinc_resolve_filename(OUTPUT_FILENAME, output_path, sizeof(output_path));
 
 #ifdef APP_GRAPHICS
@@ -247,7 +251,6 @@ int main(int argc, char **argv) {
     SimStateData sim_state = SimConfig_getp_sim_state(sim_config);
     int64_t checkpoint_every = SimConfig_get_checkpoint_every(sim_config);
 
-
     // See if there's a valid checkpoint file.
     boinc_resolve_filename(CHECKPOINT_FILE, chkpt_path, sizeof(chkpt_path));
     state = boinc_fopen(chkpt_path, "rb");
@@ -260,7 +263,6 @@ int main(int argc, char **argv) {
         printf("No checkpoint found\n");
     }
 
-
     // Check on the output file
     out = boinc_fopen(output_path, "wb");
     if (!out) {
@@ -270,7 +272,6 @@ int main(int argc, char **argv) {
     }
 
     // !!!!!!!!  MAIN LOOP  !!!!!!!!!!!!!!!!
-    
     while (SimStateData_get_i_turn(sim_state) < num_turns){
         track_line(
             sim_buffer, //    int8_t* buffer,
@@ -289,7 +290,7 @@ int main(int argc, char **argv) {
         );
         SimStateData_set_i_turn(sim_state, SimStateData_get_i_turn(sim_state) + 1);
 
-        if ( boinc_time_to_checkpoint() && checkpoint_every > 0 ){
+        if ( boinc_time_to_checkpoint() || checkpoint_every > 0 ){
             if (SimStateData_get_i_turn(sim_state) % checkpoint_every == 0){
 	        retval = do_checkpoint(sim_config, sim_state);
                 if (retval) {
@@ -302,17 +303,6 @@ int main(int argc, char **argv) {
 	    }
         }
 
-        // Quick check
-        for (int ii=0; ii<ParticlesData_get__capacity(particles); ii++){
-            printf("s[%d] = %e\n", ii, ParticlesData_get_s(particles, (int64_t) ii));
-        }
-
-	// Write output
-        fwrite(SimConfig_getp_sim_state(sim_config), sizeof(int8_t),
-               SimConfig_get_sim_state_size(sim_config), out);
-        fclose(out);
-
-
 	if (report_fraction_done) {
 	    fd = (int)SimStateData_get_i_turn(sim_state) / (int)num_turns;
 	    if (cpu_time) fd /= 2;
@@ -320,6 +310,15 @@ int main(int argc, char **argv) {
 	}
 	
     }
+
+    // Quick check
+    //for (int ii=0; ii<ParticlesData_get__capacity(particles); ii++){
+    //    printf("s[%d] = %e\n", ii, ParticlesData_get_s(particles, (int64_t) ii));
+    //}
+
+    // Write output
+    fwrite(SimConfig_getp_sim_state(sim_config), sizeof(int8_t), SimConfig_get_sim_state_size(sim_config), out);
+    fclose(out);
 
     if (trickle_up) {
         boinc_send_trickle_up(
@@ -336,7 +335,9 @@ int main(int argc, char **argv) {
         }
     }
 
+
     boinc_fraction_done(1);
+
 #ifdef APP_GRAPHICS
     update_shmem();
 #endif
