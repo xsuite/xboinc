@@ -290,17 +290,14 @@ int main(int argc, char **argv) {
         );
         SimStateData_set_i_turn(sim_state, SimStateData_get_i_turn(sim_state) + 1);
 
-        if ( boinc_time_to_checkpoint() || checkpoint_every > 0 ){
-            if (SimStateData_get_i_turn(sim_state) % checkpoint_every == 0){
-	        retval = do_checkpoint(sim_config, sim_state);
-                if (retval) {
-	            fprintf(stderr, "%s APP: xtrack checkpoint failed %d\n",
-	                boinc_msg_prefix(buf, sizeof(buf))		
-	            );
-	            exit(retval);
-	        }
-                boinc_checkpoint_completed();
-	    }
+        if ( boinc_time_to_checkpoint() || 
+	   (checkpoint_every > 0 && SimStateData_get_i_turn(sim_state) % checkpoint_every == 0) ){
+	   retval = do_checkpoint(sim_config, sim_state);
+           if (retval) {
+	      fprintf(stderr, "%s APP: xtrack checkpoint failed %d\n", boinc_msg_prefix(buf, sizeof(buf)));
+	      exit(retval);
+	   }
+           boinc_checkpoint_completed();
         }
 
 	if (report_fraction_done) {
