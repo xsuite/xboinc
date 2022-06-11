@@ -28,10 +28,10 @@ default_line = xt.Line(elements=[
     ),
 ])
 
-def get_default_tracker(_context=None):
+def get_default_tracker(_context=None, compile=False):
     """
     Returns a default tracker object.
     """
     if _context is None:
         _context = xo.ContextCpu()
-    return xt.Tracker(line=default_line, _context=_context)
+    return xt.Tracker(line=default_line, _context=_context, compile=compile)
