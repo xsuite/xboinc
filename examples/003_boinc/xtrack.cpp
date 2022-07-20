@@ -130,34 +130,6 @@ int do_checkpoint(SimConfig sim_config, SimStateData sim_state) {
 }
 
 
-#ifdef APP_GRAPHICS
-void update_shmem() {
-
-    if (!shmem) return;
-
-    // always do this; otherwise a graphics app will immediately
-    // assume we're not alive
-    shmem->update_time = dtime();
-
-    // Check whether a graphics app is running,
-    // and don't bother updating shmem if so.
-    // This doesn't matter here,
-    // but may be worth doing if updating shmem is expensive.
-    //
-    if (shmem->countdown > 0) {
-        // the graphics app sets this to 5 every time it renders a frame
-        shmem->countdown--;
-    } else {
-        return;
-    }
-    shmem->fraction_done = boinc_get_fraction_done();
-    shmem->cpu_time = boinc_worker_thread_cpu_time();;
-    boinc_get_status(&shmem->status);
-
-}
-#endif
-
-
 int main(int argc, char **argv) {
     int i;
     int c, nchars = 0, retval, n;
@@ -211,19 +183,6 @@ int main(int argc, char **argv) {
         exit(-1);
     }
     boinc_resolve_filename(OUTPUT_FILENAME, output_path, sizeof(output_path));
-
-#ifdef APP_GRAPHICS
-    // create shared mem segment for graphics, and arrange to update it
-    //
-    shmem = (UC_SHMEM*)boinc_graphics_make_shmem("uppercase", sizeof(UC_SHMEM));
-    if (!shmem) {
-        fprintf(stderr, "%s failed to create shared mem segment\n",
-            boinc_msg_prefix(buf, sizeof(buf))
-        );
-    }
-    update_shmem();
-    boinc_register_timer_callback(update_shmem);
-#endif
 
     if (network_usage) {
         boinc_network_usage(5., 17.);
@@ -335,9 +294,6 @@ int main(int argc, char **argv) {
 
     boinc_fraction_done(1);
 
-#ifdef APP_GRAPHICS
-    update_shmem();
-#endif
     boinc_finish(0);
 }
 
