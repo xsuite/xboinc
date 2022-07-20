@@ -6,22 +6,13 @@ BOINC_SOURCE_LIB_DIR = $(BOINC_DIR)/lib
 BOINC_SOURCE_ZIP_DIR = $(BOINC_DIR)/zip
 FREETYPE_DIR = /usr/include/freetype2
 
-ifdef ANDROID
-  BOINC_API_DIR = $(TCINCLUDES)/lib
-  BOINC_LIB_DIR = $(TCINCLUDES)/lib
-  BOINC_ZIP_DIR = $(TCINCLUDES)/lib
+BOINC_API_DIR = $(BOINC_SOURCE_API_DIR)
+BOINC_LIB_DIR = $(BOINC_SOURCE_LIB_DIR)
+BOINC_ZIP_DIR = $(BOINC_SOURCE_ZIP_DIR)
 
-  MAKEFILE_LDFLAGS = 
-  MAKEFILE_STDLIB  = 
-else
-  BOINC_API_DIR = $(BOINC_SOURCE_API_DIR)
-  BOINC_LIB_DIR = $(BOINC_SOURCE_LIB_DIR)
-  BOINC_ZIP_DIR = $(BOINC_SOURCE_ZIP_DIR)
-
-  #MAKEFILE_LDFLAGS = -lpthread libstdc++.a
-  MAKEFILE_LDFLAGS = -lpthread libstdc++.a -static
-  MAKEFILE_STDLIB  = libstdc++.a
-endif
+#MAKEFILE_LDFLAGS = -lpthread libstdc++.a
+MAKEFILE_LDFLAGS = -lpthread libstdc++.a -static
+MAKEFILE_STDLIB  = libstdc++.a
 
 CXXFLAGS += -g \
 	-Wall -W -Wshadow -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings -fno-common \
