@@ -59,6 +59,6 @@ def read_output_file(filename):
         state_bytes = fid.read()
     buffer_out = xo.ContextCpu().new_buffer(capacity=len(state_bytes))
     buffer_out.buffer[:] = np.frombuffer(state_bytes, dtype=np.int8)
-    sim_state_xobject = SimStateData._from_buffer(buffer=buffer_out, offset=0)
+    sim_state_xobject = SimState._XoStruct._from_buffer(buffer=buffer_out, offset=0)
     sim_state_out = SimState(_xobject=sim_state_xobject)
     return sim_state_out
