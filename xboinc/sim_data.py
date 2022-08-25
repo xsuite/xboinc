@@ -11,9 +11,9 @@ class LineMetaData(xo.Struct):
     ele_typeids = xo.Int64[:]
 
 
-class SimState(xo.DressedStruct):
+class SimState(xo.HybridClass):
     _xofields = {
-        'particles': xp.Particles.XoStruct,
+        'particles': xp.Particles._XoStruct,
         'i_turn': xo.Int64,
         'size': xo.Int64,
     }
@@ -23,7 +23,7 @@ class SimConfig(xo.Struct):
     line_metadata = xo.Ref(LineMetaData)
     num_turns = xo.Int64
     checkpoint_every = xo.Int64
-    sim_state = xo.Ref(SimState.XoStruct)
+    sim_state = xo.Ref(SimState._XoStruct)
 
 def build_input_file(num_turns, line, particles, checkpoint_every=-1):
 
