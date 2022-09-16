@@ -1,14 +1,16 @@
 # XBOINC
-# by D. Di Croce and G. Iadarola
 
-# Python package for submitting track simulations in particle accelerators with BOINC system
+## Python package for submitting track simulations in particle accelerators with BOINC system
 
-# INSTRUCTIONS:
+## INSTRUCTIONS:
+```
 $ git clone git@github.com:xsuite/xsuite.git
-
 $ pip install -e xboinc
+```
 
-# Test application:
+## Test application
+
+```bash
 $ cd xboinc/examples/000_build_executable
 $ python 000_build_executable.py
 $ chmod +x 001msys2_compile_executable.sh
@@ -22,3 +24,4 @@ $ make
 $ cp ../002_lhc/xboinc_input.bin .
 $ chmod +x xboinc_executable
 $ ./xboinc_executable
+```
