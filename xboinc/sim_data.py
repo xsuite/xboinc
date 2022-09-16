@@ -10,19 +10,20 @@ class LineMetaData(xo.Struct):
     ele_offsets = xo.Int64[:]
     ele_typeids = xo.Int64[:]
 
-class SimStateData(xo.Struct):
-    particles = xp.Particles.XoStruct
-    i_turn = xo.Int64
-    size = xo.Int64
 
-class SimState(xo.dress(SimStateData)):
-    pass
+class SimState(xo.HybridClass):
+    _xofields = {
+        'particles': xp.Particles._XoStruct,
+        'i_turn': xo.Int64,
+        'size': xo.Int64,
+    }
+
 
 class SimConfig(xo.Struct):
     line_metadata = xo.Ref(LineMetaData)
     num_turns = xo.Int64
     checkpoint_every = xo.Int64
-    sim_state = xo.Ref(SimStateData)
+    sim_state = xo.Ref(SimState._XoStruct)
 
 def build_input_file(num_turns, line, particles, checkpoint_every=-1):
 
@@ -58,6 +59,6 @@ def read_output_file(filename):
         state_bytes = fid.read()
     buffer_out = xo.ContextCpu().new_buffer(capacity=len(state_bytes))
     buffer_out.buffer[:] = np.frombuffer(state_bytes, dtype=np.int8)
-    sim_state_xobject = SimStateData._from_buffer(buffer=buffer_out, offset=0)
+    sim_state_xobject = SimState._XoStruct._from_buffer(buffer=buffer_out, offset=0)
     sim_state_out = SimState(_xobject=sim_state_xobject)
     return sim_state_out
