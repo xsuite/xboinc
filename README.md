@@ -75,7 +75,6 @@ cd xboinc/examples/000_build_executable
 python 000_build_executable.py
 bash 001msys2_compile_executable.sh
 cd ../002_lhc
-python 000_build_executable.py
 python 001_build_input.py
 cd ../003_boinc
 export BOINC_DIR=/home/giadarol/Desktop/xsuite_packages/boinc
