@@ -1,6 +1,5 @@
 # This should work on Linux.  Modify as needed for other platforms.
 
-BOINC_DIR = /home/ddicroce/boinc
 BOINC_SOURCE_API_DIR = $(BOINC_DIR)/api
 BOINC_SOURCE_LIB_DIR = $(BOINC_DIR)/lib
 BOINC_SOURCE_ZIP_DIR = $(BOINC_DIR)/zip

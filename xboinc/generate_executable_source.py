@@ -19,18 +19,25 @@ def generate_executable_source(write_source_files=True,
 
     sim_config_sources = [
         insert_in_all_files,
-        xo.specialize_source(LineMetaData._gen_c_api().source,
-                                    specialize_for='cpu_serial'),
-        xo.specialize_source(SimState._XoStruct._gen_c_api().source,
-                                    specialize_for='cpu_serial'),
-        xo.specialize_source(SimConfig._gen_c_api().source,
-                                    specialize_for='cpu_serial'),
+        xo.specialize_source(
+            LineMetaData._gen_c_api().source.replace('/*restrict*/', ''),
+            specialize_for='cpu_serial'),
+        xo.specialize_source(
+            SimState._XoStruct._gen_c_api().source.replace('/*restrict*/', ''),
+            specialize_for='cpu_serial'),
+        xo.specialize_source(
+            SimConfig._gen_c_api().source.replace('/*restrict*/', ''),
+            specialize_for='cpu_serial'),
     ]
 
     sim_config_h = '\n'.join(sim_config_sources)
 
     default_tracker = get_default_tracker()
-    xtrack_tracker_h = insert_in_all_files + default_tracker.track_kernel.specialized_source
+    xtrack_tracker_h_general = insert_in_all_files + default_tracker.track_kernel.source
+    xtrack_tracker_h = xo.specialize_source(
+        xtrack_tracker_h_general.replace('/*restrict*/', ''),
+        specialize_for='cpu_serial')
+
 
     with open(_pkg_root.joinpath('executable_src/main.c'), 'r') as fid:
         main_c = insert_in_all_files + fid.read()

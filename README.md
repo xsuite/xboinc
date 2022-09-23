@@ -61,6 +61,7 @@ pip install --no-deps --no-build-isolation -e xboinc
 
 #### Test application
 
+
 ```bash
 $ cd xboinc/examples/000_build_executable
 $ python 000_build_executable.py
@@ -123,3 +124,4 @@ In one terminal:
 
 In another:
 `/c/Program\ Files/BOINC/boincmgr.exe`
+
