@@ -6,7 +6,7 @@
 
 ### How to install boinc client/manager on Windows
 
-Use the installed at: https://boinc.berkeley.edu/download.php
+Use the installer at: https://boinc.berkeley.edu/download.php
 
 
 ### Compile boinc api and examples from source on Windows
