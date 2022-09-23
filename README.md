@@ -125,7 +125,7 @@ write
 Then make folder structure
 ```
 mkdir projects/test.test
-cp ~/xsuite_packages/xboinc/examples/003_boinc/xboinc_input.bin projects/test.test/input.bin
+cp ~/xsuite_packages/xboinc/examples/002_lhc/xboinc_input.bin projects/test.test/input.bin
 cp ~/xsuite_packages/xboinc/examples/003_boinc/xboinc_executable.exe projects/test.test/xboinc_executable
 ```
 
