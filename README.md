@@ -95,8 +95,8 @@ We still work in MSYS2 (MINGW64)
 In order to have it working we needed to have the file structure in C:\PrgramData\Boinc
 
 ```
-cd /c/ProgramData/BOINC
- cp ~/xsuite_packages/xboinc/examples/003_boinc/client_state_save.xml .
+cd /c/ProgramData/BOINC # This in WINDOWS is hidden
+cp ~/xsuite_packages/xboinc/examples/003_boinc/client_state_save.xml .
 ```
 then
 
