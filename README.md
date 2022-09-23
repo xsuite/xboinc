@@ -64,21 +64,25 @@ pip install --no-deps --no-build-isolation -e xfields
 pip install --no-deps --no-build-isolation -e xboinc
 ```
 
-#### Test application
+#### Compile and generate input
 
 
 ```bash
-$ cd xboinc/examples/000_build_executable
-$ python 000_build_executable.py
-$ chmod +x 001msys2_compile_executable.sh
-$ ./001msys2_compile_executable.sh
-$ cd ../002_lhc
-$ python 000_build_executable.py
-$ python 001_build_input.py
-$ cd ../003_boinc
-$ export BOINC_DIR=/home/giadarol/Desktop/xsuite_packages/boinc
-$ python 000_build_executable.py
-$ make
+cd xboinc/examples/000_build_executable
+python 000_build_executable.py
+chmod +x 001msys2_compile_executable.sh
+./001msys2_compile_executable.sh
+cd ../002_lhc
+python 000_build_executable.py
+python 001_build_input.py
+cd ../003_boinc
+export BOINC_DIR=/home/giadarol/Desktop/xsuite_packages/boinc
+python 000_build_executable.py
+make
+```
+
+#### Run/test the executable
+```
 $ cp ../002_lhc/xboinc_input.bin .
 $ chmod +x xboinc_executable
 $ ./xboinc_executable
