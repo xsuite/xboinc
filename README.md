@@ -51,6 +51,9 @@ make
 ### Generate xboinc source and input files on windows
 
 ```
+cd 
+mkdir xsuite
+cd xsuite
 git clone https://github.com/xsuite/xobjects.git
 git clone https://github.com/xsuite/xpart.git
 git clone https://github.com/xsuite/xtrack.git
