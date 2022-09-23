@@ -73,8 +73,7 @@ pip install --no-deps --no-build-isolation -e xboinc
 ```bash
 cd xboinc/examples/000_build_executable
 python 000_build_executable.py
-chmod +x 001msys2_compile_executable.sh
-./001msys2_compile_executable.sh
+bash 001msys2_compile_executable.sh
 cd ../002_lhc
 python 000_build_executable.py
 python 001_build_input.py
