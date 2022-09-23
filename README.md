@@ -52,8 +52,8 @@ make
 
 ```
 cd 
-mkdir xsuite
-cd xsuite
+mkdir xsuite_packages
+cd xsuite_packages
 git clone https://github.com/xsuite/xobjects.git
 git clone https://github.com/xsuite/xpart.git
 git clone https://github.com/xsuite/xtrack.git
@@ -98,7 +98,7 @@ In order to have it working we needed to have the file structure in C:\PrgramDat
 
 ```
 cd /c/ProgramData/BOINC
- cp ~/xsuite/xboinc/examples/003_boinc/client_state_save.xml .
+ cp ~/xsuite_packages/xboinc/examples/003_boinc/client_state_save.xml .
 ```
 then
 
