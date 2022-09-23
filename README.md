@@ -77,7 +77,7 @@ bash 001msys2_compile_executable.sh
 cd ../002_lhc
 python 001_build_input.py
 cd ../003_boinc
-export BOINC_DIR=/home/giadarol/Desktop/xsuite_packages/boinc
+echo $BOINC_DIR # Check if points into the BOINC source directory 
 python 000_build_executable.py
 make
 ```
