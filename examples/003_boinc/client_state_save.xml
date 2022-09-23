@@ -28,7 +28,10 @@
 <file_info>
     <name>output.bin</name>
     <generated_locally/>
-    <max_nbytes>1e6</max_nbytes>
+    <max_nbytes>1e7</max_nbytes>
+    <sticky/>
+    <no_delete/>
+    <upload_when_present/>
 </file_info>
 
 <app_version>
