@@ -13,7 +13,12 @@ Use the installer at: https://boinc.berkeley.edu/download.php
 
 We use MSys2, in particular **MINGW64**
 
-Follow the instruction at https://www.msys2.org to install MSYS2 and GCC.
+Follow the instruction at https://www.msys2.org to install MSYS2 and GCC:
+```
+pacman -S mingw-w64-x86_64-gcc
+pacman -Suy
+pacman -Suy  # you need indeed twice!
+```
 
 Install git and python packages:
 ```
