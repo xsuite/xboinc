@@ -135,3 +135,7 @@ In one terminal:
 In another:
 `/c/Program\ Files/BOINC/boincmgr.exe`
 
+In case of problems stop boing client in the status bar:
+<img width="427" alt="image" src="https://user-images.githubusercontent.com/8049893/191972091-13fee31a-9dc8-459e-9f3f-3224c09bec47.png">
+
+
