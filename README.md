@@ -141,3 +141,4 @@ In case of problems stop boing client in the status bar:
 <img width="427" alt="image" src="https://user-images.githubusercontent.com/8049893/191972091-13fee31a-9dc8-459e-9f3f-3224c09bec47.png">
 
 
+The result are saved in projects/test.test/output.bin`
