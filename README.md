@@ -137,8 +137,19 @@ In another:
 
 In case of problems stop boing client in the status bar:
 
-
 <img width="427" alt="image" src="https://user-images.githubusercontent.com/8049893/191972091-13fee31a-9dc8-459e-9f3f-3224c09bec47.png">
 
+You can suspend using the activity menu:
 
-The result are saved in "projects/test.test/output.bin"
+<img width="785" alt="image" src="https://user-images.githubusercontent.com/8049893/191973210-64e0c156-9565-41d9-9e8c-8e5eeef19b2b.png">
+
+You can see the checkpoints in:
+
+<img width="835" alt="image" src="https://user-images.githubusercontent.com/8049893/191973307-498ce522-7542-4975-9e18-702bf449abd3.png">
+
+You can restart from the same menu. 
+
+
+When the job is finished, the result are saved in "projects/test.test/output.bin"
+
+
