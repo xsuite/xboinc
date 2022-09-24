@@ -6,14 +6,19 @@
 
 ### How to install boinc client/manager on Windows
 
-Use the installed at: https://boinc.berkeley.edu/download.php
+Use the installer at: https://boinc.berkeley.edu/download.php
 
 
 ### Compile boinc api and examples from source on Windows
 
 We use MSys2, in particular **MINGW64**
 
-Follow the instruction at https://www.msys2.org to install MSYS2 and GCC.
+Follow the instruction at https://www.msys2.org to install MSYS2 and GCC:
+```
+pacman -S mingw-w64-x86_64-gcc
+pacman -Suy
+pacman -Suy  # you need indeed twice!
+```
 
 Install git and python packages:
 ```
@@ -46,6 +51,9 @@ make
 ### Generate xboinc source and input files on windows
 
 ```
+cd 
+mkdir xsuite_packages
+cd xsuite_packages
 git clone https://github.com/xsuite/xobjects.git
 git clone https://github.com/xsuite/xpart.git
 git clone https://github.com/xsuite/xtrack.git
@@ -59,21 +67,23 @@ pip install --no-deps --no-build-isolation -e xfields
 pip install --no-deps --no-build-isolation -e xboinc
 ```
 
-#### Test application
+#### Compile and generate input
 
 
 ```bash
-$ cd xboinc/examples/000_build_executable
-$ python 000_build_executable.py
-$ chmod +x 001msys2_compile_executable.sh
-$ ./001msys2_compile_executable.sh
-$ cd ../002_lhc
-$ python 000_build_executable.py
-$ python 001_build_input.py
-$ cd ../003_boinc
-$ export BOINC_DIR=/home/giadarol/Desktop/xsuite_packages/boinc
-$ python 000_build_executable.py
-$ make
+cd xboinc/examples/000_build_executable
+python 000_build_executable.py
+bash 001msys2_compile_executable.sh
+cd ../002_lhc
+python 001_build_input.py
+cd ../003_boinc
+echo $BOINC_DIR # Check if points into the BOINC source directory 
+python 000_build_executable.py
+make
+```
+
+#### Run/test the executable
+```
 $ cp ../002_lhc/xboinc_input.bin .
 $ chmod +x xboinc_executable
 $ ./xboinc_executable
@@ -85,8 +95,8 @@ We still work in MSYS2 (MINGW64)
 In order to have it working we needed to have the file structure in C:\PrgramData\Boinc
 
 ```
-cd /c/ProgramData/BOINC
- cp ~/xsuite/xboinc/examples/003_boinc/client_state_save.xml .
+cd /c/ProgramData/BOINC # This in WINDOWS is hidden
+cp ~/xsuite_packages/xboinc/examples/003_boinc/client_state_save.xml .
 ```
 then
 
@@ -115,8 +125,8 @@ write
 Then make folder structure
 ```
 mkdir projects/test.test
-cp ~/xsuite/xboinc/examples/003_boinc/xboinc_input.bin projects/test.test/input.bin
-cp ~/xsuite/xboinc/examples/003_boinc/xboinc_executable.exe projects/test.test/
+cp ~/xsuite_packages/xboinc/examples/002_lhc/xboinc_input.bin projects/test.test/input.bin
+cp ~/xsuite_packages/xboinc/examples/003_boinc/xboinc_executable.exe projects/test.test/xboinc_executable
 ```
 
 In one terminal:
@@ -124,4 +134,22 @@ In one terminal:
 
 In another:
 `/c/Program\ Files/BOINC/boincmgr.exe`
+
+In case of problems stop boing client in the status bar:
+
+<img width="427" alt="image" src="https://user-images.githubusercontent.com/8049893/191972091-13fee31a-9dc8-459e-9f3f-3224c09bec47.png">
+
+You can suspend using the activity menu:
+
+<img width="785" alt="image" src="https://user-images.githubusercontent.com/8049893/191973210-64e0c156-9565-41d9-9e8c-8e5eeef19b2b.png">
+
+You can see the checkpoints in:
+
+<img width="835" alt="image" src="https://user-images.githubusercontent.com/8049893/191973307-498ce522-7542-4975-9e18-702bf449abd3.png">
+
+You can restart from the same menu. 
+
+
+When the job is finished, the result are saved in "projects/test.test/output.bin"
+
 

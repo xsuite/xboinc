@@ -1,0 +1,11 @@
+rm boinc_finish_called
+rm checkpoint.bin
+rm libstdc++.a
+rm main.c
+rm out
+rm sim_config.h
+rm stderr.txt
+rm xboinc_executable.exe
+rm xboinc_input.bin
+rm xtrack.o
+rm xtrack_tracker.h
