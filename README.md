@@ -84,9 +84,9 @@ make
 
 #### Run/test the executable
 ```
-$ cp ../002_lhc/xboinc_input.bin .
-$ chmod +x xboinc_executable
-$ ./xboinc_executable
+cp ../002_lhc/xboinc_input.bin .
+chmod +x xboinc_executable
+./xboinc_executable
 ```
 
 #### Running the test application with boinc server
@@ -238,9 +238,9 @@ make
 
 #### Run/test the executable
 ```
-$ cp ../002_lhc/xboinc_input.bin .
-$ chmod +x xboinc_executable
-$ ./xboinc_executable
+cp ../002_lhc/xboinc_input.bin .
+chmod +x xboinc_executable
+./xboinc_executable
 ```
 
 ### Running the test application with boinc server
