@@ -244,3 +244,58 @@ chmod +x xboinc_executable
 ```
 
 ### Running the test application with boinc server
+```
+cd
+mkdir xboinc_test
+cp ~/xsuite_packages/xboinc/examples/003_boinc/client_state_save.xml .
+```
+then
+
+```
+vim account_test.xml 
+```
+
+write
+```
+<account>
+    <master_url>http://test.test</master_url>
+    <project_name>test_project</project_name>
+</account>
+```
+then 
+```vim cc_config.xml```
+write
+```
+<cc_config>
+    <options>
+        <skip_cpu_benchmarks/>
+        <unsigned_apps_ok/>
+    </options>
+</cc_config>
+```
+
+Add the same GUI RPC passwords in
+```
+vim gui_rpc_auth.cfg
+```
+and in
+vim /etc/boinc-client/gui_rpc_auth.cfg
+```
+
+Then make folder structure
+```
+mkdir projects/test.test
+cp ~/xsuite_packages/xboinc/examples/002_lhc/xboinc_input.bin projects/test.test/input.bin
+cp ~/xsuite_packages/xboinc/examples/003_boinc/xboinc_executable.exe projects/test.test/xboinc_executable
+```
+
+In one terminal:
+`cp client_state_save.xml client_state.xml; boinc --gui_rpc_port 31417`
+
+In another:
+`boincmgr --gui_rpc_port 31417`
+
+!! Before running BOINC client or manager, kill the previous BOINC session
+```
+sudo /etc/init.d/boinc-client stop
+```
