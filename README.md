@@ -177,8 +177,10 @@ sudo apt install g++
 ```
 
 ```
+cd
 git clone https://github.com/BOINC/boinc
 cd boinc
+export BOINC_DIR=$PWD
 ./_autosetup
 ```
 From 
@@ -187,8 +189,11 @@ https://boinc.berkeley.edu/trac/wiki/BuildSystem
 "If you're developing or porting a BOINC application, you need only the API: "
 ```
 ./configure --disable-server --disable-client --disable-manager --disable-gui
+# This one takes very long
 ```
 and then
 ```
 make
+# This also takes quite long
 ```
+
