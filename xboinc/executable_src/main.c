@@ -6,9 +6,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int8_t* file_to_buffer(char *filename){
+int8_t* file_to_buffer(char *filename, int8_t* buf_in){
 
     FILE *sim_fid;
+    int8_t *buf;
 
     // Get buffer
     sim_fid = fopen(filename, "rb");
@@ -18,7 +19,13 @@ int8_t* file_to_buffer(char *filename){
     fseek(sim_fid, 0L, SEEK_END);
     unsigned long filesize = ftell(sim_fid);
     fseek(sim_fid, 0L, SEEK_SET);
-    int8_t* buf = malloc(filesize*sizeof(int8_t));
+    if (buf_in){
+        printf("Reusing buffer\n");
+        buf = buf_in;
+    }
+    else{
+        buf = malloc(filesize*sizeof(int8_t));
+    }
     fread(buf, sizeof(int8_t), filesize, sim_fid);
     fclose(sim_fid);
 
@@ -28,7 +35,7 @@ int8_t* file_to_buffer(char *filename){
 int main(){
 
 
-    int8_t* sim_buffer = file_to_buffer("./xboinc_input.bin");
+    int8_t* sim_buffer = file_to_buffer("./xboinc_input.bin", NULL);
     if (!sim_buffer){
         printf("Error: could not read simulation input file\n");
         return -1;
@@ -47,8 +54,18 @@ int main(){
     int64_t* line_ele_typeids = SimConfig_getp1_line_metadata_ele_typeids(sim_config, 0);
     ParticlesData particles = SimConfig_getp_sim_state_particles(sim_config);
     SimStateData sim_state = SimConfig_getp_sim_state(sim_config);
+    int64_t checkpoint_every = SimConfig_get_checkpoint_every(sim_config);
 
-    // This is what we want to call
+    // Check if checkpoint exists
+    printf("sim_state: %p\n", (int8_t*) sim_state);
+    int8_t* loaded = file_to_buffer("./checkpoint.bin", (int8_t*) sim_state);
+    if (loaded){
+        printf("Loaded checkpoint\n");
+    }
+    else{
+        printf("No checkpoint found\n");
+    }
+
     while (SimStateData_get_i_turn(sim_state) < num_turns){
         track_line(
             sim_buffer, //    int8_t* buffer,
@@ -62,9 +79,21 @@ int main(){
             0, //int flag_reset_s_at_end_turn,
             0, //    int flag_monitor,
             NULL,//    int8_t* buffer_tbt_monitor,
-            0//    int64_t offset_tbt_monitor
+            0, //    int64_t offset_tbt_monitor
+            NULL//    int8_t* io_buffer,
         );
         SimStateData_set_i_turn(sim_state, SimStateData_get_i_turn(sim_state) + 1);
+
+        if (checkpoint_every>0){
+            if (SimStateData_get_i_turn(sim_state) % checkpoint_every == 0){
+                printf("Checkpointing turn %d!\n", (int) SimStateData_get_i_turn(sim_state));
+                FILE *chkp_fid;
+                chkp_fid = fopen("./checkpoint.bin", "wb");
+                fwrite(SimConfig_getp_sim_state(sim_config), sizeof(int8_t),
+                    SimConfig_get_sim_state_size(sim_config), chkp_fid);
+                fclose(chkp_fid);
+            }
+        }
     }
 
     // Quick check
@@ -72,10 +101,21 @@ int main(){
         printf("s[%d] = %e\n", ii, ParticlesData_get_s(particles, (int64_t) ii));
     }
 
+    // Save output
     FILE *out_fid;
     out_fid = fopen("./sim_state_out.bin", "wb");
     fwrite(SimConfig_getp_sim_state(sim_config), sizeof(int8_t),
            SimConfig_get_sim_state_size(sim_config), out_fid);
-    return 0;
+    fclose(out_fid);
 
+    // Remove checkpoint
+    if (remove("./checkpoint.bin") != 0){
+        printf("Error: could not remove checkpoint file\n");
+        return -1;  // error
+    }
+    else{
+        printf("Checkpoint file removed\n");
+    }
+
+    return 0;
 }

@@ -3,7 +3,7 @@ import numpy as np
 import xboinc as xb
 
 # Read output
-filename = 'sim_state_out.bin'
+filename = 'out'
 sim_state = xb.read_output_file(filename)
 
 # Look at particles state

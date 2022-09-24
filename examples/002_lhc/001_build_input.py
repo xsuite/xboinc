@@ -15,9 +15,9 @@ with open(filename, 'r') as fid:
 input_data['particle']['x'] += np.linspace(0, 1e-3, 10)
 
 # Simulation input
-num_turns = 10
+num_turns = 1000
 line = xt.Line.from_dict(input_data['line'])
 particles = xp.Particles.from_dict(input_data['particle'])
 
 # Assemble data structure
-xb.build_input_file(line=line, particles=particles, num_turns=num_turns)
+xb.build_input_file(line=line, particles=particles, num_turns=num_turns, checkpoint_every=100)
