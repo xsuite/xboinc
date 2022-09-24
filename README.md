@@ -163,7 +163,7 @@ Basically only:
 sudo apt-get install aptitude
 sudo aptitude install boinc-client boinc-manager
 ```
-### Compile boinc api and examples from source on Ubuntu
+#### Compile boinc api and examples from source on Ubuntu
 
 On a fresh ubuntu installation I neede to:
 
@@ -222,3 +222,25 @@ pip install -e xfields
 pip install -e xboinc
 ```
 
+#### Compile and generate input
+
+```bash
+cd xboinc/examples/000_build_executable
+python 000_build_executable.py
+bash 001msys2_compile_executable.sh
+cd ../002_lhc
+python 001_build_input.py
+cd ../003_boinc
+echo $BOINC_DIR # Check if points into the BOINC source directory 
+python 000_build_executable.py
+make
+```
+
+#### Run/test the executable
+```
+$ cp ../002_lhc/xboinc_input.bin .
+$ chmod +x xboinc_executable
+$ ./xboinc_executable
+```
+
+### Running the test application with boinc server
