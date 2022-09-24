@@ -153,3 +153,42 @@ You can restart from the same menu.
 When the job is finished, the result are saved in "projects/test.test/output.bin"
 
 
+## INSTRUCTIONS FOR UBUNTU:
+
+### How to install boinc client/manager on Ubuntu
+https://boinc.berkeley.edu/wiki/Installing_BOINC_on_Ubuntu
+
+Basically only:
+```
+sudo apt-get install aptitude
+sudo aptitude install boinc-client boinc-manager
+```
+### Compile boinc api and examples from source on Ubuntu
+
+On a fresh ubuntu installation I neede to:
+
+```
+sudo apt install make
+sudo apt install m4
+sudo apt install pkg-config
+sudo apt install autoconf
+sudo apt install libtool
+sudo apt install g++
+```
+
+```
+git clone https://github.com/BOINC/boinc
+cd boinc
+./_autosetup
+```
+From 
+https://boinc.berkeley.edu/trac/wiki/BuildSystem
+
+"If you're developing or porting a BOINC application, you need only the API: "
+```
+./configure --disable-server --disable-client --disable-manager --disable-gui
+```
+and then
+```
+make
+```
