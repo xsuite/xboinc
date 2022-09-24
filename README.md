@@ -197,3 +197,28 @@ make
 # This also takes quite long
 ```
 
+### Installing xsuite packages
+```
+cd
+mkdir xsuite_packages
+cd xsuite_packages
+
+git clone https://github.com/xsuite/xobjects
+pip install -e xobjects
+
+git clone https://github.com/xsuite/xdeps
+pip install -e xdeps
+
+git clone https://github.com/xsuite/xpart
+pip install -e xpart
+
+git clone https://github.com/xsuite/xtrack
+pip install -e xtrack
+
+git clone https://github.com/xsuite/xfields
+pip install -e xfields
+
+git clone https://github.com/xsuite/xboinc
+pip install -e xboinc
+```
+
