@@ -279,6 +279,7 @@ Add the same GUI RPC passwords in
 vim gui_rpc_auth.cfg
 ```
 and in
+```
 vim /etc/boinc-client/gui_rpc_auth.cfg
 ```
 
