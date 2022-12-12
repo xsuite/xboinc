@@ -204,8 +204,6 @@ int main(int argc, char **argv) {
     printf("num_turns: %d\n", (int) num_turns);
     printf("num_elements: %d\n", (int) num_elements);
 
-    int64_t* line_ele_offsets = SimConfig_getp1_line_metadata_ele_offsets(sim_config, 0);
-    int64_t* line_ele_typeids = SimConfig_getp1_line_metadata_ele_typeids(sim_config, 0);
     ParticlesData particles = SimConfig_getp_sim_state_particles(sim_config);
     SimStateData sim_state = SimConfig_getp_sim_state(sim_config);
     int64_t checkpoint_every = SimConfig_get_checkpoint_every(sim_config);
