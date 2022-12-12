@@ -199,7 +199,7 @@ int main(int argc, char **argv) {
     SimConfig sim_config = (SimConfig) sim_buffer;
 
     const int64_t num_turns = SimConfig_get_num_turns(sim_config);
-    const int64_t num_elements = SimConfig_len_line_metadata_ele_offsets(sim_config);
+    const int64_t num_elements = SimConfig_get_num_elements(sim_config);
 
     printf("num_turns: %d\n", (int) num_turns);
     printf("num_elements: %d\n", (int) num_elements);
@@ -234,8 +234,7 @@ int main(int argc, char **argv) {
     while (SimStateData_get_i_turn(sim_state) < num_turns){
         track_line(
             sim_buffer, //    int8_t* buffer,
-            line_ele_offsets, //    int64_t* ele_offsets,
-            line_ele_typeids, //    int64_t* ele_typeids,
+            SimConfig_getp_line_metadata(sim_config), //ElementRefData elem_ref_data
             particles, //    ParticlesData particles,
             1, //    int num_turns,
             0, //    int ele_start,

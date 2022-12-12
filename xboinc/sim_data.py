@@ -6,9 +6,7 @@ import xtrack as xt
 
 from .default_tracker import get_default_tracker
 
-class LineMetaData(xo.Struct):
-    ele_offsets = xo.Int64[:]
-    ele_typeids = xo.Int64[:]
+_default_tracker = get_default_tracker()
 
 
 class SimState(xo.HybridClass):
@@ -20,8 +18,9 @@ class SimState(xo.HybridClass):
 
 
 class SimConfig(xo.Struct):
-    line_metadata = xo.Ref(LineMetaData)
+    line_metadata = xo.Ref(_default_tracker._tracker_data._element_ref_data.__class__)
     num_turns = xo.Int64
+    num_elements = xo.Int64
     checkpoint_every = xo.Int64
     sim_state = xo.Ref(SimState._XoStruct)
 
@@ -30,17 +29,15 @@ def build_input_file(num_turns, line, particles, checkpoint_every=-1):
     # Assemble data structure
     simbuf = xo.ContextCpu().new_buffer()
     sim_config = SimConfig(_buffer=simbuf)
-    default_tracker = get_default_tracker()
+    default_tracker = _default_tracker
     tracker = xt.Tracker(line=line, _buffer=simbuf,
                         track_kernel=default_tracker.track_kernel,
                         element_classes=default_tracker.element_classes)
-    line_metadata = LineMetaData(_buffer=simbuf,
-                                ele_offsets=tracker.ele_offsets_dev,
-                                ele_typeids=tracker.ele_typeids_dev)
 
     sim_state = SimState(_buffer=simbuf, particles=particles, i_turn=0)
-    sim_config.line_metadata = line_metadata
+    sim_config.line_metadata = tracker._tracker_data._element_ref_data
     sim_config.num_turns = num_turns
+    sim_config.num_elements = len(line.element_names)
     sim_config.checkpoint_every = checkpoint_every
     sim_config.sim_state = sim_state._xobject
     sim_state.size = sim_state._xobject._size # store size of sim_state
