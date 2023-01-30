@@ -37,7 +37,7 @@ default_line = xt.Line(elements=[
         slices_other_beam_Sigma_44=[0],
 
     ),
-    #xf.SpaceChargeBiGaussian(
+    #xf.SpaceChargeBiGaussian( # Not working!
     #    longitudinal_profile=xf.LongitudinalProfileQGaussian(
     #        number_of_particles=0, sigma_z=1)
     #),
