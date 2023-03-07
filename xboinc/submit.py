@@ -48,7 +48,7 @@ class SubmitJobs:
     def _submit(self):
         with tarfile.open(tempdir / self._submitfile, "w:gz") as tar:
             for thisfile in self._json_files + self._bin_files:
-                tar.add(thisfile, recursive=False)
+                tar.add(thisfile, arcname=thisfile.name)
         mv_to_eos(tempdir / self._submitfile, eosdir)
         # TODO: check that tar contains all files
         for thisfile in self._json_files + self._bin_files:
