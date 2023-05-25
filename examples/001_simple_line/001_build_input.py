@@ -9,4 +9,5 @@ line = xt.Line(elements=[
 particles = xp.Particles(mass0=xp.PROTON_MASS_EV, p0c=7e12, x=[1e-3,2e-3,3e-3])
 
 # Assemble data structure
-xb.build_input_file(line=line, particles=particles, num_turns=num_turns)
+xb.build_input_file(line=line, particles=particles, num_turns=num_turns,
+                    name='xboinc_input.bin')

@@ -20,4 +20,6 @@ line = xt.Line.from_dict(input_data['line'])
 particles = xp.Particles.from_dict(input_data['particle'])
 
 # Assemble data structure
-xb.build_input_file(line=line, particles=particles, num_turns=num_turns, checkpoint_every=100)
+xb.build_input_file(
+    line=line, particles=particles, num_turns=num_turns, checkpoint_every=100,
+    name='xboinc_input.bin')
