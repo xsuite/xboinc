@@ -49,4 +49,5 @@ def get_default_tracker(_context=None, compile=False):
     """
     if _context is None:
         _context = xo.ContextCpu()
-    return xt.Tracker(line=default_line, _context=_context, compile=compile)
+    return xt.Tracker(line=default_line, _context=_context, compile=compile,
+                      use_prebuilt_kernels=False)
