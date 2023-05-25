@@ -75,6 +75,8 @@ int main(){
             1, //int flag_end_turn_actions,
             0, //int flag_reset_s_at_end_turn,
             0, //    int flag_monitor,
+            0, //   int64_t num_ele_line, (needed only for backtracking)
+            0.0, //    double line_length, (needed only for backtracking)
             NULL,//    int8_t* buffer_tbt_monitor,
             0, //    int64_t offset_tbt_monitor
             NULL//    int8_t* io_buffer,
