@@ -1,4 +1,4 @@
-# XBOINC
+# XBOINC DEVELOP
 
 ## Python package for submitting track simulations in particle accelerators with BOINC system
 
