@@ -1,3 +1,27 @@
+# XBOINC USER
+To install
+```
+git clone https://github.com/xsuite/xobjects
+git clone https://github.com/xsuite/xdeps
+git clone https://github.com/xsuite/xpart
+git clone https://github.com/xsuite/xtrack
+git clone https://github.com/xsuite/xfields
+git clone https://github.com/xsuite/xboinc
+
+cd xobjects && git checkout v0.1.25 && cd .. # 2022 oct 16
+cd xdeps && git checkout v0.0.10 && cd ..    # 2022 oct 16 
+cd xpart && git checkout v0.8.5 && cd ..     # 2022 oct 16
+cd xtrack && git checkout v0.20.4 && cd ..   # 2022 oct 16
+cd xfields && git checkout v0.8.1 && cd ..   # 2022 oct 16 
+
+pip install -e xobjects
+pip install -e xdeps
+pip install -e xpart
+pip install -e xtrack
+pip install -e xfields
+pip install -e xboinc
+```
+
 # XBOINC DEVELOP
 
 ## Python package for submitting track simulations in particle accelerators with BOINC system
