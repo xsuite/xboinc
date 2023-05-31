@@ -18,9 +18,11 @@ def timestamp(ms=False):
 
 class SubmitJobs:
 
-    def __init__(self, username, studyname):
-        self._username = username
-        self._studyname = studyname
+    def __init__(self, user, study):
+        if '__' in study:
+            raise ValueError("The character sequence '__' is not allowed in 'study'!")
+        self._username = user
+        self._studyname = study
         self._submitfile = f"{self._studyname}__{timestamp()}.tar.gz"
         self._json_files = []
         self._bin_files = []
@@ -34,6 +36,8 @@ class SubmitJobs:
         temp.cleanup()
 
     def add(self, *, job_name, num_turns, line, particles, checkpoint_every=-1):
+        if '__' in job_name:
+            raise ValueError("The character sequence '__' is not allowed in 'job_name'!")
         filename = f"{self._username}__{timestamp(ms=True)}"
         json_file = Path(tempdir, f"{filename}.json")
         bin_file  = Path(tempdir, f"{filename}.bin")
