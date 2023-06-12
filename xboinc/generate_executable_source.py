@@ -27,9 +27,8 @@ def generate_executable_source(write_source_files=True,
 
     sim_config_h = '\n'.join(sim_config_sources)
 
-    default_tracker = get_default_tracker()
-    track_kernel, tracker_data = (
-        default_tracker.get_track_kernel_and_data_for_present_config())
+    default_tracker, default_config_hash = get_default_tracker()
+    track_kernel = default_tracker.track_kernel[default_config_hash]
     xtrack_tracker_h = (
         insert_in_all_files + track_kernel.specialized_source)
 

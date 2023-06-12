@@ -53,4 +53,5 @@ def get_default_tracker():
     _context = xo.ContextCpu()
     default_line.build_tracker(_context=_context, compile=True,
                                use_prebuilt_kernels=False)
-    return default_line.tracker
+    default_config_hash = default_line.tracker._hashable_config()
+    return default_line.tracker, default_config_hash

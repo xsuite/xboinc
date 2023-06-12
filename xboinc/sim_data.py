@@ -6,7 +6,7 @@ import xtrack as xt
 
 from .default_tracker import get_default_tracker
 
-_default_tracker = get_default_tracker()
+_default_tracker, _default_config_hash = get_default_tracker()
 
 
 class SimState(xo.HybridClass):
@@ -18,8 +18,7 @@ class SimState(xo.HybridClass):
 
 
 class SimConfig(xo.Struct):
-    track_kernel, tracker_data = (
-        _default_tracker.get_track_kernel_and_data_for_present_config())
+    tracker_data = _default_tracker._tracker_data_cache[_default_config_hash]
     line_metadata = xo.Ref(tracker_data._element_ref_data.__class__)
     num_turns = xo.Int64
     num_elements = xo.Int64
@@ -32,11 +31,13 @@ def build_input_file(name, num_turns, line, particles, checkpoint_every=-1):
     simbuf = xo.ContextCpu().new_buffer()
     sim_config = SimConfig(_buffer=simbuf)
     default_tracker = _default_tracker
-    tracker = xt.Tracker(line=line, _buffer=simbuf,
-                        track_kernel=default_tracker.track_kernel,
-                        element_classes=default_tracker.element_classes)
+    line.build_tracker(_context=simbuf.context, _buffer=simbuf,
+                        track_kernel=default_tracker.track_kernel)
     sim_state = SimState(_buffer=simbuf, particles=particles, i_turn=0)
-    sim_config.line_metadata = tracker._tracker_data._element_ref_data
+    if _default_config_hash not in line.tracker._tracker_data_cache:
+        raise RuntimeError('Tracker data for default config not found')
+    tracker_data = line.tracker._tracker_data_cache[_default_config_hash]
+    sim_config.line_metadata = tracker_data._element_ref_data
     sim_config.num_turns = num_turns
     sim_config.num_elements = len(line.element_names)
     sim_config.checkpoint_every = checkpoint_every
