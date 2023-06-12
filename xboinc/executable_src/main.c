@@ -73,7 +73,7 @@ int main(){
             0, //    int ele_start,
             (int) num_elements, //    int num_ele_track,
             1, //int flag_end_turn_actions,
-            0, //int flag_reset_s_at_end_turn,
+            1, //int flag_reset_s_at_end_turn,
             0, //    int flag_monitor,
             0, //   int64_t num_ele_line, (needed only for backtracking)
             0.0, //    double line_length, (needed only for backtracking)
