@@ -28,8 +28,10 @@ def generate_executable_source(write_source_files=True,
     sim_config_h = '\n'.join(sim_config_sources)
 
     default_tracker = get_default_tracker()
+    track_kernel, tracker_data = (
+        default_tracker.get_track_kernel_and_data_for_present_config())
     xtrack_tracker_h = (
-        insert_in_all_files + default_tracker._current_track_kernel.specialized_source)
+        insert_in_all_files + track_kernel.specialized_source)
 
     with open(_pkg_root.joinpath('executable_src/main.c'), 'r') as fid:
         main_c = insert_in_all_files + fid.read()

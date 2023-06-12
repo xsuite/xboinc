@@ -18,7 +18,9 @@ class SimState(xo.HybridClass):
 
 
 class SimConfig(xo.Struct):
-    line_metadata = xo.Ref(_default_tracker._tracker_data._element_ref_data.__class__)
+    track_kernel, tracker_data = (
+        _default_tracker.get_track_kernel_and_data_for_present_config())
+    line_metadata = xo.Ref(tracker_data._element_ref_data.__class__)
     num_turns = xo.Int64
     num_elements = xo.Int64
     checkpoint_every = xo.Int64
