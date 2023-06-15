@@ -4,5 +4,5 @@ from .sim_data import build_input_file, read_output_file
 #from .submission import sub_config, prepare_job, prepare_study, submit_study
 from .submit import SubmitJobs
 
-__version__ = '0.0.3'
+__version__ = '0.0.2'
 
