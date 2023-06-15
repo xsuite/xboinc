@@ -47,8 +47,8 @@ int main(){
     const int64_t num_turns = SimConfig_get_num_turns(sim_config);
     const int64_t num_elements = SimConfig_get_num_elements(sim_config);
 
-    printf("num_turns: %d\n", (int) num_turns);
-    printf("num_elements: %d\n", (int) num_elements);
+    //printf("num_turns: %d\n", (int) num_turns);
+    //printf("num_elements: %d\n", (int) num_elements);
 
     ParticlesData particles = SimConfig_getp_sim_state_particles(sim_config);
     SimStateData sim_state = SimConfig_getp_sim_state(sim_config);
@@ -57,12 +57,12 @@ int main(){
     // Check if checkpoint exists
     printf("sim_state: %p\n", (int8_t*) sim_state);
     int8_t* loaded = file_to_buffer("./checkpoint.bin", (int8_t*) sim_state);
-    if (loaded){
-        printf("Loaded checkpoint\n");
-    }
-    else{
-        printf("No checkpoint found\n");
-    }
+    //if (loaded){
+    //    printf("Loaded checkpoint\n");
+    //}
+    //else{
+    //    printf("No checkpoint found\n");
+    //}
 
     while (SimStateData_get_i_turn(sim_state) < num_turns){
         track_line(
@@ -85,7 +85,7 @@ int main(){
 
         if (checkpoint_every>0){
             if (SimStateData_get_i_turn(sim_state) % checkpoint_every == 0){
-                printf("Checkpointing turn %d!\n", (int) SimStateData_get_i_turn(sim_state));
+                //printf("Checkpointing turn %d!\n", (int) SimStateData_get_i_turn(sim_state));
                 FILE *chkp_fid;
                 chkp_fid = fopen("./checkpoint.bin", "wb");
                 fwrite(SimConfig_getp_sim_state(sim_config), sizeof(int8_t),
@@ -96,9 +96,9 @@ int main(){
     }
 
     // Quick check
-    for (int ii=0; ii<ParticlesData_get__capacity(particles); ii++){
-        printf("s[%d] = %e\n", ii, ParticlesData_get_s(particles, (int64_t) ii));
-    }
+    //for (int ii=0; ii<ParticlesData_get__capacity(particles); ii++){
+        //printf("s[%d] = %e\n", ii, ParticlesData_get_s(particles, (int64_t) ii));
+    //}
 
     // Save output
     FILE *out_fid;
@@ -113,7 +113,7 @@ int main(){
         return -1;  // error
     }
     else{
-        printf("Checkpoint file removed\n");
+        //printf("Checkpoint file removed\n");
     }
 
     return 0;
