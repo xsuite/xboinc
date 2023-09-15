@@ -25,7 +25,8 @@ do
   then
     thisfile=${file/.\*/\*}
     echo "File $thisfile is protected but has local changes."
-    echo "Restore the file with 'git restore "${thisfile}"' before commiting anything, or force this commit with 'commit --no-verify'."
+    echo "Restore the file with 'git restore "${thisfile}"' before commiting anything,"
+    echo "or force this commit with 'git commit --no-verify'."
     exit 1
   fi
   git diff --cached --name-only | grep '^'${file}'$' &> /dev/null
@@ -33,7 +34,9 @@ do
   then
     thisfile=${file/.\*/\*}
     echo "File $thisfile is protected but has local changes that are staged."
-    echo "Restore the file with 'git restore "${thisfile}"' before commiting anything, or force this commit with 'commit --no-verify'."
+    echo "First unstage the file with 'git restore --staged "${thisfile}"', then "
+    echo "restore the file with 'git restore "${thisfile}"' before commiting anything."
+    echo "Alternatively, force this commit with 'git commit --no-verify'."
     exit 1
   fi
 done
