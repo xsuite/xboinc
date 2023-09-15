@@ -1,3 +1,8 @@
+// copyright ############################### #
+// This file is part of the Xboinc Package.  #
+// Copyright (c) CERN, 2023.                 #
+// ######################################### #
+
 #include <math.h>
 
 #include "xtrack_tracker.h"
@@ -7,11 +12,18 @@
 #include <stdlib.h>
 
 
+// ===============================================================================================
+// IMPORTANT
+// ===============================================================================================
+// Only make changes to this file just before a minor version bump (need a separate commit though)
+// to avoid having multiple xboinc versions with out-of-sync executables.
+
+// ===============================================================================================
 // Do not change
-// ==================================
+// ===============================================================================================
 // version XXX.YYY as int  (no patch)
 int64_t xboinc_exec_version = 0;
-// ==================================
+// ===============================================================================================
 
 
 int8_t* file_to_buffer(char *filename, int8_t* buf_in){

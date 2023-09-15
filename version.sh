@@ -97,7 +97,7 @@ sed -i "s/\(__version__ =\).*/\1 '"${new_ver}"'/"                 xboinc/general
 sed -i "s/\(assert __version__ ==\).*/\1 '"${new_ver}"'/"         tests/test_version.py
 git reset
 git add pyproject.toml xboinc/general.py tests/test_version.py xboinc/executable/main.c
-git commit -m "Updated version number to v"${new_ver}"."
+git commit --no-verify -m "Updated version number to v"${new_ver}"."
 git push
 
 # Make and accept pull request
@@ -122,3 +122,6 @@ curl \
 
 # Build release and publish to PyPi
 poetry publish --build
+
+
+

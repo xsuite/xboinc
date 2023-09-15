@@ -1,9 +1,20 @@
+# copyright ############################### #
+# This file is part of the Xboinc Package.  #
+# Copyright (c) CERN, 2023.                 #
+# ######################################### #
+
 import xtrack as xt
 import xfields as xf
 import xobjects as xo
 import xcoll as xc
 
 
+# ===============================================================================================
+# IMPORTANT
+# ===============================================================================================
+# Only make changes to this file just before a minor version bump (need a separate commit though)
+# to avoid having multiple xboinc versions with out-of-sync executables.
+# ===============================================================================================
 
 def get_default_tracker():
     """
