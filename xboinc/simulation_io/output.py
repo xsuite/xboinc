@@ -30,7 +30,7 @@ def _int_to_version(verint):
 # in order to read the correct version from the binary
 class SimVersion(xo.HybridClass):
     _xofields = {
-        'xboinc_version':   xo.Int64,    #  version XXX.YYY.ZZZ as int
+        'xboinc_version':   xo.Int64,    # version XXX.YYY.ZZZ as int
     }
 
     def __init__(self, **kwargs):
@@ -74,11 +74,11 @@ class SimState(xo.HybridClass):
                 version_offset = field.offset
         if version_offset == -1:
             raise ValueError("No xofield 'version' found in SimState!")
-        simver_xobject = SimVersion._XoStruct._from_buffer(buffer=buffer_data, offset=offset+version_offset)
-        simver = SimVersion(_xobject=simver_xobject)
-        simver.assert_version()
+        sim_ver_xobject = SimVersion._XoStruct._from_buffer(buffer=buffer_data, offset=offset+version_offset)
+        sim_ver = SimVersion(_xobject=sim_ver_xobject)
+        sim_ver.assert_version()
         # Retrieve simulation state
-        simstate_xobject = cls._XoStruct._from_buffer(buffer=buffer_data, offset=offset)
-        simstate_out = cls(_xobject=simstate_xobject)
-        return simstate_out
+        sim_state_xobject = cls._XoStruct._from_buffer(buffer=buffer_data, offset=offset)
+        sim_state_out = cls(_xobject=sim_state_xobject)
+        return sim_state_out
 

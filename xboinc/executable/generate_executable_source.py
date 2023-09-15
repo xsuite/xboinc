@@ -1,7 +1,7 @@
 import xobjects as xo
 from .default_tracker import get_default_tracker
-from .simulation_data import SimState, SimConfig
-from .general import _pkg_root
+from .simulation_io import SimState, SimConfig
+from .general import _pkg_root, __version__
 
 from pathlib import Path
 import shutil
@@ -16,7 +16,6 @@ insert_in_all_files = """
 
 def generate_executable_source(write_source_files=True,
                                        _context=None):
-
     assert _context is None
     assert write_source_files
 
@@ -52,21 +51,24 @@ def generate_executable_source(write_source_files=True,
 
 
 def generate_executable(keep_source=False):
-    
     main    = Path.cwd() / "main.c"
     config  = Path.cwd() / "sim_config.h"
     tracker = Path.cwd() / "xtrack_tracker.h"
     if not main.exists() or not config.exists() or not tracker.exists():
         source_files = generate_executable_source()
-    
+
     if shutil.which("gcc") is not None:
         compiler = "gcc"
     elif shutil.which("clang") is not None:
         compiler = "clang"
     else:
         raise RuntimeError("Neither clang or gcc are found. Install a C compiler.")
-    
-    cmd = subprocess.run([compiler, 'main.c', '-o', 'xboinc_executable', '-lm'],
+
+    tag = '.'.join(__version__.split('.')[:2])
+    cmd = subprocess.run(['uname', '-ps'], stdout=subprocess.PIPE)
+    if cmd.returncode == 0:
+        tag += '-' + cmd.stdout.decode('UTF-8').strip().lower().replace(' ','-')
+    cmd = subprocess.run([compiler, 'main.c', '-o', f'xboinc_{tag}', '-lm'],
                           stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if cmd.returncode != 0:
         stderr = cmd.stderr.decode('UTF-8').strip().split('\n')

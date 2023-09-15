@@ -7,6 +7,11 @@ from pathlib import Path
 
 _pkg_root = Path(__file__).parent.absolute()
 
+
+# ====================================================================
+# Do not change
+# ====================================================================
+
 __version__ = '0.0.3'
 
 # These are the xsuite modules that are used by boinc and the versions they are tied to.
@@ -21,3 +26,5 @@ __xsuite__versions__ = {
     'xfields'  : '0.13.1',
     'xcoll'    : '0.2.5',
 }
+
+# ====================================================================

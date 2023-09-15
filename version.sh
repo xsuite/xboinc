@@ -65,10 +65,15 @@ case ${answer:0:1} in
     ;;
 esac
 
-# Check if at least bumping the minor version, because then we freeze the xsuite env
+# Two cases:
+#    patch: Only internal changes (interface to xboinc and server etc)
+#           No changes to the underlying C  ->  xsuite versions remain pinned
+#    minor: Changes to the underlying C  ->  new xsuite versions are pinned
+#           This is when we want to create a new executable for the server
 current_ver=(${current_ver//./ })
 current_ver=${current_ver[0]}.${current_ver[1]}
 minor_ver=(${expected_ver//./ })
+exec_ver=$(( 1000*${minor_ver[0]} + ${minor_ver[1]} ))
 minor_ver=${minor_ver[0]}.${minor_ver[1]}
 if [[ "$minor_ver" != "$current_ver" ]]
 then
@@ -87,10 +92,11 @@ then
     echo "Fatal error: poetry --dry-run expected $expected_ver, but result is $new_ver..."
     exit 1
 fi
-sed -i "s/\(__version__ =\).*/\1 '"${new_ver}"'/"         xboinc/general.py
-sed -i "s/\(assert __version__ ==\).*/\1 '"${new_ver}"'/" tests/test_version.py
+sed -i "s/\(int64_t xboinc_exec_version =\).*/\1 "${exec_ver}";/" xboinc/executable/main.c
+sed -i "s/\(__version__ =\).*/\1 '"${new_ver}"'/"                 xboinc/general.py
+sed -i "s/\(assert __version__ ==\).*/\1 '"${new_ver}"'/"         tests/test_version.py
 git reset
-git add pyproject.toml xboinc/general.py tests/test_version.py
+git add pyproject.toml xboinc/general.py tests/test_version.py xboinc/executable/main.c
 git commit -m "Updated version number to v"${new_ver}"."
 git push
 
