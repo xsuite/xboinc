@@ -1,6 +1,6 @@
 import xobjects as xo
 from .default_tracker import get_default_tracker
-from .sim_data import SimState, SimConfig
+from .simulation_data import SimState, SimConfig
 from .general import _pkg_root
 
 from pathlib import Path
