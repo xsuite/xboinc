@@ -38,7 +38,7 @@ def _xrd_path(path):
     path = Path(path).expanduser().resolve()
     return EOS_MGM_URL + '/' + _eos_path(path)
 
-def eos_glob(pattern, path, is_server=True):
+def eos_glob(pattern, path, is_server=False):
     try:
         path = Path(path).expanduser().resolve()
         cmd = subprocess.run(['eos', 'find', '-name', pattern, _eos_path(path)],
@@ -51,7 +51,7 @@ def eos_glob(pattern, path, is_server=True):
         log_error(f"Failed eos_glob {pattern} in {path}!\n", e, is_server=is_server)
         return []
 
-def eos_exists(path, is_server=True):
+def eos_exists(path, is_server=False):
     try:
         path = Path(path).expanduser().resolve()
         cmd = subprocess.run(['eos', 'find', '-name', path.name, _eos_path(path.parent)],
@@ -63,7 +63,7 @@ def eos_exists(path, is_server=True):
         log_error(f"Failed eos_exists for {path}!\n", e, is_server=is_server)
         return False
 
-def eos_rm(path, is_server=True):
+def eos_rm(path, is_server=False):
     try:
         path = Path(path).expanduser().resolve()
         cmd = subprocess.run(['eos', 'rm', _eos_path(path)], stdout=subprocess.PIPE, env=eos_env)
@@ -79,7 +79,7 @@ def eos_rm(path, is_server=True):
 
 
 # Always use this file by file, not for a list of files
-def cp_from_eos(source, target, maximum_trials=10, wait=2.7, is_server=True):
+def cp_from_eos(source, target, maximum_trials=10, wait=2.7, is_server=False):
     try:
         target = Path(target).expanduser().resolve()
         for i in range(maximum_trials):
@@ -101,13 +101,13 @@ def cp_from_eos(source, target, maximum_trials=10, wait=2.7, is_server=True):
         log_error(f"Failed to copy {str(source)} to {str(target)}!\n", e, is_server=is_server)
         return 1
 
-def mv_from_eos(source, target, maximum_trials=10, wait=2.7, is_server=True):
+def mv_from_eos(source, target, maximum_trials=10, wait=2.7, is_server=False):
     if not cp_from_eos(source, target, maximum_trials, wait, is_server=is_server):   # returncode 0 means success
         eos_rm(source, is_server=is_server)
 
 
 # Always use this file by file, not for a list of files
-def cp_to_eos(source, target, maximum_trials=10, wait=2.7, is_server=True):
+def cp_to_eos(source, target, maximum_trials=10, wait=2.7, is_server=False):
     try:
         source = Path(source).expanduser().resolve()
         target = Path(target, source.name).expanduser().resolve()
@@ -131,6 +131,6 @@ def cp_to_eos(source, target, maximum_trials=10, wait=2.7, is_server=True):
         log_error(f"Failed to copy {str(source)} to {str(target)}!\n", e, is_server=is_server)
         return 1
 
-def mv_to_eos(source, target, maximum_trials=10, wait=2.7, is_server=True):
+def mv_to_eos(source, target, maximum_trials=10, wait=2.7, is_server=False):
     if not cp_to_eos(source, target, maximum_trials, wait, is_server=is_server):   # returncode 0 means success
         source.unlink()

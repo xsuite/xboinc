@@ -48,7 +48,7 @@ def register(user, folder):
     except Exception as e:
         user_file.unlink()
         raise Exception(e)
-    if cp_to_eos(user_file, dropdir, maximum_trials=1, is_server=False):  # returncode 1 means error
+    if cp_to_eos(user_file, dropdir, maximum_trials=1):  # returncode 1 means error
         user_file.unlink()
         raise Exception(f"Failed to copy register file to server dropdir.\n"
                        + "Do you have permissions?\n"
