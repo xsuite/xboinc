@@ -32,7 +32,7 @@ def get_user_data(user):
     return userdict[user]
 
 def get_folder(user):
-    return get_user_data(user)['folder']
+    return Path(get_user_data(user)['folder']).resolve()
 
 def get_domain(user):
     return get_user_data(user)['domain']
