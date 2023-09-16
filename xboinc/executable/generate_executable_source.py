@@ -4,7 +4,7 @@
 # ######################################### #
 
 import xobjects as xo
-from ..simulation_io import SimState, SimConfig, SimVersion, get_default_tracker
+from ..simulation_io import SimState, SimConfig, SimVersion, app_version, get_default_tracker
 from ..general import _pkg_root, __version__
 
 from pathlib import Path
@@ -78,8 +78,7 @@ def generate_executable(keep_source=False):
     else:
         raise RuntimeError("Neither clang or gcc are found. Install a C compiler.")
 
-    tag = '_'
-    tag += '.'.join(__version__.split('.')[:2])
+    tag = f'_{app_version}'
     cmd = subprocess.run(['uname', '-ps'], stdout=subprocess.PIPE)
     if cmd.returncode == 0:
         tag += '-' + cmd.stdout.decode('UTF-8').strip().lower().replace(' ','-')

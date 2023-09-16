@@ -89,6 +89,7 @@ esac
 current_ver=(${current_ver//./ })
 current_ver=${current_ver[0]}.${current_ver[1]}
 minor_ver=(${expected_ver//./ })
+# TODO: exec_ver should come from python app_version_int
 exec_ver=$(( 1000*${minor_ver[0]} + ${minor_ver[1]} ))
 minor_ver=${minor_ver[0]}.${minor_ver[1]}
 if [[ "$minor_ver" != "$current_ver" ]]

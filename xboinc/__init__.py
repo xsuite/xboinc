@@ -12,7 +12,7 @@ if not is_xrdcp_installed():
 from .register import register
 from .submit import SubmitJobs
 
-from .simulation_io import SimState, SimConfig
+from .simulation_io import SimState, SimConfig, app_version, app_version_int
 from .executable import generate_executable_source, generate_executable
 
 
