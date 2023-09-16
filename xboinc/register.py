@@ -28,7 +28,7 @@ def _create_json(user, folder):
     data = {'user': user, 'folder': folder.as_posix(), 'domain': domain}
     with user_file.open('w') as f:
         json.dump(data, f)
-    return user_file, domain
+    return user_file, data
 
 
 def _set_rights(folder, domain):
@@ -42,9 +42,9 @@ def register(user, folder):
     folder = Path(folder).expanduser().resolve()
     if not folder.is_dir():
         raise ValueError(f"Folder {folder} not found or not a folder (or no permissions)!")
-    user_file, domain = _create_json(user, folder)
+    user_file, data = _create_json(user, folder)
     try:
-        _set_rights(folder, domain)
+        _set_rights(folder, data['domain'])
     except Exception as e:
         user_file.unlink()
         raise Exception(e)

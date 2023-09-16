@@ -1,20 +1,22 @@
+# copyright ############################### #
+# This file is part of the Xboinc Package.  #
+# Copyright (c) CERN, 2023.                 #
+# ######################################### #
+
 import json
 import tarfile
 from pathlib import Path
 import tempfile
 import datetime
 
-from .eos import mv_from_eos, mv_to_eos
-from .sim_data import build_input_file
-from .default_tracker import get_default_tracker
+from .server.eos import mv_from_eos, mv_to_eos
+from .server.tools import timestamp
+from .simulation_io import SimConfig
 
 temp    = tempfile.TemporaryDirectory()
 tempdir = Path(temp.name).resolve()
 eosdir  = '/eos/user/d/ddicroce/xboinc/'
 
-def timestamp(ms=False):
-    ms = -3 if ms else -7
-    return datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S.%f")[:ms]
 
 class SubmitJobs:
 
@@ -44,7 +46,7 @@ class SubmitJobs:
         json_dict = {'study': self._studyname, 'user': self._username, 'job_name': job_name}
         with open(json_file, 'w') as fid:
             json.dump(json_dict, fid)
-        build_input_file(name=bin_file, num_turns=num_turns, line=line,
+        SimConfig.build(name=bin_file, num_turns=num_turns, line=line,
                          particles=particles, checkpoint_every=checkpoint_every)
         self._json_files += [json_file]
         self._bin_files  += [bin_file]
@@ -53,7 +55,7 @@ class SubmitJobs:
         with tarfile.open(tempdir / self._submitfile, "w:gz") as tar:
             for thisfile in self._json_files + self._bin_files:
                 tar.add(thisfile, arcname=thisfile.name)
-        mv_to_eos(tempdir / self._submitfile, eosdir)
+        mv_to_eos(tempdir / self._submitfile, eosdir, is_server=False)
         # TODO: check that tar contains all files
         for thisfile in self._json_files + self._bin_files:
             thisfile.unlink()
