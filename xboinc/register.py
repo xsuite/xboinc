@@ -7,9 +7,10 @@ import json
 from pathlib import Path
 
 from .general import _pkg_root
+from .user import update_user_data
 from .server import server_account
 from .server.paths import dropdir
-from .server.eos import cp_to_eos
+from .server.eos import eos_exists, eos_rm, cp_to_eos
 from .server.afs import afs_add_acl
 
 
@@ -48,9 +49,13 @@ def register(user, folder):
     except Exception as e:
         user_file.unlink()
         raise Exception(e)
+    if eos_exists(dropdir / user_file.name):
+        eos_rm(dropdir / user_file.name)
+        print("Replaced existing registration file on server dropdir.")
     if cp_to_eos(user_file, dropdir, maximum_trials=1):  # returncode 1 means error
         user_file.unlink()
         raise Exception(f"Failed to copy register file to server dropdir.\n"
                        + "Do you have permissions?\n"
                        + "If not, add yourself to the CERN xboinc-submitters egroup.")
-    user_file.rename(user_data_file)
+    user_file.unlink()
+    update_user_data(user, data)
