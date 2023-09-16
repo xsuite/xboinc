@@ -3,5 +3,6 @@
 # Copyright (c) CERN, 2023.                 #
 # ######################################### #
 
-from .output import SimState
+from .default_tracker import get_default_tracker
+from .output import SimState, SimVersion
 from .input import SimConfig

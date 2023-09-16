@@ -63,8 +63,7 @@ int main(){
 
     // Get sim config
     SimConfig sim_config = (SimConfig) sim_buffer;
-    SimVersion sim_ver = SimConfig_getp_sim_state_version(sim_config);
-    int64_t input_version = SimVersionData_get_xboinc_version(sim_ver);
+    int64_t input_version = SimConfig_get_sim_state_version_xboinc_version(sim_config);
     // Compatible if major and minor versions match (no new executables are made at patches)
     input_version = input_version/1000;
     if (input_version != xboinc_exec_version){
@@ -84,8 +83,9 @@ int main(){
     // Check if checkpoint exists
     printf("sim_state: %p\n", (int8_t*) sim_state);
     int8_t* loaded = file_to_buffer("./checkpoint.bin", (int8_t*) sim_state);
+    int64_t current_turn = SimStateData_get_i_turn(sim_state);
     if (loaded){
-       printf("Loaded checkpoint\n");
+       printf("Loaded checkpoint, continuing from turn %d\n", (int) current_turn);
     }
     else{
        printf("No checkpoint found\n");
@@ -98,7 +98,6 @@ int main(){
         step_turns = num_elements;
     }
 
-    int64_t current_turn = SimStateData_get_i_turn(sim_state);
     while (current_turn < num_turns){
         if (current_turn > num_turns - checkpoint_every){
             step_turns = num_turns - checkpoint_every;
@@ -121,15 +120,20 @@ int main(){
         );
         SimStateData_set_i_turn(sim_state, SimStateData_get_i_turn(sim_state) + step_turns);
 
+        current_turn = SimStateData_get_i_turn(sim_state);
         if (checkpoint_every>0){
-            printf("Checkpointing turn %d!\n", (int) SimStateData_get_i_turn(sim_state));
-            FILE *chkp_fid;
-            chkp_fid = fopen("./checkpoint.bin", "wb");
-            fwrite(SimConfig_getp_sim_state(sim_config), sizeof(int8_t),
-                SimConfig_get_sim_state_size(sim_config), chkp_fid);
-            fclose(chkp_fid);
+            if (current_turn < num_turns){
+                printf("Checkpointing turn %d\n", (int) current_turn);
+                FILE *chkp_fid;
+                chkp_fid = fopen("./checkpoint.bin", "wb");
+                fwrite(SimConfig_getp_sim_state(sim_config), sizeof(int8_t),
+                    SimConfig_get_sim_state_size(sim_config), chkp_fid);
+                fclose(chkp_fid);
+            }
         }
     }
+
+    printf("Finished tracking\n");
 
     // Quick check
     //for (int ii=0; ii<ParticlesData_get__capacity(particles); ii++){
@@ -147,9 +151,6 @@ int main(){
     if (remove("./checkpoint.bin") != 0){
         printf("Error: could not remove checkpoint file\n");
         return -1;  // error
-    }
-    else{
-        printf("Checkpoint file removed\n");
     }
 
     return 0;

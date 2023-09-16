@@ -1,11 +1,22 @@
+# copyright ############################### #
+# This file is part of the Xboinc Package.  #
+# Copyright (c) CERN, 2023.                 #
+# ######################################### #
+
 import xobjects as xo
-from .default_tracker import get_default_tracker
-from .simulation_io import SimState, SimConfig
-from .general import _pkg_root, __version__
+from ..simulation_io import SimState, SimConfig, SimVersion, get_default_tracker
+from ..general import _pkg_root, __version__
 
 from pathlib import Path
 import shutil
 import subprocess
+
+# ===============================================================================================
+# IMPORTANT
+# ===============================================================================================
+# Only make changes to this file just before a minor version bump (need a separate commit though)
+# to avoid having multiple xboinc versions with out-of-sync executables.
+# ===============================================================================================
 
 insert_in_all_files = """
 #include <stdio.h>
@@ -21,6 +32,8 @@ def generate_executable_source(write_source_files=True,
 
     sim_config_sources = [
         insert_in_all_files,
+        xo.specialize_source(SimVersion._XoStruct._gen_c_api().source,
+                                    specialize_for='cpu_serial'),
         xo.specialize_source(SimState._XoStruct._gen_c_api().source,
                                     specialize_for='cpu_serial'),
         xo.specialize_source(SimConfig._gen_c_api().source,
@@ -34,7 +47,7 @@ def generate_executable_source(write_source_files=True,
     xtrack_tracker_h = (
         insert_in_all_files + track_kernel.specialized_source)
 
-    with open(_pkg_root.joinpath('executable_src/main.c'), 'r') as fid:
+    with open(_pkg_root.joinpath('executable/main.c'), 'r') as fid:
         main_c = insert_in_all_files + fid.read()
 
     dct_sources = {
@@ -44,7 +57,8 @@ def generate_executable_source(write_source_files=True,
     }
 
     for nn, vv in dct_sources.items():
-        with open(nn, 'w') as fid:
+        file = Path.cwd() / nn
+        with file.open('w') as fid:
             fid.write(vv)
 
     return dct_sources
@@ -64,17 +78,22 @@ def generate_executable(keep_source=False):
     else:
         raise RuntimeError("Neither clang or gcc are found. Install a C compiler.")
 
-    tag = '.'.join(__version__.split('.')[:2])
+    tag = '_'
+    tag += '.'.join(__version__.split('.')[:2])
     cmd = subprocess.run(['uname', '-ps'], stdout=subprocess.PIPE)
     if cmd.returncode == 0:
         tag += '-' + cmd.stdout.decode('UTF-8').strip().lower().replace(' ','-')
-    cmd = subprocess.run([compiler, 'main.c', '-o', f'xboinc_{tag}', '-lm'],
+    cmd = subprocess.run([compiler, 'main.c', '-o', f'xboinc{tag}', '-lm'],
                           stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if cmd.returncode != 0:
         stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
         raise RuntimeError(f"Compilation failed. Stderr:\n {stderr}")
 
-    if not keep_source:
+    if keep_source:
+        main.rename(main.parent / f'{main.stem}{tag}{main.suffix}')
+        config.rename(config.parent / f'{config.stem}{tag}{config.suffix}')
+        tracker.rename(tracker.parent / f'{tracker.stem}{tag}{tracker.suffix}')
+    else:
         main.unlink()
         config.unlink()
         tracker.unlink()

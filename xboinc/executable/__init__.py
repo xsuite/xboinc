@@ -4,4 +4,3 @@
 # ######################################### #
 
 from .generate_executable_source import generate_executable_source, generate_executable
-from .default_tracker import get_default_tracker

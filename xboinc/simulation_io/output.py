@@ -35,11 +35,11 @@ class SimVersion(xo.HybridClass):
 
     def __init__(self, **kwargs):
         if '_xobject' not in kwargs:
-            kwargs['xboinc'] = _version_to_int(version)
+            kwargs['xboinc_version'] = _version_to_int(__version__)
         super().__init__(**kwargs)
 
     def assert_version(self):
-        if _version_to_int(__version__) != self.xboinc_version:
+        if int(_version_to_int(__version__)/1000) != int(self.xboinc_version/1000):
             error += f"Incompatible xboinc version! Output file needs "
             error +  f"{_int_to_version(self.xboinc_version)}, "
             error +  f"but current version is {__version__}.\n"
@@ -57,10 +57,11 @@ class SimState(xo.HybridClass):
     def __init__(self, **kwargs):
         if '_xobject' not in kwargs:
             kwargs['version'] = SimVersion()
+        # TODO: can we set size at construction?
         super().__init__(**kwargs)
 
     @classmethod
-    def from_binary(filename, offset=0):
+    def from_binary(cls, filename, offset=0):
         # Read binary
         filename = Path(filename)
         with filename.open('rb') as fid:

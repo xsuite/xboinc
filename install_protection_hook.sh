@@ -18,7 +18,7 @@ then
   exit 1
 fi
 
-for file in pyproject.toml version.sh LICENSE install_protection_hook.sh pin_xsuite_versions.sh xboinc/general.py 'xboinc/executable/.*'
+for file in pyproject.toml version.sh LICENSE install_protection_hook.sh pin_xsuite_versions.sh xboinc/general.py 'xboinc/executable/.*' 'xboinc/simulation_io/.*'
 do
   git diff --name-only | grep '^'${file}'$' &> /dev/null
   if [ $? -eq 0 ]
