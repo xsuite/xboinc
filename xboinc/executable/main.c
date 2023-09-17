@@ -90,10 +90,12 @@ int main(){
     }
 
     int64_t step_turns;
-    if (checkpoint_every>0){
+    if (checkpoint_every > 0){
         step_turns = checkpoint_every;
+        printf("Checkpointing every %d turns\n", (int) step_turns);
     } else {
-        step_turns = num_elements;
+        step_turns = num_turns;
+        printf("Not checkpointing\n");
     }
 
     while (current_turn < num_turns){
@@ -119,7 +121,7 @@ int main(){
         SimStateData_set_i_turn(sim_state, SimStateData_get_i_turn(sim_state) + step_turns);
 
         current_turn = SimStateData_get_i_turn(sim_state);
-        if (checkpoint_every>0){
+        if (checkpoint_every > 0){
             if (current_turn < num_turns){
                 printf("Checkpointing turn %d\n", (int) current_turn);
                 FILE *chkp_fid;
@@ -146,10 +148,11 @@ int main(){
     fclose(out_fid);
 
     // Remove checkpoint
-    if (remove("./checkpoint.bin") != 0){
-        printf("Error: could not remove checkpoint file\n");
-        return -1;  // error
+    if (checkpoint_every > 0 && checkpoint_every < num_turns){
+        if (remove("./checkpoint.bin") != 0){
+            printf("Error: could not remove checkpoint file\n");
+            return -1;  // error
+        }
     }
-
     return 0;
 }
