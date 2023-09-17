@@ -12,7 +12,6 @@ num_turns = 200
 line = xt.Line(elements=[
     xt.Drift(length=1.0), xt.Multipole(knl=[1e-6]), xt.Drift(length=1.0)])
 particles = xp.Particles(mass0=xp.PROTON_MASS_EV, p0c=7e12, x=[1e-6,2e-6,3e-6])
-
 xb.SimConfig.build(line=line, particles=particles, num_turns=num_turns,
                     filename='xboinc_input.bin')
 

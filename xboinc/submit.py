@@ -10,11 +10,9 @@ import tempfile
 
 from .user import get_domain, get_folder
 from .server.eos import mv_from_eos, mv_to_eos, xrdcp_installed
+from .server.afs import mv_from_afs, mv_to_afs
 from .server.tools import timestamp
 from .simulation_io import SimConfig, app_version
-
-
-eosdir  = '/eos/user/d/ddicroce/xboinc/'
 
 
 class SubmitJobs:
@@ -25,14 +23,14 @@ class SubmitJobs:
         self._username = user
         self._domain = get_domain(user)
         if self._domain=='eos' and not xrdcp_installed():
-            raise ValueError("Error: xrdcp is not installed on your system. Cannot submit.")
+            raise ValueError("Error: xrdcp is not installed on your system. Cannot submit to EOS.")
         self._target = get_folder(user)
         self._studyname = study
         self._submitfile = f"{self._studyname}__{timestamp()}.tar.gz"
         self._json_files = []
         self._bin_files = []
         self._temp    = tempfile.TemporaryDirectory()
-        self._tempdir = Path(temp.name).resolve()
+        self._tempdir = Path(self._temp.name).resolve()
         self._tempdir.mkdir(parents=True, exist_ok=True)
 
     def __enter__(self, *args, **kwargs):
