@@ -80,7 +80,7 @@ def generate_executable(keep_source=False):
 
     tag = '_'
     tag += '.'.join(__version__.split('.')[:2])
-    cmd = subprocess.run(['uname', '-ps'], stdout=subprocess.PIPE)
+    cmd = subprocess.run(['uname', '-ms'], stdout=subprocess.PIPE)
     if cmd.returncode == 0:
         tag += '-' + cmd.stdout.decode('UTF-8').strip().lower().replace(' ','-')
     cmd = subprocess.run([compiler, 'main.c', '-o', f'xboinc{tag}', '-lm'],
