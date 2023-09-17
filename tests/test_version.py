@@ -9,7 +9,7 @@ from xboinc.simulation_io import SimVersion
 from xboinc.simulation_io.version import _version_to_int, _int_to_version
 
 def test_version():
-    assert __version__ == '0.1.2'
+    assert __version__ == '0.1.3'
 
 def test_sim_ver():
     simver = SimVersion()
