@@ -34,7 +34,7 @@ def test_submission():
                     checkpoint_every=100)
 
     now = pd.Timestamp.now().timestamp()
-    tarfiles = len(xb.user.get_folder(user).glob(f'{studyname}__*'))
+    tarfiles = list(xb.user.get_folder(user).glob(f'{studyname}__*'))
     assert len(tarfiles) > 0
     # Look for the tar that is just generated
     for tar in tarfiles:
@@ -47,6 +47,7 @@ def test_submission():
     assert len(members) == 2*num_jobs
     assert np.all([member.size > 8 for member in members])
     member_names = [member.name for member in members]
+    assert len(member_names) == 2*num_jobs
     assert np.all([member[:len(user)+2] == f'{user}__' for member in member_names])
     assert len([member for member in member_names if member[-5:]=='.json']) == num_jobs
     assert len([member for member in member_names if member[-4:]=='.bin']) == num_jobs
