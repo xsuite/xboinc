@@ -30,6 +30,8 @@ class SimConfig(xo.Struct):
         simbuf = xo.ContextCpu().new_buffer()
         sim_config = cls(_buffer=simbuf)
         default_tracker = _default_tracker
+        line.discard_tracker()
+        # TODO: check that line does not contain non-supported elements
         line.build_tracker(_context=simbuf.context, _buffer=simbuf,
                             track_kernel=default_tracker.track_kernel)
         if _default_config_hash not in line.tracker._tracker_data_cache:
