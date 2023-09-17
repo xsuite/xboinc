@@ -64,8 +64,6 @@ int main(){
     // Get sim config
     SimConfig sim_config = (SimConfig) sim_buffer;
     int64_t input_version = SimConfig_get_sim_state_version_xboinc_version(sim_config);
-    // Compatible if major and minor versions match (no new executables are made at patches)
-    input_version = input_version/1000;
     if (input_version != xboinc_exec_version){
         printf("Error: Xboinc version of executable and input file do not match!\n");
         return -1;  // error

@@ -19,6 +19,22 @@ fi
 bump=$1
 force=$2
 
+# Check our working directory is clean
+git diff --quiet
+if [ $? -ne 0 ]
+then
+    echo "Some changes are not staged."
+    echo "Stage and commit before bumping the version."
+    exit 1
+fi
+git diff --staged --quiet
+if [ $? -ne 0 ]
+then
+    echo "Some changes are staged."
+    echo "Commit before bumping the version."
+    exit 1
+fi
+
 # Check we are not on main
 branch=$(git status | head -1 | awk '{print $NF}')
 if [[ "$branch" == "main" ]]
@@ -35,7 +51,7 @@ fi
 expected_ver=$(poetry version $bump --dry-run | awk '{print $6;}')
 if [[ "$force" != "--force" ]]
 then
-    if [[ "$branch" != "release$expected_ver" ]]
+    if [[ "$branch" != "release/v$expected_ver" ]]
     then
         echo "Error: you are bumping to $expected_ver but this branch is $branch."
         echo "If this is intentional, use version.sh 'value' --force."
@@ -73,6 +89,7 @@ esac
 current_ver=(${current_ver//./ })
 current_ver=${current_ver[0]}.${current_ver[1]}
 minor_ver=(${expected_ver//./ })
+# TODO: exec_ver should come from python app_version_int
 exec_ver=$(( 1000*${minor_ver[0]} + ${minor_ver[1]} ))
 minor_ver=${minor_ver[0]}.${minor_ver[1]}
 if [[ "$minor_ver" != "$current_ver" ]]

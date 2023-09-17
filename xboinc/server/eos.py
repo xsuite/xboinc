@@ -66,7 +66,7 @@ def eos_exists(path, is_server=False):
 def eos_rm(path, is_server=False):
     try:
         path = Path(path).expanduser().resolve()
-        cmd = subprocess.run(['eos', 'rm', _eos_path(path)], stdout=subprocess.PIPE, env=eos_env)
+        cmd = subprocess.run(['eos', 'rm', _eos_path(path)], stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=eos_env)
         if cmd.returncode == 0:
             return 0
         else:
