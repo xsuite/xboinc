@@ -40,6 +40,8 @@ def _set_rights(folder, domain):
 
 
 def register(user, folder):
+    if not xrdcp_installed():
+        raise ValueError("Error: xrdcp is not installed on your system. Cannot register to server.")
     folder = Path(folder).expanduser().resolve()
     if not folder.is_dir():
         raise ValueError(f"Folder {folder} not found or not a folder (or no permissions)!")
