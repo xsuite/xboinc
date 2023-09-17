@@ -36,3 +36,12 @@ def get_folder(user):
 
 def get_domain(user):
     return get_user_data(user)['domain']
+
+def remove_user(user):
+    with user_data_file.open('r') as fid:
+        userdict = json.load(fid)
+    if user in userdict:
+        userdict.pop(user)
+        with user_data_file.open('w') as fid:
+            json.dump(userdict, fid)
+    

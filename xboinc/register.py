@@ -10,7 +10,7 @@ from .general import _pkg_root
 from .user import update_user_data
 from .server import server_account
 from .server.paths import dropdir
-from .server.eos import eos_exists, eos_rm, cp_to_eos
+from .server.eos import eos_exists, eos_rm, cp_to_eos, xrdcp_installed
 from .server.afs import afs_add_acl
 
 
@@ -50,7 +50,7 @@ def register(user, folder):
         _set_rights(folder, data['domain'])
     except Exception as e:
         user_file.unlink()
-        raise Exception(e)
+        raise e
     if eos_exists(dropdir / user_file.name):
         eos_rm(dropdir / user_file.name)
         print("Replaced existing registration file on server dropdir.")

@@ -1,3 +1,8 @@
+# copyright ############################### #
+# This file is part of the Xboinc Package.  #
+# Copyright (c) CERN, 2023.                 #
+########################################### #
+
 import pytest
 from xboinc import __version__
 from xboinc.simulation_io import SimVersion

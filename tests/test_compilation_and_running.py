@@ -1,3 +1,8 @@
+# copyright ############################### #
+# This file is part of the Xboinc Package.  #
+# Copyright (c) CERN, 2023.                 #
+########################################### #
+
 import subprocess
 import json
 import numpy as np
