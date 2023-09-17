@@ -79,7 +79,7 @@ def generate_executable(keep_source=False):
         raise RuntimeError("Neither clang or gcc are found. Install a C compiler.")
 
     tag = f'_{app_version}'
-    cmd = subprocess.run(['uname', '-ps'], stdout=subprocess.PIPE)
+    cmd = subprocess.run(['uname', '-ms'], stdout=subprocess.PIPE)
     if cmd.returncode == 0:
         tag += '-' + cmd.stdout.decode('UTF-8').strip().lower().replace(' ','-')
     cmd = subprocess.run([compiler, 'main.c', '-o', f'xboinc{tag}', '-lm'],
