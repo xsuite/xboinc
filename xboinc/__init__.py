@@ -5,10 +5,6 @@
 
 from .general import _pkg_root, __version__, __xsuite__versions__
 
-from .server.eos import is_xrdcp_installed
-if not is_xrdcp_installed():
-    raise Exception("xrdcp is not installed on your system.")
-
 from .register import register
 from .submit import SubmitJobs
 

@@ -9,7 +9,7 @@ from pathlib import Path
 import tempfile
 
 from .user import get_domain, get_folder
-from .server.eos import mv_from_eos, mv_to_eos
+from .server.eos import mv_from_eos, mv_to_eos, xrdcp_installed
 from .server.tools import timestamp
 from .simulation_io import SimConfig, app_version
 
@@ -24,6 +24,8 @@ class SubmitJobs:
             raise ValueError("The character sequence '__' is not allowed in 'study'!")
         self._username = user
         self._domain = get_domain(user)
+        if self._domain=='eos' and not xrdcp_installed():
+            raise ValueError("Error: xrdcp is not installed on your system. Cannot submit.")
         self._target = get_folder(user)
         self._studyname = study
         self._submitfile = f"{self._studyname}__{timestamp()}.tar.gz"
