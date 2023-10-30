@@ -49,12 +49,12 @@ class RetrieveJobs:
         
 # Example user script
 
+list_of_succeeded_jobs = []
 with xb.RetrieveJobs(user=user, study=studyname) as all_jobs:
     for jobname, new_particles in all_jobs:
-        blabla
+        list_of_succeeded_jobs += [jobname]
         new_particles.to_json(..)
-        blabla
-    ersers
+# and now user can check which jobs are missing by inspecting list_of_succeeded_jobs
 
     
 # https://realpython.com/python-iterators-iterables/
