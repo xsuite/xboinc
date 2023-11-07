@@ -21,13 +21,26 @@ user = 'sixtadm'
 
 
 def test_submission():
-    num_turns = 10
+    num_turns = 100
     num_particles = 5000
+    checkpoint_every = 25
     line = xt.Line(elements=[
-        xt.Drift(length=1.0), xt.Multipole(knl=[1e-6]), xt.Drift(length=1.0)])
+        xt.Drift(length=1.0), xt.Multipole(knl=[1e-4]), xt.Drift(length=1.0)])
 
     particles_per_sub = 1000
     num_jobs = int(num_particles/particles_per_sub)
+
+    # Clean potential leftover from failed test
+    input_folder = xb.user.get_folder(user) / 'input'
+    output_folder = xb.user.get_folder(user) / 'output'
+    for folder in input_folder.glob('*/'):
+        shutil.rmtree(folder)
+    for folder in output_folder.glob('*/'):
+        shutil.rmtree(folder)
+    for file in input_folder.glob('*'):
+        file.unlink()
+    for file in output_folder.glob('*'):
+        file.unlink()
 
     studyname = "test_study_1"
     with xb.SubmitJobs(user=user, study=studyname) as job:
@@ -35,16 +48,16 @@ def test_submission():
             particles = xp.Particles(x=np.random.normal(0, 0.01, particles_per_sub),
                                      y=np.random.normal(0, 0.003, particles_per_sub))
             job.add(job_name=f'{studyname}_{i}', num_turns=num_turns, line=line, particles=particles,
-                    checkpoint_every=2)
+                    checkpoint_every=checkpoint_every)
 
     time.sleep(5)
     studyname = "test_study_2"
     with xb.SubmitJobs(user=user, study=studyname) as job:
         for i in range(num_jobs):
-            particles = xp.Particles(x=np.random.normal(0, 0.7, particles_per_sub),
+            particles = xp.Particles(x=np.random.normal(0, 4.7, particles_per_sub),
                                      y=np.random.normal(0, 0.39, particles_per_sub))
             job.add(job_name=f'{studyname}_{i}', num_turns=num_turns, line=line, particles=particles,
-                    checkpoint_every=2)
+                    checkpoint_every=checkpoint_every)
 
     now = pd.Timestamp.now().timestamp()
     tarfiles = list(Path(xb.user.get_folder(user) / 'input').glob(f'{studyname}__*'))
@@ -108,17 +121,33 @@ def test_running():
     # Clean folders
     for folder in input_folder.glob('*/'):
         folder.rmdir()
-#         shutil.rmtree(folder)
 
 
 def test_retrieval():
     for studyname in ['test_study_1', 'test_study_2']:
         num_jobs = 0
+        x_mean_prev = 0
+        x_std_prev = 0
+        y_mean_prev = 0
+        y_std_prev = 0
         for job, particles in xb.RetrieveJobs(user=user, study=studyname):
             assert job['user'] == user
             assert job['study'] == studyname
             num_jobs += 1
-            surv = len(particles.state > 0)
-            print(f"Job {job['job_name']} : {surv} particles survived.")
+            x_mean = np.mean(particles.x)
+            x_std = np.std(particles.x)
+            y_mean = np.mean(particles.y)
+            y_std = np.std(particles.y)
+            assert not (np.isclose(x_mean, x_mean_prev)
+                        and np.isclose(x_std, x_std_prev)
+                        and np.isclose(y_mean, y_mean_prev)
+                        and np.isclose(y_std, y_std_prev))
+            x_mean_prev = x_mean
+            x_std_prev = x_std
+            y_mean_prev = y_mean
+            y_std_prev = y_std
+            print(f"Job {job['job_name']} : x = {x_mean:.4} +- {x_std:.4}  "\
+                + f"y = {y_mean:.4} +- {y_std:.4}")
+            
         assert num_jobs == 5
 

@@ -26,6 +26,8 @@ def test_remove():
 def test_register():
     xb.register(user, folder_afs)
     assert xb.user.get_folder(user) == folder_afs
+    assert (xb.user.get_folder(user) / 'input').exists()
+    assert (xb.user.get_folder(user) / 'output').exists()
     assert xb.user.get_domain(user) == 'afs'
     assert xb.user.get_user_data(user)['folder'] == folder_afs.as_posix()
     assert xb.user.get_user_data(user)['domain'] == 'afs'
