@@ -24,7 +24,7 @@ class SubmitJobs:
         self._domain = get_domain(user)
         if self._domain=='eos' and not xrdcp_installed():
             raise ValueError("Error: xrdcp is not installed on your system. Cannot submit to EOS.")
-        self._target = get_folder(user)
+        self._target = get_folder(user) / 'input'
         self._studyname = study
         self._submitfile = f"{self._studyname}__{timestamp()}.tar.gz"
         self._json_files = []
@@ -47,11 +47,11 @@ class SubmitJobs:
         filename = f"{self._username}__{timestamp(ms=True)}"
         json_file = Path(self._tempdir, f"{filename}.json")
         bin_file  = Path(self._tempdir, f"{filename}.bin")
-        kwargs['xboinc_ver'] = app_version
         json_dict = {
             'study': self._studyname,
             'user': self._username,
             'job_name': job_name,
+            'xboinc_ver': app_version,
             **kwargs
         }
         with json_file.open('w') as fid:
