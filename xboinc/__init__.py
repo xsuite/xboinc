@@ -5,13 +5,6 @@
 
 from .general import _pkg_root, __version__, __xsuite__versions__
 
-from .register import register
-from .submit import SubmitJobs
-from .retrieve import RetrieveJobs
-
-from .simulation_io import SimState, SimConfig, app_version, app_version_int
-from .executable import generate_executable_source, generate_executable
-
 
 # Check that the active environment has the correct pinned versions
 import sys
@@ -25,3 +18,11 @@ for mod in __xsuite__versions__.keys():
         error +=  f"but active version is {version}!\n"
 if error != "":
     raise ValueError(error)
+
+
+from .register import register
+from .submit import SubmitJobs
+from .retrieve import RetrieveJobs
+
+from .simulation_io import SimState, SimConfig, app_version, app_version_int
+from .executable import generate_executable_source, generate_executable

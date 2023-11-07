@@ -24,18 +24,19 @@ class RetrieveJobs:
         self._study     = study
         self._directory = get_folder(user) / "output"
         self._to_delete = []
-
         for tar_file in self._directory.glob('*.tar.gz'):
             untar(tar_file)
 
 
-    def __enter__(self, *args, **kwargs):
-        return self
-
-    def __exit__(self, *args, **kwargs):
+    def _clean(self):
         for json_file in self._to_delete:
-            json_file.unlink()
             json_file.with_suffix('.bin').unlink()
+            json_file.unlink()
+        # Delete empty folders
+        for folder in self._directory.glob('*/'):
+            if not any(folder.iterdir()):
+                folder.rmdir()
+
 
     def __iter__(self):
         json_files = []
@@ -44,22 +45,19 @@ class RetrieveJobs:
                 json_content = json.load(json_file_obj)
             if json_content.get("study") == self._study and json_content.get("user") == self._user:
                 json_files.append(json_file)
-
         json_files = set(json_files) - set(self._to_delete)
-
         if not json_files:
-            print(f"Warning: No JSON files found in {self._directory} for {self._user} and study {self._study}.")
-        
+            print(f"Warning: No JSON files found in {self._directory} for {self._user} study {self._study}.")
         self._json_files = iter(json_files)
-
         return self
+
 
     def __next__(self):
         try:
             json_file = next(self._json_files)
         except StopIteration:
+            self._clean()
             raise StopIteration
-
         else:
             bin_file = json_file.with_suffix('.bin')
             try:
