@@ -4,6 +4,7 @@
 # ######################################### #
 
 import json
+import os
 from pathlib import Path
 
 from .general import _pkg_root
@@ -15,7 +16,6 @@ from .server.afs import afs_add_acl
 
 
 user_data_file = _pkg_root / 'user_data.json'
-
 
 def _create_json(user, folder):
     user_file = _pkg_root / f'register_{user}.json'
@@ -51,6 +51,10 @@ def register(user, folder):
     except Exception as e:
         user_file.unlink()
         raise e
+    input_dir  = folder / 'input'
+    output_dir = folder / 'output'
+    input_dir.mkdir(parents=True, exist_ok=True)
+    output_dir.mkdir(parents=True, exist_ok=True)
     if eos_exists(dropdir / user_file.name):
         eos_rm(dropdir / user_file.name)
         print("Replaced existing registration file on server dropdir.")
