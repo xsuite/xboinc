@@ -9,7 +9,8 @@ import numpy as np
 import xobjects as xo
 import xpart as xp
 
-from .version import SimVersion
+from .version import SimVersion, assert_versions
+
 
 class SimState(xo.HybridClass):
     _xofields = {
@@ -20,9 +21,12 @@ class SimState(xo.HybridClass):
     }
 
     def __init__(self, **kwargs):
+        assert_versions()
         if '_xobject' not in kwargs:
+            # TODO: how to set size at construction?
             kwargs['version'] = SimVersion()
-        # TODO: can we set size at construction?
+        else:
+            kwargs['size'] = kwargs['_xobject']._size
         super().__init__(**kwargs)
 
     @classmethod

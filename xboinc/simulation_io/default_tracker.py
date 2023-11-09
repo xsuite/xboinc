@@ -8,6 +8,11 @@ import xfields as xf
 import xobjects as xo
 import xcoll as xc
 
+from .version import assert_versions
+
+
+_default_tracker_cache = {}
+
 
 # ===============================================================================================
 # IMPORTANT
@@ -20,6 +25,12 @@ def get_default_tracker():
     """
     Returns a default tracker object.
     """
+
+    if 'tracker' in _default_tracker_cache\
+    and 'config' in _default_tracker_cache:
+        return _default_tracker_cache['tracker'], _default_tracker_cache['config']
+
+    assert_versions()
 
     # Dummy line containing all supported element types
     default_line = xt.Line(elements=[
@@ -103,4 +114,8 @@ def get_default_tracker():
     default_line.build_tracker(_context=_context, compile=True,
                                use_prebuilt_kernels=False)
     default_config_hash = default_line.tracker._hashable_config()
+
+    _default_tracker_cache['tracker'] = default_line.tracker
+    _default_tracker_cache['config']  = default_config_hash
+
     return default_line.tracker, default_config_hash

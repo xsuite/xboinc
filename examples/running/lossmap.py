@@ -27,12 +27,15 @@ xb.SimConfig.build(line=line, particles=part, num_turns=num_turns, filename='xbo
 
 
 # Run xboinc
-cmd = subprocess.run(['uname', '-ms'], stdout=subprocess.PIPE)
-architecture = cmd.stdout.decode('UTF-8').strip().lower().replace(' ','-')
-exec_file = list(Path.cwd().glob(f'xboinc_{xb.app_version}-{architecture}'))
-if len(exec_file)==0 or not exec_file[0].exists():
+cmd    = subprocess.run(['uname', '-m'], stdout=subprocess.PIPE)
+arch   = cmd.stdout.decode('UTF-8').strip().lower()
+cmd    = subprocess.run(['uname', '-s'], stdout=subprocess.PIPE)
+thisos = cmd.stdout.decode('UTF-8').strip().lower()
+exec_files = list(Path.cwd().glob(f'xboinc_{xb.app_version}-*'))
+exec_files = [f for f in exec_files if arch in str(f) and thisos in str(f)]
+if len(exec_files)==0 or not exec_files[0].exists():
     raise ValueError("No executable found")
-exec_file = exec_file[0]
+exec_file = exec_files[0]
 cmd = subprocess.run(exec_file)
 if cmd.returncode != 0:
     raise RuntimeError(f"Tracking failed.")

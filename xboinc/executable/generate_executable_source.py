@@ -4,7 +4,7 @@
 # ######################################### #
 
 import xobjects as xo
-from ..simulation_io import SimState, SimConfig, SimVersion, app_version, get_default_tracker
+from ..simulation_io import SimState, SimConfig, SimVersion, app_version, get_default_tracker, assert_versions
 from ..general import _pkg_root, __version__
 
 from pathlib import Path
@@ -25,10 +25,10 @@ insert_in_all_files = """
 #endif
 """
 
-def generate_executable_source(write_source_files=True,
-                                       _context=None):
+def generate_executable_source(*, write_source_files=True, _context=None):
     assert _context is None
     assert write_source_files
+    assert_versions()
 
     sim_config_sources = [
         insert_in_all_files,
@@ -82,7 +82,8 @@ def generate_executable_source(write_source_files=True,
 # aarch64-unknown-linux-gnu   Linux running aarch64
 # x86_64-pc-freebsd__sse2     Free BSD running on 64 bit X86
 
-def generate_executable(keep_source=False, windows32=False, windows64=False):
+def generate_executable(*, keep_source=False, windows32=False, windows64=False):
+    assert_versions()
     main    = Path.cwd() / "main.c"
     config  = Path.cwd() / "sim_config.h"
     tracker = Path.cwd() / "xtrack_tracker.h"

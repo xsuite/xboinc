@@ -9,15 +9,16 @@ from pathlib import Path
 import tempfile
 
 from .user import get_domain, get_folder
-from .server.eos import mv_from_eos, mv_to_eos, xrdcp_installed
-from .server.afs import mv_from_afs, mv_to_afs
+from .server.afs import mv_to_afs
+from .server.eos import mv_to_eos, xrdcp_installed
 from .server.tools import timestamp
-from .simulation_io import SimConfig, app_version
+from .simulation_io import SimConfig, app_version, assert_versions
 
 
 class SubmitJobs:
 
     def __init__(self, user, study):
+        assert_versions()
         if '__' in study:
             raise ValueError("The character sequence '__' is not allowed in 'study'!")
         self._username = user
@@ -37,8 +38,7 @@ class SubmitJobs:
         return self
 
     def __exit__(self, *args, **kwargs):
-        self._submit()
-        self._temp.cleanup()
+        self.submit()
 
 
     def add(self, *, job_name, num_turns, line, particles, checkpoint_every=-1, **kwargs):
@@ -62,7 +62,7 @@ class SubmitJobs:
         self._bin_files  += [bin_file]
 
 
-    def _submit(self):
+    def submit(self):
         with tarfile.open(self._tempdir / self._submitfile, "w:gz") as tar:
             for thisfile in self._json_files + self._bin_files:
                 tar.add(thisfile, arcname=thisfile.name)
@@ -75,4 +75,5 @@ class SubmitJobs:
         # TODO: check that tar contains all files
         for thisfile in self._json_files + self._bin_files:
             thisfile.unlink()
+        self._temp.cleanup()
 

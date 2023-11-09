@@ -48,6 +48,7 @@ do
         exit 1
     fi
     sed -i "s/\('"${mod}"' *:\).*/\1 '"${version}"',/"  xboinc/general.py
+    sed -i "s/\('"${mod}"' *:\).*/\1 '"${version}"',/"  tests/test_00_version.py
     sed -i "s/\("${mod}" *=\).*/\1 '=="${version}"'/"   pyproject.toml
 done
 
