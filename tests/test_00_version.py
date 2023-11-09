@@ -4,17 +4,44 @@
 ########################################### #
 
 import pytest
-from xboinc import __version__
+import sys
+
+from xboinc import __version__, __xsuite__versions__
 from xboinc.simulation_io import SimVersion
-from xboinc.simulation_io.version import _version_to_int, _int_to_version
+from xboinc.simulation_io.version import _version_to_int, _int_to_version, assert_versions
+
 
 def test_version():
-    assert __version__ == '0.1.3'
+    assert __version__ == '0.1.4'
+
 
 def test_sim_ver():
     simver = SimVersion()
     simver.assert_version()
-    print(_int_to_version(simver.xboinc_version))
-    with pytest.raises(Exception):
+    with pytest.raises(ImportError):
         simver.xboinc_version = _version_to_int('0.0.0')
         simver.assert_version()
+
+
+def test_xsuite_versions():
+    expected_version = {
+        'xobjects' : '0.2.8',
+        'xdeps'    : '0.4.2',
+        'xpart'    : '0.15.3',
+        'xtrack'   : '0.42.0',
+        'xfields'  : '0.13.1',
+        'xcoll'    : '0.2.5',
+    }
+    current_version = {}
+
+    for mod in expected_version.keys():
+        __import__(mod)
+        current_version[mod] = sys.modules[mod].__version__
+        sys.modules[mod].__version__ = expected_version[mod]
+    assert_versions()
+
+    for mod in expected_version.keys():
+        sys.modules[mod].__version__ = '0.0.0'
+        with pytest.raises(ImportError):
+            assert_versions()
+        sys.modules[mod].__version__ = current_version[mod]

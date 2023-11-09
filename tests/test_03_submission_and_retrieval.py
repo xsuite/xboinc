@@ -21,6 +21,7 @@ user = 'sixtadm'
 
 
 def test_submission():
+    xb._skip_xsuite_version_check = True
     num_turns = 100
     num_particles = 5000
     checkpoint_every = 25
@@ -79,6 +80,7 @@ def test_submission():
     assert np.all([member[:len(user)+2] == f'{user}__' for member in member_names])
     assert len([member for member in member_names if member[-5:]=='.json']) == num_jobs
     assert len([member for member in member_names if member[-4:]=='.bin']) == num_jobs
+    xb._skip_xsuite_version_check = False
 
 
 def test_running():
@@ -127,6 +129,7 @@ def test_running():
 
 
 def test_retrieval():
+    xb._skip_xsuite_version_check = True
     for studyname in ['test_study_1', 'test_study_2']:
         num_jobs = 0
         x_mean_prev = 0
@@ -153,4 +156,5 @@ def test_retrieval():
                 + f"y = {y_mean:.4} +- {y_std:.4}")
             
         assert num_jobs == 5
+    xb._skip_xsuite_version_check = False
 

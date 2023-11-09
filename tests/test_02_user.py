@@ -9,10 +9,10 @@ import pytest
 
 import xboinc as xb
 
+
 user       = 'sixtadm'
 folder_afs = Path('/afs/cern.ch/user/s/sixtadm/public/test_xboinc').resolve()
 folder_eos = Path('/afs/cern.ch/user/s/sixtadm/eos_sixtadm/test_xboinc').resolve()
-
 user_data_file = xb._pkg_root / 'user_data.json'
 
 
