@@ -3,10 +3,30 @@
 # Copyright (c) CERN, 2023.                 #
 # ######################################### #
 
+import sys
+
 import xobjects as xo
 import xpart as xp
+import xboinc as xb
 
-from ..general import __version__
+from ..general import __version__, __xsuite__versions__
+
+
+# Check that the active environment has the correct pinned versions
+def assert_versions():
+    error = ""
+    for mod in __xsuite__versions__.keys():
+        __import__(mod)
+        version = sys.modules[mod].__version__
+        if version != __xsuite__versions__[mod]:
+            error += f"This xboinc version ({__version__}) needs "
+            error += f"{mod} {__xsuite__versions__[mod]}, "
+            error +=  f"but active version is {version}!\n"
+    if error != "":
+        if xb._skip_xsuite_version_check:
+            print(f"Warning: {error}")
+        else:
+            raise ImportError(error)
 
 
 # XXX.YYY.ZZZ to XXXYYY  (ignore patch)
@@ -39,7 +59,7 @@ class SimVersion(xo.HybridClass):
 
     def assert_version(self):
         if app_version_int != self.xboinc_version:
-            error += f"Incompatible xboinc version! Output file needs "
-            error +  f"{_int_to_version(self.xboinc_version)}, "
-            error +  f"but current version is {__version__}.\n"
-            raise ValueError(error)
+            error  = f"Incompatible xboinc version! Output file needs "
+            error += f"{_int_to_version(self.xboinc_version)}, "
+            error += f"but current version is {__version__}.\n"
+            raise ImportError(error)

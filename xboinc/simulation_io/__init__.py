@@ -6,4 +6,4 @@
 from .default_tracker import get_default_tracker
 from .output import SimState
 from .input import SimConfig
-from .version import SimVersion, app_version, app_version_int
+from .version import SimVersion, app_version, app_version_int, assert_versions
