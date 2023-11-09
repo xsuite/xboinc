@@ -4,18 +4,16 @@
 # ######################################### #
 
 import json
-from pathlib import Path
 
-from .user import get_domain, get_folder
-from .server.eos import mv_from_eos, mv_to_eos, xrdcp_installed
-from .server.afs import mv_from_afs, mv_to_afs
+from .user import get_folder
 from .server.tools import untar
-from .simulation_io import SimState
+from .simulation_io import SimState, assert_versions
 
 
 class RetrieveJobs:
 
     def __init__(self, user, study):
+        assert_versions()
         self._user      = user
         self._study     = study
         self._directory = get_folder(user) / "output"
