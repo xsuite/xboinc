@@ -5,7 +5,7 @@
 
 import json
 
-from .user import get_folder
+from .user import get_directory
 from .server.tools import untar
 from .simulation_io import SimState, assert_versions
 
@@ -16,7 +16,7 @@ class RetrieveJobs:
         assert_versions()
         self._user      = user
         self._study     = study
-        self._directory = get_folder(user) / "output"
+        self._directory = get_directory(user) / "output"
         self._to_delete = []
         for tar_file in self._directory.glob('*.tar.gz'):
             untar(tar_file)

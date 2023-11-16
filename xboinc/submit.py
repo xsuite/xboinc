@@ -8,10 +8,8 @@ import tarfile
 from pathlib import Path
 import tempfile
 
-from .user import get_domain, get_folder
-from .server.afs import mv_to_afs
-from .server.eos import mv_to_eos, xrdcp_installed
-from .server.tools import timestamp
+from .user import get_domain, get_directory
+from .server import fs_mv, missing_eos, timestamp
 from .simulation_io import SimConfig, app_version, assert_versions
 
 
@@ -23,9 +21,9 @@ class SubmitJobs:
             raise ValueError("The character sequence '__' is not allowed in 'study'!")
         self._username = user
         self._domain = get_domain(user)
-        if self._domain=='eos' and not xrdcp_installed():
-            raise ValueError("Error: xrdcp is not installed on your system. Cannot submit to EOS.")
-        self._target = get_folder(user) / 'input'
+        if self._domain=='eos':
+            missing_eos()
+        self._target = get_directory(user) / 'input'
         self._studyname = study
         self._submitfile = f"{self._studyname}__{timestamp()}.tar.gz"
         self._json_files = []
@@ -66,10 +64,8 @@ class SubmitJobs:
         with tarfile.open(self._tempdir / self._submitfile, "w:gz") as tar:
             for thisfile in self._json_files + self._bin_files:
                 tar.add(thisfile, arcname=thisfile.name)
-        if self._domain == 'eos':
-            mv_to_eos(self._tempdir / self._submitfile, self._target)
-        elif self._domain == 'afs':
-            mv_to_afs(self._tempdir / self._submitfile, self._target)
+        if self._domain == 'eos' or self._domain == 'afs':
+            fs_mv(self._tempdir / self._submitfile, self._target)
         else:
             raise ValueError(f"Wrong domain {self._domain} for user {self._username}!")
         # TODO: check that tar contains all files
