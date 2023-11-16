@@ -17,8 +17,7 @@ deregister_file = dropdir / f"deregister_{server_account}.json"
 
 
 def test_register():
-    # Overwrite ACL to include admin permissions, otherwise sixtadm will lose them
-    xb.register(server_account, _test_afs, _acl='rlidwka')
+    xb.register(server_account, _test_afs)
     assert get_directory(server_account) == _test_afs
     assert (get_directory(server_account) / 'input').exists()
     assert (get_directory(server_account) / 'output').exists()
@@ -37,7 +36,7 @@ def test_register():
         xb.register(server_account, _test_eos)
 
 
-def test_remove():
+def test_deregister():
     xb.deregister(server_account)
     with user_data_file.open('r') as fid:
         userdict = json.load(fid)

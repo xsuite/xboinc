@@ -19,14 +19,13 @@ from xboinc.server import server_account
 from xboinc.server.paths import _test_afs
 
 
-xb.register(server_account, _test_afs, _acl='rlidwka')
-job_dir    = xb.user.get_directory(server_account)
-input_dir  = job_dir / 'input'
-output_dir = job_dir / 'output'
+input_dir  = _test_afs / 'input'
+output_dir = _test_afs / 'output'
 
 
 def test_submission():
     xb._skip_xsuite_version_check = True
+    xb.register(server_account, _test_afs)
     num_turns = 100
     num_particles = 5000
     checkpoint_every = 25
@@ -84,6 +83,7 @@ def test_submission():
     assert len([member for member in member_names if member[-5:]=='.json']) == num_jobs
     assert len([member for member in member_names if member[-4:]=='.bin']) == num_jobs
     xb._skip_xsuite_version_check = False
+    xb.deregister(server_account)
 
 
 def test_running():
@@ -132,6 +132,7 @@ def test_running():
 
 def test_retrieval():
     xb._skip_xsuite_version_check = True
+    xb.register(server_account, _test_afs)
     for studyname in ['test_study_1', 'test_study_2']:
         num_jobs = 0
         x_mean_prev = 0
@@ -159,4 +160,5 @@ def test_retrieval():
             
         assert num_jobs == 5
     xb._skip_xsuite_version_check = False
+    xb.deregister(server_account)
 

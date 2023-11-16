@@ -36,7 +36,7 @@ def _create_json(user, directory, remove=False):
     return user_file, data
 
 
-def _set_rights(directory, domain, acl='rlwikd'):
+def _give_rights(directory, domain, acl='rlwikd'):
     if domain == 'eos':
         raise NotImplementedError("Ask CERN IT for explanation...")
     else:
@@ -50,14 +50,16 @@ def _remove_rights(directory, domain):
         afs_remove_acl(server_account, directory)
 
 
-def register(user, directory, _acl='rlwikd'):
+def register(user, directory):
     missing_eos()
-    directory = Path(directory).expanduser().resolve()
+    directory = fs_path(directory)
     if not directory.is_dir():
         raise ValueError(f"Directory {directory} not found or not a directory (or no permissions)!")
     user_file, data = _create_json(user, directory)
+    # This is a small hack to avoid losing sixtadm ACLs during testing
+    acl = 'rlwikda' if user==server_account else 'rlwikd'
     try:
-        _set_rights(directory, data['domain'], acl=_acl)
+        _give_rights(directory, data['domain'], acl=acl)
     except Exception as e:
         user_file.unlink()
         raise e
@@ -65,6 +67,12 @@ def register(user, directory, _acl='rlwikd'):
     output_dir = directory / 'output'
     input_dir.mkdir(parents=True, exist_ok=True)
     output_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        _give_rights(input_dir, data['domain'], acl=acl)
+        _give_rights(output_dir, data['domain'], acl=acl)
+    except Exception as e:
+        user_file.unlink()
+        raise e
     if fs_exists(dropdir / f'de{user_file.name}'):
         fs_rm(dropdir / f'de{user_file.name}')
         print("Removed existing deregistration file on server dropdir.")
@@ -83,12 +91,22 @@ def register(user, directory, _acl='rlwikd'):
 def deregister(user):
     missing_eos()
     user_file, _ = _create_json(user, '', remove=True)
-    data = get_user_data(user)
     try:
-        _remove_rights(data['directory'], data['domain'])
-    except:
-        print(f"Warning: could not remove ACL on {data['directory']} for server "
-            + f"account {server_account}!\nPlease do this manually.")
+        data = get_user_data(user)
+    except ValueError:
+        print(f"User {user} not found in user_data.")
+    else:
+        # This is a quick check to avoid losing sixtadm ACLs during testing
+        if user!=server_account:
+            try:
+                input_dir  = directory / 'input'
+                output_dir = directory / 'output'
+                _remove_rights(data['directory'], data['domain'])
+                _remove_rights(input_dir, data['domain'])
+                _remove_rights(output_dir, data['domain'])
+            except:
+                print(f"Warning: could not remove ACL on {data['directory']} for server "
+                    + f"account {server_account}!\nPlease do this manually.")
     if fs_exists(dropdir / user_file.name[2:]):
         fs_rm(dropdir / user_file.name[2:])
         print("Removed existing registration file on server dropdir.")

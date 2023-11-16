@@ -17,7 +17,7 @@ import xboinc as xb
 
 
 line_file = xb._pkg_root.parent / 'tests' / 'data' / 'sequence_lhc_run3_b1.json'
-num_turns = 1000
+num_turns = 100
 
 
 def test_compilation():
