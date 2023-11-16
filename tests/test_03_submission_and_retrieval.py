@@ -19,8 +19,8 @@ from xboinc.server import server_account
 from xboinc.server.paths import _test_afs
 
 
-input_dir  = _test_afs / 'input'
-output_dir = _test_afs / 'output'
+input_dir  = _test_afs / 'input_dev'
+output_dir = _test_afs / 'output_dev'
 
 
 def test_submission():
@@ -48,7 +48,7 @@ def test_submission():
             file.unlink()
 
     studyname = "test_study_1"
-    with xb.SubmitJobs(user=server_account, study=studyname) as job:
+    with xb.SubmitJobs(user=server_account, study=studyname, dev_server=True) as job:
         for i in range(num_jobs):
             particles = xp.Particles(x=np.random.normal(0, 0.01, particles_per_sub),
                                      y=np.random.normal(0, 0.003, particles_per_sub))
@@ -57,7 +57,7 @@ def test_submission():
 
     time.sleep(5)
     studyname = "test_study_2"
-    with xb.SubmitJobs(user=server_account, study=studyname) as job:
+    with xb.SubmitJobs(user=server_account, study=studyname, dev_server=True) as job:
         for i in range(num_jobs):
             particles = xp.Particles(x=np.random.normal(0, 4.7, particles_per_sub),
                                      y=np.random.normal(0, 0.39, particles_per_sub))
@@ -139,7 +139,7 @@ def test_retrieval():
         x_std_prev = 0
         y_mean_prev = 0
         y_std_prev = 0
-        for job, particles in xb.RetrieveJobs(user=server_account, study=studyname):
+        for job, particles in xb.RetrieveJobs(user=server_account, study=studyname, dev_server=True):
             assert job['user'] == server_account
             assert job['study'] == studyname
             num_jobs += 1

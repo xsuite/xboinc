@@ -5,18 +5,27 @@
 
 import json
 
-from .user import get_directory
+from .user import get_directory, get_domain
 from .server.tools import untar
 from .simulation_io import SimState, assert_versions
 
 
 class RetrieveJobs:
 
-    def __init__(self, user, study):
+    def __init__(self, user, study, dev_server=False):
+        if not dev_server:
+            raise NotImplementedError("Regular server not yet operational. "
+                                    + "Please use dev_server=True.")
         assert_versions()
-        self._user      = user
-        self._study     = study
-        self._directory = get_directory(user) / "output"
+        self._study = study
+        self._username = user
+        self._domain = get_domain(user)
+        if self._domain=='eos':
+            missing_eos()
+        if dev_server:
+            self._directory = get_directory(user) / "output_dev"
+        else:
+            self._directory = get_directory(user) / "output"
         self._to_delete = []
         for tar_file in self._directory.glob('*.tar.gz'):
             untar(tar_file)
@@ -37,11 +46,11 @@ class RetrieveJobs:
         for json_file in self._directory.glob('*/*.json'):
             with open(json_file, 'r') as json_file_obj:
                 json_content = json.load(json_file_obj)
-            if json_content.get("study") == self._study and json_content.get("user") == self._user:
+            if json_content.get("study") == self._study and json_content.get("user") == self._username:
                 json_files.append(json_file)
         json_files = set(json_files) - set(self._to_delete)
         if not json_files:
-            print(f"Warning: No JSON files found in {self._directory} for {self._user} study {self._study}.")
+            print(f"Warning: No JSON files found in {self._directory} for {self._username} study {self._study}.")
         self._json_files = iter(json_files)
         return self
 

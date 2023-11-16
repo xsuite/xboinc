@@ -21,6 +21,8 @@ def test_register():
     assert get_directory(server_account) == _test_afs
     assert (get_directory(server_account) / 'input').exists()
     assert (get_directory(server_account) / 'output').exists()
+    assert (get_directory(server_account) / 'input_dev').exists()
+    assert (get_directory(server_account) / 'output_dev').exists()
     assert get_domain(server_account) == 'afs'
     assert get_user_data(server_account)['directory'] == _test_afs.as_posix()
     assert get_user_data(server_account)['domain'] == 'afs'

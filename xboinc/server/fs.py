@@ -11,11 +11,6 @@ import random
 from .tools import log_debug, log_info, log_error
 
 
-def fs_path(path):
-    path = Path(path).expanduser().resolve()
-    return Path(path.as_posix().replace('/eos/home-','/eos/user/'))
-
-
 # Functions to work with the AFS file system
 # ==========================================
 
@@ -127,6 +122,10 @@ def _dir(directory):
         return f'{directory}'
     else:
         return f'{directory}/'
+
+def fs_path(path):
+    path = Path(path).expanduser().resolve()
+    return Path(path.as_posix().replace('/eos/home-','/eos/user/'))
 
 def fs_glob(path, pattern, is_server=False):
     path = fs_path(path)

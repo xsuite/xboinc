@@ -9,7 +9,7 @@ from pathlib import Path
 
 from .general import _pkg_root
 from .user import update_user_data, get_user_data, remove_user
-from .server import server_account, dropdir, missing_eos, fs_exists, fs_rm, fs_cp, \
+from .server import server_account, dropdir, missing_eos, fs_exists, fs_rm, fs_cp,\
                     afs_add_acl, afs_remove_acl, on_afs, on_eos, fs_path
 
 
@@ -63,13 +63,19 @@ def register(user, directory):
     except Exception as e:
         user_file.unlink()
         raise e
-    input_dir  = directory / 'input'
-    output_dir = directory / 'output'
+    input_dir      = directory / 'input'
+    input_dev_dir  = directory / 'input_dev'
+    output_dir     = directory / 'output'
+    output_dev_dir = directory / 'output_dev'
     input_dir.mkdir(parents=True, exist_ok=True)
+    input_dev_dir.mkdir(parents=True, exist_ok=True)
     output_dir.mkdir(parents=True, exist_ok=True)
+    output_dev_dir.mkdir(parents=True, exist_ok=True)
     try:
         _give_rights(input_dir, data['domain'], acl=acl)
+        _give_rights(input_dev_dir, data['domain'], acl=acl)
         _give_rights(output_dir, data['domain'], acl=acl)
+        _give_rights(output_dev_dir, data['domain'], acl=acl)
     except Exception as e:
         user_file.unlink()
         raise e
@@ -79,7 +85,9 @@ def register(user, directory):
     if fs_exists(dropdir / user_file.name):
         fs_rm(dropdir / user_file.name)
         print("Replaced existing registration file on server dropdir.")
-    if fs_cp(user_file, dropdir, maximum_trials=1):  # returncode 1 means error
+    try:
+        fs_cp(user_file, dropdir, maximum_trials=1)
+    except:
         user_file.unlink()
         raise Exception(f"Failed to copy register file to server dropdir.\n"
                        + "Do you have permissions?\n"
@@ -99,18 +107,24 @@ def deregister(user):
         # This is a quick check to avoid losing sixtadm ACLs during testing
         if user!=server_account:
             try:
-                input_dir  = directory / 'input'
-                output_dir = directory / 'output'
+                input_dir      = directory / 'input'
+                input_dev_dir  = directory / 'input_dev'
+                output_dir     = directory / 'output'
+                output_dev_dir = directory / 'output_dev'
                 _remove_rights(data['directory'], data['domain'])
                 _remove_rights(input_dir, data['domain'])
+                _remove_rights(input_dev_dir, data['domain'])
                 _remove_rights(output_dir, data['domain'])
+                _remove_rights(output_dev_dir, data['domain'])
             except:
                 print(f"Warning: could not remove ACL on {data['directory']} for server "
                     + f"account {server_account}!\nPlease do this manually.")
     if fs_exists(dropdir / user_file.name[2:]):
         fs_rm(dropdir / user_file.name[2:])
         print("Removed existing registration file on server dropdir.")
-    if fs_cp(user_file, dropdir, maximum_trials=1):  # returncode 1 means error
+    try:
+        fs_cp(user_file, dropdir, maximum_trials=1)
+    except:
         user_file.unlink()
         raise Exception(f"Failed to copy deregister file to server dropdir.\n"
                        + "Please inform an xboinc admin to deregister manually.")

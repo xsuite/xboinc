@@ -15,7 +15,10 @@ from .simulation_io import SimConfig, app_version, assert_versions
 
 class SubmitJobs:
 
-    def __init__(self, user, study):
+    def __init__(self, user, study, dev_server=False):
+        if not dev_server:
+            raise NotImplementedError("Regular server not yet operational. "
+                                    + "Please use dev_server=True.")
         assert_versions()
         if '__' in study:
             raise ValueError("The character sequence '__' is not allowed in 'study'!")
@@ -23,7 +26,10 @@ class SubmitJobs:
         self._domain = get_domain(user)
         if self._domain=='eos':
             missing_eos()
-        self._target = get_directory(user) / 'input'
+        if dev_server:
+            self._target = get_directory(user) / 'input_dev'
+        else:
+            self._target = get_directory(user) / 'input'
         self._studyname = study
         self._submitfile = f"{self._studyname}__{timestamp()}.tar.gz"
         self._json_files = []
