@@ -14,6 +14,7 @@ import filecmp
 import xtrack as xt
 import xcoll as xc
 import xboinc as xb
+from xboinc.server import server_account
 
 
 def test_clean():
@@ -23,3 +24,4 @@ def test_clean():
     for file in [*input_files, *output_files, *exec_files]:
         if file.exists():
             file.unlink()
+    xb.deregister(server_account)

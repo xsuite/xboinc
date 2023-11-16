@@ -11,6 +11,11 @@ import random
 from .tools import log_debug, log_info, log_error
 
 
+def fs_path(path):
+    path = Path(path).expanduser().resolve()
+    return Path(path.as_posix().replace('/eos/home-','/eos/user/'))
+
+
 # Functions to work with the AFS file system
 # ==========================================
 
@@ -23,19 +28,15 @@ def on_afs(file):
 
 def afs_add_acl(user, directory, acl='rlwik', is_server=False):
     try:
-        directory = Path(directory).resolve()
-        if directory.is_dir():
-            cmd = subprocess.run(['fs', 'sa', directory, user, acl],
-                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            if cmd.returncode == 0:
-                log_info(f"Set ACL '{acl}' on directory {directory} for user {user}.", is_server=is_server)
-                return 0
-            else:
-                stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
-                log_error(f"Failed to set ACL '{acl}' on {directory} for user {user}.\n{stderr}", is_server=is_server)
-                return 1
+        directory = fs_path(directory)
+        cmd = subprocess.run(['fs', 'sa', directory, user, acl],
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if cmd.returncode == 0:
+            log_info(f"Set ACL '{acl}' on directory {directory} for user {user}.", is_server=is_server)
+            return 0
         else:
-            log_error(f"Directory {directory} not found. Do you have access permissions?", is_server=is_server)
+            stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
+            log_error(f"Failed to set ACL '{acl}' on {directory} for user {user}.\n{stderr}", is_server=is_server)
             return 1
     except Exception as e:
         log_error(f"Failed to set ACL '{acl}' on {directory} for user {user}.\n{stderr}", e, is_server=is_server)
@@ -44,19 +45,15 @@ def afs_add_acl(user, directory, acl='rlwik', is_server=False):
 
 def afs_remove_acl(user, directory, is_server=False):
     try:
-        directory = Path(directory).resolve()
-        if directory.is_dir():
-            cmd = subprocess.run(['fs', 'sa', directory, user, 'none'],
-                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            if cmd.returncode == 0:
-                log_info(f"Removed ACL on directory {directory} for user {user}.", is_server=is_server)
-                return 0
-            else:
-                stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
-                log_error(f"Failed to remove ACL on {directory} for user {user}.\n{stderr}", is_server=is_server)
-                return 1
+        directory = fs_path(directory)
+        cmd = subprocess.run(['fs', 'sa', directory, user, 'none'],
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if cmd.returncode == 0:
+            log_info(f"Removed ACL on directory {directory} for user {user}.", is_server=is_server)
+            return 0
         else:
-            log_error(f"Directory {directory} not found. Do you have access permissions?", is_server=is_server)
+            stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
+            log_error(f"Failed to remove ACL on {directory} for user {user}.\n{stderr}", is_server=is_server)
             return 1
     except Exception as e:
         log_error(f"Failed to remove ACL on {directory} for user {user}.\n{stderr}", e, is_server=is_server)
@@ -65,23 +62,19 @@ def afs_remove_acl(user, directory, is_server=False):
 
 def afs_print_acl(directory, is_server=False):
     try:
-        directory = Path(directory).resolve()
-        if directory.is_dir():
-            cmd = subprocess.run(['fs', 'la', directory],
-                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            if cmd.returncode == 0:
-                stdout = cmd.stdout.decode('UTF-8').strip().split('\n')
-                log_info(f"{stdout}", is_server=is_server)
-                return 0
-            else:
-                stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
-                log_error(f"Failed to remove ACL on {directory} for user {user}.\n{stderr}", is_server=is_server)
-                return 1
+        directory = fs_path(directory)
+        cmd = subprocess.run(['fs', 'la', directory],
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if cmd.returncode == 0:
+            stdout = cmd.stdout.decode('UTF-8').strip().split('\n')
+            log_info(f"{stdout}", is_server=is_server)
+            return 0
         else:
-            log_error(f"Directory {directory} not found. Do you have access permissions?", is_server=is_server)
+            stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
+            log_error(f"Failed to print ACL on {directory} for user {user}.\n{stderr}", is_server=is_server)
             return 1
     except Exception as e:
-        log_error(f"Failed to remove ACL on {directory} for user {user}.\n{stderr}", e, is_server=is_server)
+        log_error(f"Failed to print ACL on {directory} for user {user}.\n{stderr}", e, is_server=is_server)
         return 1
 
 
@@ -98,23 +91,21 @@ def on_eos(file):
     else:
         return parents[-2] == Path('/eos')
 
-def fs_path(path):
-    path = Path(path).expanduser().resolve()
-    return Path(path.as_posix().replace('/eos/home-','/eos/user/'))
-
 def eos_installed():
     try:
-        cmd = subprocess.run(['eos', "--version"], stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE, check=True, env=eos_env)
-        return cmd.returncode == 0
+        cmd = subprocess.run(['eos', '--version'], stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE, env=eos_env)
+        # Temporary hack as the eos command wrongly returns 255
+        return cmd.returncode == 0 or cmd.returncode == 255
     except (subprocess.CalledProcessError, FileNotFoundError):
         return False
 
-def missing_eos(message=''):
+def missing_eos(message='', is_server=False):
     if eos_installed():
         return 0
     else:
-        log_error(f"{message} EOS is not installed on your system.",
+        message = '' if message == '' else f"{message} "
+        log_error(f"{message}EOS is not installed on your system.",
                   EnvironmentError(), is_server=is_server)
         return 1
 
@@ -221,13 +212,13 @@ def fs_cp(file, directory, maximum_trials=10, wait=2.7, is_server=False):
             else:
                 cmd = subprocess.run(['cp', f'{file}', f'{directory}'],
                                      stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            if cmd.returncode == 0 and eos_exists(directory / file.name):
+            if cmd.returncode == 0 and fs_exists(directory / file.name):
                 return 0
             if i != maximum_trials-1:
                 log_debug(f"{err_mess}\nRetrying ({i})..", is_server=is_server)
                 sleep(abs(wait+random.normalvariate(0, 0.1*wait)))
         log_error(f"{err_mess}\n", is_server=is_server)
-        if not eos_exists(directory / file.name):
+        if not fs_exists(directory / file.name):
             log_error(f"Command succeeds but destination file is not created!\n",
                       is_server=is_server)
         else:
@@ -257,13 +248,13 @@ def fs_rename(file, new_file, maximum_trials=10, wait=2.7, is_server=False):
             else:
                 cmd = subprocess.run(['mv', f'{file}', new_file],
                                      stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            if cmd.returncode == 0 and eos_exists(new_file):
+            if cmd.returncode == 0 and fs_exists(new_file):
                 return 0
             if i != maximum_trials-1:
                 log_debug(f"{err_mess}\nRetrying ({i})..", is_server=is_server)
                 sleep(abs(wait+random.normalvariate(0, 0.1*wait)))
         log_error(f"{err_mess}\n", is_server=is_server)
-        if not eos_exists(new_file):
+        if not fs_exists(new_file):
             log_error(f"Command succeeds but destination file is not created!\n",
                       is_server=is_server)
         else:

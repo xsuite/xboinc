@@ -8,9 +8,9 @@ import os
 from pathlib import Path
 
 from .general import _pkg_root
-from .user import update_user_data, remove_user
-from .server import server_account, dropdir, missing_eos, fs_exists, fs_rm, \
-                    fs_cp, afs_add_acl, on_afs, on_eos, fs_path
+from .user import update_user_data, get_user_data, remove_user
+from .server import server_account, dropdir, missing_eos, fs_exists, fs_rm, fs_cp, \
+                    afs_add_acl, afs_remove_acl, on_afs, on_eos, fs_path
 
 
 user_data_file = _pkg_root / 'user_data.json'
@@ -36,21 +36,28 @@ def _create_json(user, directory, remove=False):
     return user_file, data
 
 
-def _set_rights(directory, domain):
+def _set_rights(directory, domain, acl='rlwikd'):
     if domain == 'eos':
         raise NotImplementedError("Ask CERN IT for explanation...")
     else:
-        afs_add_acl(server_account, directory)
+        afs_add_acl(server_account, directory, acl=acl)
 
 
-def register(user, directory):
+def _remove_rights(directory, domain):
+    if domain == 'eos':
+        raise NotImplementedError("Ask CERN IT for explanation...")
+    else:
+        afs_remove_acl(server_account, directory)
+
+
+def register(user, directory, _acl='rlwikd'):
     missing_eos()
     directory = Path(directory).expanduser().resolve()
     if not directory.is_dir():
         raise ValueError(f"Directory {directory} not found or not a directory (or no permissions)!")
     user_file, data = _create_json(user, directory)
     try:
-        _set_rights(directory, data['domain'])
+        _set_rights(directory, data['domain'], acl=_acl)
     except Exception as e:
         user_file.unlink()
         raise e
@@ -58,6 +65,9 @@ def register(user, directory):
     output_dir = directory / 'output'
     input_dir.mkdir(parents=True, exist_ok=True)
     output_dir.mkdir(parents=True, exist_ok=True)
+    if fs_exists(dropdir / f'de{user_file.name}'):
+        fs_rm(dropdir / f'de{user_file.name}')
+        print("Removed existing deregistration file on server dropdir.")
     if fs_exists(dropdir / user_file.name):
         fs_rm(dropdir / user_file.name)
         print("Replaced existing registration file on server dropdir.")
@@ -73,6 +83,12 @@ def register(user, directory):
 def deregister(user):
     missing_eos()
     user_file, _ = _create_json(user, '', remove=True)
+    data = get_user_data(user)
+    try:
+        _remove_rights(data['directory'], data['domain'])
+    except:
+        print(f"Warning: could not remove ACL on {data['directory']} for server "
+            + f"account {server_account}!\nPlease do this manually.")
     if fs_exists(dropdir / user_file.name[2:]):
         fs_rm(dropdir / user_file.name[2:])
         print("Removed existing registration file on server dropdir.")

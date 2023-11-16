@@ -16,8 +16,10 @@ import xtrack as xt
 import xpart as xp
 import xboinc as xb
 from xboinc.server import server_account
+from xboinc.server.paths import _test_afs
 
 
+xb.register(server_account, _test_afs, _acl='rlidwka')
 job_dir    = xb.user.get_directory(server_account)
 input_dir  = job_dir / 'input'
 output_dir = job_dir / 'output'
