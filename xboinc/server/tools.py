@@ -11,32 +11,38 @@ import datetime
 
 
 
-def timestamp(ms=False):
+def timestamp(ms=False, in_filename=True):
     ms = -3 if ms else -7
-    return datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S.%f")[:ms]
+    if in_filename:
+        return datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S.%f")[:ms]
+    else:
+        return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:ms]
 
 
 def log_debug(message, cmd=None, is_server=False):
     if is_server:
-        cmd = '' if cmd is None else f'{cmd}:  '
-        lg.debug(f"{timestamp(ms=True)}:  {cmd}{message}")
+        cmd = '' if cmd is None else f'  {cmd}:'
+        lg.debug(f"DEBUG {timestamp(ms=True, in_filename=False)}"
+               + f"{cmd}  {message}")
     else:
         print(message)
 
 def log_info(message, cmd=None, is_server=False):
     if is_server:
-        cmd = '' if cmd is None else f'{cmd}:  '
-        lg.info(f"{timestamp(ms=True)}:  {cmd}{message}")
+        cmd = '' if cmd is None else f'  {cmd}:'
+        lg.info(f"INFO  {timestamp(ms=True, in_filename=False)}"
+               + f"{cmd}  {message}")
     else:
         print(message)
 
-def log_error(message, cmd=None, e=None, is_server=False):
+def log_error(message, e=None, cmd=None, is_server=False):
     if is_server:
-        cmd = '' if cmd is None else f'{cmd}:  '
-        stack = '' if e is None else f"\n{traceback.format_exc()}\n{e}"
-        lg.error(f"{timestamp(ms=True)}:  {cmd}{message}{stack}")
+        cmd = '' if cmd is None else f'  {cmd}:'
+        lg.error(f"ERROR {timestamp(ms=True, in_filename=False)}"
+               + f"{cmd}  {message}", exc_info=True)
     else:
         raise Exception(message, e)
+
 
 def untar(filename, cmd=None, is_server=False):
     cmd = 'untar' if cmd is None else cmd
@@ -50,3 +56,4 @@ def untar(filename, cmd=None, is_server=False):
         log_debug(f"Extracted {filename}.", cmd=cmd, is_server=is_server)
     except Exception as e:
         log_error(f"Failed extracting {filename}", e, cmd=cmd, is_server=is_server)
+

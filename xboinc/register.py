@@ -110,6 +110,7 @@ def deregister(user):
     except ValueError:
         print(f"User {user} not found in user_data.")
     else:
+        directory = fs_path(data['directory'])
         # This is a quick check to avoid losing sixtadm ACLs during testing
         if user!=server_account:
             try:
@@ -117,11 +118,11 @@ def deregister(user):
                 input_dev_dir  = directory / 'input_dev'
                 output_dir     = directory / 'output'
                 output_dev_dir = directory / 'output_dev'
-                _remove_rights(data['directory'], data['domain'])
                 _remove_rights(input_dir, data['domain'])
                 _remove_rights(input_dev_dir, data['domain'])
                 _remove_rights(output_dir, data['domain'])
                 _remove_rights(output_dev_dir, data['domain'])
+                _remove_rights(directory, data['domain'])
             except:
                 print(f"Warning: could not remove ACL on {data['directory']} for server "
                     + f"account {server_account}!\nPlease do this manually.")
