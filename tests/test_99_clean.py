@@ -14,7 +14,7 @@ import filecmp
 import xtrack as xt
 import xcoll as xc
 import xboinc as xb
-from xboinc.server import server_account
+from xboinc.server import server_account, dropdir
 
 
 def test_clean():
@@ -25,3 +25,5 @@ def test_clean():
         if file.exists():
             file.unlink()
     xb.deregister(server_account)
+    for f in dropdir.glob(f"*_{server_account}.json"):
+        f.unlink()
