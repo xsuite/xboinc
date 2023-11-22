@@ -21,55 +21,58 @@ def on_afs(file):
     else:
         return parents[-3] == Path('/afs/cern.ch')
 
-def afs_add_acl(user, directory, acl='rlwik', is_server=False):
+def afs_add_acl(user, directory, acl='rlwik', cmd=None, is_server=False):
+    cmd = 'afs_add_acl' if cmd is None else cmd
     try:
         directory = fs_path(directory)
         cmd = subprocess.run(['fs', 'sa', directory, user, acl],
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if cmd.returncode == 0:
-            log_info(f"Set ACL '{acl}' on directory {directory} for user {user}.", is_server=is_server)
+            log_info(f"Set ACL '{acl}' on directory {directory} for user {user}.", cmd=cmd, is_server=is_server)
             return 0
         else:
             stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
-            log_error(f"Failed to set ACL '{acl}' on {directory} for user {user}.\n{stderr}", is_server=is_server)
+            log_error(f"Failed to set ACL '{acl}' on {directory} for user {user}.\n{stderr}", cmd=cmd, is_server=is_server)
             return 1
     except Exception as e:
-        log_error(f"Failed to set ACL '{acl}' on {directory} for user {user}.\n{stderr}", e, is_server=is_server)
+        log_error(f"Failed to set ACL '{acl}' on {directory} for user {user}.\n{stderr}", e, cmd=cmd, is_server=is_server)
         return 1
 
 
-def afs_remove_acl(user, directory, is_server=False):
+def afs_remove_acl(user, directory, cmd=None, is_server=False):
+    cmd = 'afs_remove_acl' if cmd is None else cmd
     try:
         directory = fs_path(directory)
         cmd = subprocess.run(['fs', 'sa', directory, user, 'none'],
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if cmd.returncode == 0:
-            log_info(f"Removed ACL on directory {directory} for user {user}.", is_server=is_server)
+            log_info(f"Removed ACL on directory {directory} for user {user}.", cmd=cmd, is_server=is_server)
             return 0
         else:
             stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
-            log_error(f"Failed to remove ACL on {directory} for user {user}.\n{stderr}", is_server=is_server)
+            log_error(f"Failed to remove ACL on {directory} for user {user}.\n{stderr}", cmd=cmd, is_server=is_server)
             return 1
     except Exception as e:
-        log_error(f"Failed to remove ACL on {directory} for user {user}.\n{stderr}", e, is_server=is_server)
+        log_error(f"Failed to remove ACL on {directory} for user {user}.\n{stderr}", e, cmd=cmd, is_server=is_server)
         return 1
 
 
-def afs_print_acl(directory, is_server=False):
+def afs_print_acl(directory, cmd=None, is_server=False):
+    cmd = 'afs_print_acl' if cmd is None else cmd
     try:
         directory = fs_path(directory)
         cmd = subprocess.run(['fs', 'la', directory],
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if cmd.returncode == 0:
             stdout = cmd.stdout.decode('UTF-8').strip().split('\n')
-            log_info(f"{stdout}", is_server=is_server)
+            log_info(f"{stdout}", cmd=cmd, is_server=is_server)
             return 0
         else:
             stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
-            log_error(f"Failed to print ACL on {directory} for user {user}.\n{stderr}", is_server=is_server)
+            log_error(f"Failed to print ACL on {directory} for user {user}.\n{stderr}", cmd=cmd, is_server=is_server)
             return 1
     except Exception as e:
-        log_error(f"Failed to print ACL on {directory} for user {user}.\n{stderr}", e, is_server=is_server)
+        log_error(f"Failed to print ACL on {directory} for user {user}.\n{stderr}", e, cmd=cmd, is_server=is_server)
         return 1
 
 
@@ -95,13 +98,14 @@ def eos_installed():
     except (subprocess.CalledProcessError, FileNotFoundError):
         return False
 
-def missing_eos(message='', is_server=False):
+def missing_eos(message='', cmd=None, is_server=False):
+    cmd = 'missing_eos' if cmd is None else cmd
     if eos_installed():
         return 0
     else:
         message = '' if message == '' else f"{message} "
         log_error(f"{message}EOS is not installed on your system.",
-                  EnvironmentError(), is_server=is_server)
+                  EnvironmentError(), cmd=cmd, is_server=is_server)
         return 1
 
 # def xrdcp_installed():
@@ -127,7 +131,8 @@ def fs_path(path):
     path = Path(path).expanduser().resolve()
     return Path(path.as_posix().replace('/eos/home-','/eos/user/'))
 
-def fs_glob(path, pattern, is_server=False):
+def fs_glob(path, pattern, cmd=None, is_server=False):
+    cmd = 'fs_glob' if cmd is None else cmd
     path = fs_path(path)
     err_mess = f"Failed fs_glob {pattern} in {path}!"
     try:
@@ -144,10 +149,11 @@ def fs_glob(path, pattern, is_server=False):
         files = [Path(ss).resolve() for ss in cmd.stdout.decode('UTF-8').strip().split('\n')]
         return [f for f in files if f.stat().st_size!=0]
     except Exception as e:
-        log_error(f"{err_mess}\n", e, is_server=is_server)
+        log_error(f"{err_mess}\n", e, cmd=cmd, is_server=is_server)
         return []
 
-def fs_exists(file, is_server=False):
+def fs_exists(file, cmd=None, is_server=False):
+    cmd = 'fs_exists' if cmd is None else cmd
     file = fs_path(file)
     err_mess = f"Failed fs_exists for {file}!"
     try:
@@ -162,10 +168,11 @@ def fs_exists(file, is_server=False):
         else:
             return file.exists() and file.stat().st_size!=0
     except Exception as e:
-        log_error(f"{err_mess}\n", e, is_server=is_server)
+        log_error(f"{err_mess}\n", e, cmd=cmd, is_server=is_server)
         return False
 
-def fs_rm(file, is_server=False):
+def fs_rm(file, cmd=None, is_server=False):
+    cmd = 'fs_rm' if cmd is None else cmd
     file = fs_path(file)
     err_mess = f"Failed eos_rm for {file}!"
     try:
@@ -182,22 +189,23 @@ def fs_rm(file, is_server=False):
             return 0
         else:
             stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
-            log_error(f"{err_mess}\n{stderr}", is_server=is_server)
+            log_error(f"{err_mess}\n{stderr}", cmd=cmd, is_server=is_server)
             return 1
     except Exception as e:
-        log_error(f"{err_mess}\n", e, is_server=is_server)
+        log_error(f"{err_mess}\n", e, cmd=cmd, is_server=is_server)
         return 1
 
 
 # Always use the following functions file by file, not for a list of files
 
-def fs_cp(file, directory, maximum_trials=10, wait=2.7, is_server=False):
+def fs_cp(file, directory, maximum_trials=10, wait=2.7, cmd=None, is_server=False):
+    cmd = 'fs_cp' if cmd is None else cmd
     file   = fs_path(file)
     directory = fs_path(directory)
     if file.parent == directory:
         return 0
     if not directory.is_dir():
-        log_error(f"Failed fs_cp: {directory} is not a directory!")
+        log_error(f"Failed fs_cp: {directory} is not a directory!", cmd=cmd, is_server=is_server)
         return 1
     err_mess = f"Failed fs_cp {file} to {directory}!"
     try:
@@ -214,26 +222,28 @@ def fs_cp(file, directory, maximum_trials=10, wait=2.7, is_server=False):
             if cmd.returncode == 0 and fs_exists(directory / file.name):
                 return 0
             if i != maximum_trials-1:
-                log_debug(f"{err_mess}\nRetrying ({i})..", is_server=is_server)
+                log_debug(f"{err_mess}\nRetrying ({i})..", cmd=cmd, is_server=is_server)
                 sleep(abs(wait+random.normalvariate(0, 0.1*wait)))
-        log_error(f"{err_mess}\n", is_server=is_server)
+        log_error(f"{err_mess}\n", cmd=cmd, is_server=is_server)
         if not fs_exists(directory / file.name):
             log_error(f"Command succeeds but destination file is not created!\n",
-                      is_server=is_server)
+                      cmd=cmd, is_server=is_server)
         else:
             stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
-            log_error(f"Command failed: {stderr}\n", is_server=is_server)
-        log_error("Giving up.", is_server=is_server)
+            log_error(f"Command failed: {stderr}\n", cmd=cmd, is_server=is_server)
+        log_error("Giving up.", cmd=cmd, is_server=is_server)
         return 1
     except Exception as e:
-        log_error(f"{err_mess}\n", e, is_server=is_server)
+        log_error(f"{err_mess}\n", e, cmd=cmd, is_server=is_server)
         return 1
 
-def fs_rename(file, new_file, maximum_trials=10, wait=2.7, is_server=False):
+def fs_rename(file, new_file, maximum_trials=10, wait=2.7, cmd=None, is_server=False):
+    cmd = 'fs_rename' if cmd is None else cmd
     file     = fs_path(file)
     new_file = fs_path(new_file)
     if file.parent != new_file.parent:
-        log_error(f"Failed fs_rename: {file} not in the same directory as {new_file}!")
+        log_error(f"Failed fs_rename: {file} not in the same directory as {new_file}!",
+                  cmd=cmd, is_server=is_server)
         return 1
     err_mess = f"Failed fs_rename {file} to {new_file}!"
     try:
@@ -250,27 +260,28 @@ def fs_rename(file, new_file, maximum_trials=10, wait=2.7, is_server=False):
             if cmd.returncode == 0 and fs_exists(new_file):
                 return 0
             if i != maximum_trials-1:
-                log_debug(f"{err_mess}\nRetrying ({i})..", is_server=is_server)
+                log_debug(f"{err_mess}\nRetrying ({i})..", cmd=cmd, is_server=is_server)
                 sleep(abs(wait+random.normalvariate(0, 0.1*wait)))
-        log_error(f"{err_mess}\n", is_server=is_server)
+        log_error(f"{err_mess}\n", cmd=cmd, is_server=is_server)
         if not fs_exists(new_file):
             log_error(f"Command succeeds but destination file is not created!\n",
-                      is_server=is_server)
+                      cmd=cmd, is_server=is_server)
         else:
             stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
-            log_error(f"Command failed: {stderr}\n", is_server=is_server)
-        log_error("Giving up.", is_server=is_server)
+            log_error(f"Command failed: {stderr}\n", cmd=cmd, is_server=is_server)
+        log_error("Giving up.", cmd=cmd, is_server=is_server)
         return 1
     except Exception as e:
-        log_error(f"{err_mess}\n", e, is_server=is_server)
+        log_error(f"{err_mess}\n", e, cmd=cmd, is_server=is_server)
         return 1
 
-def fs_mv(file, directory, maximum_trials=10, wait=2.7, is_server=False):
+def fs_mv(file, directory, maximum_trials=10, wait=2.7, cmd=None, is_server=False):
+    cmd = 'fs_mv' if cmd is None else cmd
     new_file = None
     if not directory.is_dir():
         new_file = directory
         directory = directory.parent
-    cp_failed = fs_cp(file, directory, maximum_trials, wait, is_server=is_server)
+    cp_failed = fs_cp(file, directory, maximum_trials, wait, cmd=cmd, is_server=is_server)
     # returncode 0 means success
     if cp_failed:
         return 1
@@ -279,10 +290,10 @@ def fs_mv(file, directory, maximum_trials=10, wait=2.7, is_server=False):
         if new_file is not None:
             # rename
             mv_failed = fs_rename(directory / file.name, new_file,
-                                  maximum_trials, wait, is_server=is_server)
+                                  maximum_trials, wait, cmd=cmd, is_server=is_server)
         if mv_failed:
             return 1
         else:
-            return fs_rm(file, is_server=is_server)
+            return fs_rm(file, cmd=cmd, is_server=is_server)
 
 

@@ -16,26 +16,30 @@ def timestamp(ms=False):
     return datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S.%f")[:ms]
 
 
-def log_debug(message, is_server=False):
+def log_debug(message, cmd=None, is_server=False):
     if is_server:
-        lg.debug(f"{timestamp(ms=True)}:  {message}")
+        cmd = '' if cmd is None else f'{cmd}:  '
+        lg.debug(f"{timestamp(ms=True)}:  {cmd}{message}")
     else:
         print(message)
 
-def log_info(message, is_server=False):
+def log_info(message, cmd=None, is_server=False):
     if is_server:
-        lg.info(f"{timestamp(ms=True)}:  {message}")
+        cmd = '' if cmd is None else f'{cmd}:  '
+        lg.info(f"{timestamp(ms=True)}:  {cmd}{message}")
     else:
         print(message)
 
-def log_error(message, e=None, is_server=False):
+def log_error(message, cmd=None, e=None, is_server=False):
     if is_server:
+        cmd = '' if cmd is None else f'{cmd}:  '
         stack = '' if e is None else f"\n{traceback.format_exc()}\n{e}"
-        lg.error(f"{timestamp(ms=True)}:  {message}{stack}")
+        lg.error(f"{timestamp(ms=True)}:  {cmd}{message}{stack}")
     else:
         raise Exception(message, e)
 
-def untar(filename, is_server=False):
+def untar(filename, cmd=None, is_server=False):
+    cmd = 'untar' if cmd is None else cmd
     try:
         filename = Path(filename)
         thisdir = filename.parent / filename.stem[:-4]
@@ -43,7 +47,6 @@ def untar(filename, is_server=False):
         with tarfile.open(filename, 'r:gz') as fid:
             fid.extractall(path=thisdir)
         filename.unlink()
-        log_debug(f"Extracted {filename}.", is_server)
-
+        log_debug(f"Extracted {filename}.", cmd=cmd, is_server=is_server)
     except Exception as e:
-        log_error(f"Failed extracting {filename}", e, is_server)
+        log_error(f"Failed extracting {filename}", e, cmd=cmd, is_server=is_server)
