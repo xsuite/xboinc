@@ -24,22 +24,11 @@ particles_per_sub = 1000
 studyname = "example_study"
 
 
-# Submission can be done in a context, where the submission
-# itself is triggered when exiting the context
-with xb.SubmitJobs(user=user, study=studyname) as submitter:
-    for i in range(int(num_particles/particles_per_sub)):
-        particles = xp.Particles(x=np.random.normal(0, 0.0001, particles_per_sub),
-                                 y=np.random.normal(0, 0.0001, particles_per_sub))
-        submitter.add(job_name=f'{studyname}_{i}', num_turns=num_turns, line=line, particles=particles,
-                checkpoint_every=100)
-
-
-# Or by manually triggering the submission
-submitter = xb.SubmitJobs(user=user, study=studyname)
+jobs = xb.SubmitJobs(user=user, study=studyname)
 for i in range(int(num_particles/particles_per_sub)):
     particles = xp.Particles(x=np.random.normal(0, 0.0001, particles_per_sub),
                              y=np.random.normal(0, 0.0001, particles_per_sub))
-    submitter.add(job_name=f'{studyname}_{i}', num_turns=num_turns, line=line, particles=particles,
+    jobs.add(job_name=f'{studyname}_{i}', num_turns=num_turns, line=line, particles=particles,
                   checkpoint_every=100)
-submitter.submit()
+jobs.submit()
 

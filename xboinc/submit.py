@@ -37,15 +37,16 @@ class SubmitJobs:
         self._temp    = tempfile.TemporaryDirectory()
         self._tempdir = Path(self._temp.name).resolve()
         self._tempdir.mkdir(parents=True, exist_ok=True)
+        self._submitted = False
 
-    def __enter__(self, *args, **kwargs):
-        return self
 
-    def __exit__(self, *args, **kwargs):
-        self.submit()
+    def _assert_not_submitted(self):
+        if self._submitted:
+            raise ValueError("Jobs already submitted! Make a new SubmitJobs object to continue.")
 
 
     def add(self, *, job_name, num_turns, line, particles, checkpoint_every=-1, **kwargs):
+        self._assert_not_submitted()
         if '__' in job_name:
             raise ValueError("The character sequence '__' is not allowed in 'job_name'!")
         filename = f"{self._username}__{timestamp(ms=True)}"
@@ -67,6 +68,7 @@ class SubmitJobs:
 
 
     def submit(self):
+        self._assert_not_submitted()
         with tarfile.open(self._tempdir / self._submitfile, "w:gz") as tar:
             for thisfile in self._json_files + self._bin_files:
                 tar.add(thisfile, arcname=thisfile.name)
@@ -74,7 +76,9 @@ class SubmitJobs:
             fs_mv(self._tempdir / self._submitfile, self._target)
         else:
             raise ValueError(f"Wrong domain {self._domain} for user {self._username}!")
+        self._submitted = True
         # TODO: check that tar contains all files
+        # clean up
         for thisfile in self._json_files + self._bin_files:
             thisfile.unlink()
         self._temp.cleanup()

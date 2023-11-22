@@ -11,6 +11,7 @@ import tarfile
 from pathlib import Path
 import time
 import shutil
+import pytest
 
 import xtrack as xt
 import xpart as xp
@@ -48,21 +49,26 @@ def test_submission():
             file.unlink()
 
     studyname = "test_study_1"
-    with xb.SubmitJobs(user=server_account, study=studyname, dev_server=True) as job:
-        for i in range(num_jobs):
-            particles = xp.Particles(x=np.random.normal(0, 0.01, particles_per_sub),
-                                     y=np.random.normal(0, 0.003, particles_per_sub))
-            job.add(job_name=f'{studyname}_{i}', num_turns=num_turns, line=line, particles=particles,
-                    checkpoint_every=checkpoint_every)
+    jobs = xb.SubmitJobs(user=server_account, study=studyname, dev_server=True)
+    for i in range(num_jobs):
+        particles = xp.Particles(x=np.random.normal(0, 0.01, particles_per_sub),
+                                 y=np.random.normal(0, 0.003, particles_per_sub))
+        jobs.add(job_name=f'{studyname}_{i}', num_turns=num_turns, line=line, particles=particles,
+                checkpoint_every=checkpoint_every)
+    jobs.submit()
+    with pytest.raises(ValueError):
+        jobs.add(job_name='test', num_turns=num_turns, line=line, particles=xp.Particles(),
+                checkpoint_every=checkpoint_every)
 
     time.sleep(5)
     studyname = "test_study_2"
-    with xb.SubmitJobs(user=server_account, study=studyname, dev_server=True) as job:
-        for i in range(num_jobs):
-            particles = xp.Particles(x=np.random.normal(0, 4.7, particles_per_sub),
-                                     y=np.random.normal(0, 0.39, particles_per_sub))
-            job.add(job_name=f'{studyname}_{i}', num_turns=num_turns, line=line, particles=particles,
-                    checkpoint_every=checkpoint_every)
+    jobs = xb.SubmitJobs(user=server_account, study=studyname, dev_server=True)
+    for i in range(num_jobs):
+        particles = xp.Particles(x=np.random.normal(0, 4.7, particles_per_sub),
+                                 y=np.random.normal(0, 0.39, particles_per_sub))
+        jobs.add(job_name=f'{studyname}_{i}', num_turns=num_turns, line=line, particles=particles,
+                checkpoint_every=checkpoint_every)
+    jobs.submit()
 
     now = pd.Timestamp.now().timestamp()
     tarfiles = list(input_dir.glob(f'{studyname}__*'))
