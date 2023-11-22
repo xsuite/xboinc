@@ -10,7 +10,7 @@ from pathlib import Path
 from .general import _pkg_root
 from .user import update_user_data, get_user_data, remove_user
 from .server import server_account, dropdir, missing_eos, fs_exists, fs_rm, fs_cp,\
-                    afs_add_acl, afs_remove_acl, on_afs, on_eos, fs_path
+                    afs_add_acl, afs_remove_acl, on_afs, on_eos, fs_path, fs_rename
 
 
 user_data_file = _pkg_root / 'user_data.json'
@@ -18,7 +18,7 @@ user_data_file = _pkg_root / 'user_data.json'
 
 def _create_json(user, directory, remove=False):
     register = 'deregister' if remove else 'register'
-    user_file = _pkg_root / f'{register}_{user}.json'
+    user_file = Path.cwd() / f'{register}_{user}.json'
     if remove:
         data = {'user': user}
     else:
@@ -82,10 +82,16 @@ def register(user, directory):
     if fs_exists(dropdir / f'de{user_file.name}'):
         fs_rm(dropdir / f'de{user_file.name}')
         print("Removed existing deregistration file on server dropdir.")
+    if fs_exists(dropdir / f'dev_de{user_file.name}'):
+        fs_rm(dropdir / f'dev_de{user_file.name}')
     if fs_exists(dropdir / user_file.name):
         fs_rm(dropdir / user_file.name)
         print("Replaced existing registration file on server dropdir.")
+    if fs_exists(dropdir / f'dev_{user_file.name}'):
+        fs_rm(dropdir / f'dev_{user_file.name}')
     try:
+        fs_cp(user_file, dropdir, maximum_trials=1)
+        fs_rename(dropdir / user_file.name, dropdir / f'dev_{user_file.name}', maximum_trials=1)
         fs_cp(user_file, dropdir, maximum_trials=1)
     except:
         user_file.unlink()
@@ -122,7 +128,11 @@ def deregister(user):
     if fs_exists(dropdir / user_file.name[2:]):
         fs_rm(dropdir / user_file.name[2:])
         print("Removed existing registration file on server dropdir.")
+    if fs_exists(dropdir / f'dev_{user_file.name[2:]}'):
+        fs_rm(dropdir / f'dev_{user_file.name[2:]}')
     try:
+        fs_cp(user_file, dropdir, maximum_trials=1)
+        fs_rename(dropdir / user_file.name, dropdir / f'dev_{user_file.name}', maximum_trials=1)
         fs_cp(user_file, dropdir, maximum_trials=1)
     except:
         user_file.unlink()
