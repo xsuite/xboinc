@@ -39,21 +39,21 @@ def test_submission():
     # Clean potential leftover from failed test
     for file in input_dir.glob('*'):
         if file.is_dir():
-            shutil.rmtree(folder)
+            shutil.rmtree(file)
         else:
             file.unlink()
     for file in output_dir.glob('*/'):
         if file.is_dir():
-            shutil.rmtree(folder)
+            shutil.rmtree(file)
         else:
             file.unlink()
 
-    studyname = "test_study_1"
-    jobs = xb.SubmitJobs(user=server_account, study=studyname, dev_server=True)
+    study_name = "test_study_1"
+    jobs = xb.SubmitJobs(user=server_account, study_name=study_name, line=line, dev_server=True)
     for i in range(num_jobs):
         particles = xp.Particles(x=np.random.normal(0, 0.01, particles_per_sub),
                                  y=np.random.normal(0, 0.003, particles_per_sub))
-        jobs.add(job_name=f'{studyname}_{i}', num_turns=num_turns, line=line, particles=particles,
+        jobs.add(job_name=f'{study_name}_{i}', num_turns=num_turns, particles=particles,
                 checkpoint_every=checkpoint_every)
     jobs.submit()
     with pytest.raises(ValueError):
@@ -61,17 +61,17 @@ def test_submission():
                 checkpoint_every=checkpoint_every)
 
     time.sleep(5)
-    studyname = "test_study_2"
-    jobs = xb.SubmitJobs(user=server_account, study=studyname, dev_server=True)
+    study_name = "test_study_2"
+    jobs = xb.SubmitJobs(user=server_account, study_name=study_name, line=line, dev_server=True)
     for i in range(num_jobs):
         particles = xp.Particles(x=np.random.normal(0, 4.7, particles_per_sub),
                                  y=np.random.normal(0, 0.39, particles_per_sub))
-        jobs.add(job_name=f'{studyname}_{i}', num_turns=num_turns, line=line, particles=particles,
+        jobs.add(job_name=f'{study_name}_{i}', num_turns=num_turns, particles=particles,
                 checkpoint_every=checkpoint_every)
     jobs.submit()
 
     now = pd.Timestamp.now().timestamp()
-    tarfiles = list(input_dir.glob(f'{studyname}__*'))
+    tarfiles = list(input_dir.glob(f'{study_name}__*'))
     assert len(tarfiles) > 0
     # Look for the tar that is just generated
     for tar in tarfiles:
@@ -139,15 +139,15 @@ def test_running():
 def test_retrieval():
     xb._skip_xsuite_version_check = True
     xb.register(server_account, _test_afs)
-    for studyname in ['test_study_1', 'test_study_2']:
+    for study_name in ['test_study_1', 'test_study_2']:
         num_jobs = 0
         x_mean_prev = 0
         x_std_prev = 0
         y_mean_prev = 0
         y_std_prev = 0
-        for job, particles in xb.RetrieveJobs(user=server_account, study=studyname, dev_server=True):
+        for particles, job in xb.RetrieveJobs(user=server_account, study_name=study_name, dev_server=True):
             assert job['user'] == server_account
-            assert job['study'] == studyname
+            assert job['study_name'] == study_name
             num_jobs += 1
             x_mean = np.mean(particles.x)
             x_std = np.std(particles.x)

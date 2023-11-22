@@ -21,14 +21,14 @@ line = xt.Line(elements=[
 
 particles_per_sub = 1000
 
-studyname = "example_study"
+study_name = "example_study"
 
 
-jobs = xb.SubmitJobs(user=user, study=studyname)
+jobs = xb.SubmitJobs(user=user, study_name=study_name, line=line)
 for i in range(int(num_particles/particles_per_sub)):
     particles = xp.Particles(x=np.random.normal(0, 0.0001, particles_per_sub),
                              y=np.random.normal(0, 0.0001, particles_per_sub))
-    jobs.add(job_name=f'{studyname}_{i}', num_turns=num_turns, line=line, particles=particles,
+    jobs.add(job_name=f'{studyname}_{i}', num_turns=num_turns, particles=particles,
                   checkpoint_every=100)
 jobs.submit()
 

@@ -12,13 +12,13 @@ from .simulation_io import SimState, assert_versions
 
 class RetrieveJobs:
 
-    def __init__(self, user, study, dev_server=False):
+    def __init__(self, user, study_name, dev_server=False):
         if not dev_server:
             raise NotImplementedError("Regular server not yet operational. "
                                     + "Please use dev_server=True.")
         assert_versions()
-        self._study = study
-        self._username = user
+        self._study_name = study_name
+        self._user = user
         self._domain = get_domain(user)
         if self._domain=='eos':
             missing_eos()
@@ -46,11 +46,13 @@ class RetrieveJobs:
         for json_file in self._directory.glob('*/*.json'):
             with open(json_file, 'r') as json_file_obj:
                 json_content = json.load(json_file_obj)
-            if json_content.get("study") == self._study and json_content.get("user") == self._username:
+            if json_content.get("study_name") == self._study_name \
+            and json_content.get("user") == self._user:
                 json_files.append(json_file)
         json_files = set(json_files) - set(self._to_delete)
         if not json_files:
-            print(f"Warning: No JSON files found in {self._directory} for {self._username} study {self._study}.")
+            print(f"Warning: No JSON files found in {self._directory} for "
+                + f"{self._user}, study_name {self._study_name}.")
         self._json_files = iter(json_files)
         return self
 
@@ -72,5 +74,5 @@ class RetrieveJobs:
                 print(f"Error loading binary file {bin_file}: {e}")
             else: 
                 self._to_delete.append(json_file)
-                return json_content, particles
+                return particles, json_content
 
