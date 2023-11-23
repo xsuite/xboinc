@@ -52,6 +52,7 @@ int8_t* file_to_buffer(char *filename, int8_t* buf_in){
     return (buf);
 }
 
+// TODOO: jobs get stuck if all particles die immediately
 
 int main(){
 
@@ -75,6 +76,14 @@ int main(){
     printf("num_elements: %d\n", (int) num_elements);
 
     ParticlesData particles = SimConfig_getp_sim_state_particles(sim_config);
+    int64_t num_part = 0;
+    for (int ii=0; ii<ParticlesData_get__capacity(particles); ii++){
+        if(ParticlesData_get_state(particles, (int64_t) ii) > 0){
+            num_part++;
+        }
+    }
+    printf("num_part: %d\n", (int) num_part);
+
     SimStateData sim_state = SimConfig_getp_sim_state(sim_config);
     int64_t checkpoint_every = SimConfig_get_checkpoint_every(sim_config);
 
@@ -84,8 +93,7 @@ int main(){
     int64_t current_turn = SimStateData_get_i_turn(sim_state);
     if (loaded){
        printf("Loaded checkpoint, continuing from turn %d\n", (int) current_turn);
-    }
-    else{
+    } else {
        printf("No checkpoint found\n");
     }
 
