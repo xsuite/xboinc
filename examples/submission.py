@@ -17,22 +17,25 @@ line.build_tracker()
 
 # Each of these jobs takes ~1h
 num_jobs = 150
-particles_per_job = 1000
+num_part_per_job = 1000
 num_turns = 20000
 checkpoint_every = 1000
 
+all_part = line.build_particles(x_norm=np.random.normal(0, 10, num_part_per_job*num_jobs),
+                                y_norm=np.random.normal(0, 10, num_part_per_job*num_jobs))
+
 study_name = "example_study"
-prev = time.time()
 jobs = xb.SubmitJobs(user=user, study_name=study_name, line=line, dev_server=True)
+prev = time.time()
 for i in range(num_jobs):
-    # output progress
-    if i%25 == 0:
-        now = time.time() ; print(f"{i}/{num_jobs}  ({now-prev:.4}s)"); prev = now
-    # build particles
-    particles = line.build_particles(x_norm=np.random.normal(0, 10, particles_per_job),
-                                     y_norm=np.random.normal(0, 10, particles_per_job))
+    # select subgroup of particles
+    this_part = all_part.filter((all_part.particle_id>=i*num_part_per_job) \
+                                & (all_part.particle_id<(i+1)*num_part_per_job))
     # create job
-    jobs.add(job_name=f'job{i}', num_turns=num_turns, particles=particles,
-                  checkpoint_every=checkpoint_every)
+    jobs.add(job_name=f'job{i}', num_turns=num_turns, particles=this_part,
+             checkpoint_every=checkpoint_every)
+    # output progress
+    if i%25 == 24:
+        now = time.time() ; print(f"{i+1}/{num_jobs}  ({now-prev:.4}s)"); prev = now
 jobs.submit()
 

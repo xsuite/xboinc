@@ -73,6 +73,7 @@ class SubmitJobs:
         filename = f"{self._user}__{timestamp(ms=True)}"
         json_file = Path(self._tempdir, f"{filename}.json")
         bin_file  = Path(self._tempdir, f"{filename}.bin")
+        # TODO: warn if job expected to be too short ( < 90s)
         json_dict = {
             'user': self._user,
             'study_name': self._study_name,
