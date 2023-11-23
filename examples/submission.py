@@ -12,23 +12,27 @@ import xboinc as xb
 
 
 user = 'sixtadm'
+line = xt.Line.from_json(xb._pkg_root.parent / 'tests' / 'data' / 'sequence_lhc_run3_b1.json')
+line.build_tracker()
 
-
-num_turns = 2000
-num_particles = 1e6
-line = xt.Line(elements=[
-    xt.Drift(length=1.0), xt.Multipole(knl=[1e-6]), xt.Drift(length=1.0)])
-
-particles_per_sub = 1000
+# Each of these jobs takes ~1h
+num_jobs = 150
+particles_per_job = 1000
+num_turns = 20000
+checkpoint_every = 1000
 
 study_name = "example_study"
-
-
-jobs = xb.SubmitJobs(user=user, study_name=study_name, line=line)
-for i in range(int(num_particles/particles_per_sub)):
-    particles = xp.Particles(x=np.random.normal(0, 0.0001, particles_per_sub),
-                             y=np.random.normal(0, 0.0001, particles_per_sub))
-    jobs.add(job_name=f'{studyname}_{i}', num_turns=num_turns, particles=particles,
-                  checkpoint_every=100)
+prev = time.time()
+jobs = xb.SubmitJobs(user=user, study_name=study_name, line=line, dev_server=True)
+for i in range(num_jobs):
+    # output progress
+    if i%25 == 0:
+        now = time.time() ; print(f"{i}/{num_jobs}  ({now-prev:.4}s)"); prev = now
+    # build particles
+    particles = line.build_particles(x_norm=np.random.normal(0, 10, particles_per_job),
+                                     y_norm=np.random.normal(0, 10, particles_per_job))
+    # create job
+    jobs.add(job_name=f'job{i}', num_turns=num_turns, particles=particles,
+                  checkpoint_every=checkpoint_every)
 jobs.submit()
 
