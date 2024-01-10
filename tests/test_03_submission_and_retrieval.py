@@ -22,6 +22,8 @@ from xboinc.server.paths import _test_afs
 
 input_dir  = _test_afs / 'input_dev'
 output_dir = _test_afs / 'output_dev'
+input_filename      = 'xboinc_input.bin'
+output_filename     = 'sim_state_out.bin'
 
 
 def test_submission():
@@ -105,11 +107,11 @@ def test_running():
     for json_file in json_files:
         bin_file = json_file.with_suffix('.bin')
         input_name = bin_file
-        shutil.move(bin_file, Path.cwd() / 'xboinc_input.bin')
+        shutil.move(bin_file, Path.cwd() / input_filename)
         cmd = subprocess.run([exec_file])
         if cmd.returncode != 0:
             raise RuntimeError(f"Tracking failed.")
-        out_file = Path.cwd() / 'sim_state_out.bin'
+        out_file = Path.cwd() / output_filename
         shutil.move(out_file, input_name)
 
     tar1 = output_dir / f"{server_account}__{xb.server.timestamp(ms=True)}.tar.gz"

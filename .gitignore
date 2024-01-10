@@ -143,12 +143,6 @@ dmypy.json
 # VSCode
 .vscode/
 
-# CMake
-CMakeCache*.txt
-CMakeFiles*/
-Makefile*
-cmake_install*.cmake
-
 # SixTrack
 fort.??*
 *.so
