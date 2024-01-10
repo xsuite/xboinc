@@ -18,6 +18,9 @@ import xboinc as xb
 
 line_file = xb._pkg_root.parent / 'tests' / 'data' / 'sequence_lhc_run3_b1.json'
 num_turns = 1000
+input_filename      = 'xboinc_input.bin'
+output_filename     = 'sim_state_out.bin'
+checkpoint_filename = 'checkpoint.bin'
 
 
 def test_compilation():
@@ -48,13 +51,13 @@ def test_generate_input():
     xb._skip_xsuite_version_check = True
     line, part = _make_input()
     xb.SimConfig.build(line=line, particles=part, num_turns=num_turns, checkpoint_every=10,
-                        filename='xboinc_input.bin')
-    input_file = Path.cwd() / "xboinc_input.bin"
+                        filename=input_filename)
+    input_file = Path.cwd() / input_filename
     assert input_file.exists()
     xb._skip_xsuite_version_check = False
 
 
-def test_track():
+def test_track(request):
     xb._skip_xsuite_version_check = True
     # If no executable is present, make one
     exec_file = list(Path.cwd().glob(f'xboinc_{xb.app_version}-*'))
@@ -64,19 +67,22 @@ def test_track():
     exec_file = exec_file[0]
 
     # If no input file is present, make one
-    input_file = Path.cwd() / 'xboinc_input.bin'
+    input_file = Path.cwd() / input_filename
     if not input_file.exists():
         test_generate_input()
 
     # run xboinc tracker
     t1 = time.time()
     cmd = subprocess.run([exec_file])
-    print(round(time.time() - t1, 1))
+    calculation_time = round(time.time() - t1, 1)
+    request.config.cache.set('calculation_time', calculation_time)
     if cmd.returncode != 0:
         raise RuntimeError(f"Tracking failed.")
+    else:
+        print(f"Tracking done in {calculation_time}s.")
 
     # Read output
-    output_file = Path.cwd() / 'sim_state_out.bin'
+    output_file = Path.cwd() / output_filename
     assert output_file.exists()
     sim_state = xb.SimState.from_binary(output_file)
 
@@ -93,11 +99,11 @@ def test_track():
     assert not np.allclose(part_xboinc.py, part_xboinc.py[0], rtol=1e-4, atol=0)
 
     # Rename file for comparison in next test
-    output_file.rename(output_file.parent / f'{output_file.name}_2')
+    output_file.rename(output_file.parent / f"{output_filename}_2")
     xb._skip_xsuite_version_check = False
 
 
-def test_checkpoint():
+def test_checkpoint(request):
     xb._skip_xsuite_version_check = True
     # If no executable is present, make one
     exec_file = list(Path.cwd().glob(f'xboinc_{xb.app_version}-*'))
@@ -107,25 +113,28 @@ def test_checkpoint():
     exec_file = exec_file[0]
 
     # If no input file is present, make one
-    input_file = Path.cwd() / 'xboinc_input.bin'
+    input_file = Path.cwd() / input_filename
     if not input_file.exists():
         test_generate_input()
 
     # If previous output file not present, we need to regenerate it (to be able to compare)
-    output_file = Path.cwd() / 'sim_state_out.bin_2'
+    output_file = Path.cwd() / f"{output_filename}_2"
     if not output_file.exists():
         test_track()
 
     # run xboinc tracker and interrupt halfway
     interrupted = False
-    timeout = 25
+    timeout = 0.6*request.config.cache.get('calculation_time', 25)
     print(f"Will interrupt after {timeout}s.")
+    t1 = time.time()
+    calculation_time = round(time.time() - t1, 1)
     try:
         cmd = subprocess.run(exec_file, timeout=timeout)
     except subprocess.TimeoutExpired:
         interrupted = True
-        print("Interrupted calculation. Now trying to continue.")
-        checkpoint_file = Path.cwd() / 'checkpoint.bin'
+        t2 = time.time()
+        print(f"Interrupted calculation after {round(t2 - t1, 1)}s. Now trying to continue.")
+        checkpoint_file = Path.cwd() / checkpoint_filename
         assert checkpoint_file.exists()
     if not interrupted:
         raise ValueError("Timeout was too short. Adapt the test 'test_checkpoint'.")
@@ -134,18 +143,21 @@ def test_checkpoint():
     cmd = subprocess.run(exec_file)
     if cmd.returncode != 0:
         raise RuntimeError(f"Tracking failed.")
+    else:
+        t3 = time.time()
+        print(f"Continued tracking done in {round(t3 - t2, 1)}s (total tracking time {round(t3 - t1, 1)}s).")
 
     # Compare file to previous result
-    output_file = Path.cwd() / 'sim_state_out.bin'
+    output_file = Path.cwd() / output_filename
     assert output_file.exists()
-    assert filecmp.cmp(output_file, output_file.parent / f'{output_file.name}_2', shallow=False)
+    assert filecmp.cmp(output_file, output_file.parent / f"{output_file.name}_2", shallow=False)
     xb._skip_xsuite_version_check = False
 
 
 def test_vs_xtrack():
     xb._skip_xsuite_version_check = True
     # If no output is present, make one
-    output_file = Path.cwd() / 'sim_state_out.bin_2'
+    output_file = Path.cwd() / f"{output_filename}_2"
     if not output_file.exists():
         test_track()
     sim_state = xb.SimState.from_binary(output_file)

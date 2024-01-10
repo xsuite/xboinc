@@ -61,13 +61,14 @@ def get_default_tracker():
         xt.Exciter(nsamples=1),
         xt.LineSegmentMap(),
         xt.FirstOrderTaylorMap(),
-        xf.BeamBeamBiGaussian2D(
-            other_beam_Sigma_11=1.,
-            other_beam_Sigma_33=1.,
-            other_beam_num_particles=0.,
-            other_beam_q0=1.,
-            other_beam_beta0=1.,
-        ),
+        # keyword complex (in faddeeva_mit) does not work in C++
+#         xf.BeamBeamBiGaussian2D(
+#             other_beam_Sigma_11=1.,
+#             other_beam_Sigma_33=1.,
+#             other_beam_num_particles=0.,
+#             other_beam_q0=1.,
+#             other_beam_beta0=1.,
+#         ),
 #         # Doesn't work because issue with definition of atomicAdd when generating executable
 #         xf.BeamBeamBiGaussian3D(
 #             slices_other_beam_zeta_center=[0],

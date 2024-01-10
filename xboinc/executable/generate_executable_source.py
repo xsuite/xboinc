@@ -120,7 +120,7 @@ def generate_executable(*, keep_source=False, windows32=False, windows64=False):
         thisos = f'{thisos}-gnu' if thisos=='linux' else thisos
         tag += f"-{machine}-{vendor}-{thisos}"
 
-    cmd = subprocess.run([compiler, 'main.c', '-o', f'xboinc{tag}', '-lm'],
+    cmd = subprocess.run([compiler, 'main.c', '-O3', '-o', f'xboinc{tag}', '-lm'],
                           stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if cmd.returncode != 0:
         stderr = cmd.stderr.decode('UTF-8').strip().split('\n')

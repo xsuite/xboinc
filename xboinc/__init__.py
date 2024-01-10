@@ -5,7 +5,7 @@
 
 from .general import _pkg_root, __version__, __xsuite__versions__
 
-from .register import register
+from .register import register, deregister
 from .submit import SubmitJobs
 from .retrieve import RetrieveJobs
 

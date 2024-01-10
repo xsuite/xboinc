@@ -6,3 +6,5 @@
 server_account = 'sixtadm'
 
 from .tools import timestamp, log_debug, log_info, log_error, untar
+from .fs import *
+from .paths import *

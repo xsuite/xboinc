@@ -11,17 +11,24 @@ import tarfile
 from pathlib import Path
 import time
 import shutil
+import pytest
 
 import xtrack as xt
 import xpart as xp
 import xboinc as xb
+from xboinc.server import server_account
+from xboinc.server.paths import _test_afs
 
 
-user = 'sixtadm'
+input_dir  = _test_afs / 'input_dev'
+output_dir = _test_afs / 'output_dev'
+input_filename      = 'xboinc_input.bin'
+output_filename     = 'sim_state_out.bin'
 
 
 def test_submission():
     xb._skip_xsuite_version_check = True
+    xb.register(server_account, _test_afs)
     num_turns = 100
     num_particles = 5000
     checkpoint_every = 25
@@ -32,38 +39,41 @@ def test_submission():
     num_jobs = int(num_particles/particles_per_sub)
 
     # Clean potential leftover from failed test
-    input_folder = xb.user.get_folder(user) / 'input'
-    output_folder = xb.user.get_folder(user) / 'output'
-    for file in input_folder.glob('*'):
+    for file in input_dir.glob('*'):
         if file.is_dir():
-            shutil.rmtree(folder)
+            shutil.rmtree(file)
         else:
             file.unlink()
-    for file in output_folder.glob('*/'):
+    for file in output_dir.glob('*/'):
         if file.is_dir():
-            shutil.rmtree(folder)
+            shutil.rmtree(file)
         else:
             file.unlink()
 
-    studyname = "test_study_1"
-    with xb.SubmitJobs(user=user, study=studyname) as job:
-        for i in range(num_jobs):
-            particles = xp.Particles(x=np.random.normal(0, 0.01, particles_per_sub),
-                                     y=np.random.normal(0, 0.003, particles_per_sub))
-            job.add(job_name=f'{studyname}_{i}', num_turns=num_turns, line=line, particles=particles,
-                    checkpoint_every=checkpoint_every)
+    study_name = "test_study_1"
+    jobs = xb.SubmitJobs(user=server_account, study_name=study_name, line=line, dev_server=True)
+    for i in range(num_jobs):
+        particles = xp.Particles(x=np.random.normal(0, 0.01, particles_per_sub),
+                                 y=np.random.normal(0, 0.003, particles_per_sub))
+        jobs.add(job_name=f'{study_name}_{i}', num_turns=num_turns, particles=particles,
+                checkpoint_every=checkpoint_every)
+    jobs.submit()
+    with pytest.raises(ValueError):
+        jobs.add(job_name='test', num_turns=num_turns, line=line, particles=xp.Particles(),
+                checkpoint_every=checkpoint_every)
 
     time.sleep(5)
-    studyname = "test_study_2"
-    with xb.SubmitJobs(user=user, study=studyname) as job:
-        for i in range(num_jobs):
-            particles = xp.Particles(x=np.random.normal(0, 4.7, particles_per_sub),
-                                     y=np.random.normal(0, 0.39, particles_per_sub))
-            job.add(job_name=f'{studyname}_{i}', num_turns=num_turns, line=line, particles=particles,
-                    checkpoint_every=checkpoint_every)
+    study_name = "test_study_2"
+    jobs = xb.SubmitJobs(user=server_account, study_name=study_name, line=line, dev_server=True)
+    for i in range(num_jobs):
+        particles = xp.Particles(x=np.random.normal(0, 4.7, particles_per_sub),
+                                 y=np.random.normal(0, 0.39, particles_per_sub))
+        jobs.add(job_name=f'{study_name}_{i}', num_turns=num_turns, particles=particles,
+                checkpoint_every=checkpoint_every)
+    jobs.submit()
 
     now = pd.Timestamp.now().timestamp()
-    tarfiles = list(Path(xb.user.get_folder(user) / 'input').glob(f'{studyname}__*'))
+    tarfiles = list(input_dir.glob(f'{study_name}__*'))
     assert len(tarfiles) > 0
     # Look for the tar that is just generated
     for tar in tarfiles:
@@ -77,10 +87,11 @@ def test_submission():
     assert np.all([member.size > 8 for member in members])
     member_names = [member.name for member in members]
     assert len(member_names) == 2*num_jobs
-    assert np.all([member[:len(user)+2] == f'{user}__' for member in member_names])
+    assert np.all([member[:len(server_account)+2] == f'{server_account}__' for member in member_names])
     assert len([member for member in member_names if member[-5:]=='.json']) == num_jobs
     assert len([member for member in member_names if member[-4:]=='.bin']) == num_jobs
     xb._skip_xsuite_version_check = False
+    xb.deregister(server_account)
 
 
 def test_running():
@@ -89,22 +100,21 @@ def test_running():
         raise ValueError("No executable found! Check order of tests.")
     exec_file = exec_file[0]
 
-    input_folder = xb.user.get_folder(user) / 'input'
-    for tar in input_folder.glob('*.tar.gz'):
+    for tar in input_dir.glob('*.tar.gz'):
         xb.server.untar(tar)
 
-    json_files = list(input_folder.glob('*/*.json'))
+    json_files = list(input_dir.glob('*/*.json'))
     for json_file in json_files:
         bin_file = json_file.with_suffix('.bin')
         input_name = bin_file
-        shutil.move(bin_file, Path.cwd() / 'xboinc_input.bin')
+        shutil.move(bin_file, Path.cwd() / input_filename)
         cmd = subprocess.run([exec_file])
         if cmd.returncode != 0:
             raise RuntimeError(f"Tracking failed.")
-        out_file = Path.cwd() / 'sim_state_out.bin'
+        out_file = Path.cwd() / output_filename
         shutil.move(out_file, input_name)
 
-    tar1 = xb.user.get_folder(user) / 'output' / f"{user}__{xb.server.timestamp(ms=True)}.tar.gz"
+    tar1 = output_dir / f"{server_account}__{xb.server.timestamp(ms=True)}.tar.gz"
     with tarfile.open(tar1, "w:gz") as tar:
         for json_file in json_files[:3]:
             tar.add(json_file, arcname=json_file.name)
@@ -114,7 +124,7 @@ def test_running():
             binfile.unlink()
 
     time.sleep(5)
-    tar2 = xb.user.get_folder(user) / 'output' / f"{user}__{xb.server.timestamp(ms=True)}.tar.gz"
+    tar2 = output_dir / f"{server_account}__{xb.server.timestamp(ms=True)}.tar.gz"
     with tarfile.open(tar2, "w:gz") as tar:
         for json_file in json_files[3:]:
             tar.add(json_file, arcname=json_file.name)
@@ -124,21 +134,22 @@ def test_running():
             binfile.unlink()
 
     # Clean folders
-    for folder in input_folder.glob('*/'):
+    for folder in input_dir.glob('*/'):
         folder.rmdir()
 
 
 def test_retrieval():
     xb._skip_xsuite_version_check = True
-    for studyname in ['test_study_1', 'test_study_2']:
+    xb.register(server_account, _test_afs)
+    for study_name in ['test_study_1', 'test_study_2']:
         num_jobs = 0
         x_mean_prev = 0
         x_std_prev = 0
         y_mean_prev = 0
         y_std_prev = 0
-        for job, particles in xb.RetrieveJobs(user=user, study=studyname):
-            assert job['user'] == user
-            assert job['study'] == studyname
+        for particles, job in xb.RetrieveJobs(user=server_account, study_name=study_name, dev_server=True):
+            assert job['user'] == server_account
+            assert job['study_name'] == study_name
             num_jobs += 1
             x_mean = np.mean(particles.x)
             x_std = np.std(particles.x)
@@ -157,4 +168,5 @@ def test_retrieval():
             
         assert num_jobs == 5
     xb._skip_xsuite_version_check = False
+    xb.deregister(server_account)
 

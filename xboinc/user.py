@@ -29,10 +29,12 @@ def update_user_data(user, data):
 def get_user_data(user):
     with user_data_file.open('r') as fid:
         userdict = json.load(fid)
+    if user not in userdict:
+        raise ValueError(f"User {user} not registered!")
     return userdict[user]
 
-def get_folder(user):
-    return Path(get_user_data(user)['folder']).resolve()
+def get_directory(user):
+    return Path(get_user_data(user)['directory']).resolve()
 
 def get_domain(user):
     return get_user_data(user)['domain']
