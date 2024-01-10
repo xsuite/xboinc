@@ -20,12 +20,12 @@ __version__ = '0.1.5'
 # If a new package needs to be pinned, add it here with a random version number,
 # and similarily in the pyproject.toml
 __xsuite__versions__ = {
-    'xobjects' : '0.2.8',
-    'xdeps'    : '0.4.2',
-    'xpart'    : '0.15.3',
-    'xtrack'   : '0.42.0',
-    'xfields'  : '0.13.1',
-    'xcoll'    : '0.2.5',
+    'xobjects' : '0.2.10',
+    'xdeps'    : '0.5.2',
+    'xpart'    : '0.16.3',
+    'xtrack'   : '0.48.1',
+    'xfields'  : '0.15.0',
+    'xcoll'    : '0.2.7',
 }
 
 # ==========================================================================================
