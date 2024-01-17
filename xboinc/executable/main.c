@@ -274,10 +274,8 @@ void XB_fprintf(FILE *stream, char *format, ...) {
     va_list args;
     va_start(args, format);
 #ifdef COMPILE_TO_BOINC
-    char* buf = NULL;
-    buf = boinc_msg_prefix(buf, 256*sizeof(char));
-    fprintf(stream, "%s ", buf);
-//     (char*)(retval + '')
+    char buf[256];
+    fprintf(stream, "%s ", boinc_msg_prefix(buf, sizeof(buf)));
 #endif
     vfprintf(stream, format, args);
     va_end(args);
