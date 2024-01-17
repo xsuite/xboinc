@@ -4,6 +4,7 @@
 # ######################################### #
 
 import xobjects as xo
+
 from ..simulation_io import SimState, SimConfig, SimVersion, app_version, get_default_tracker, assert_versions
 from ..general import _pkg_root, __version__
 
@@ -48,7 +49,7 @@ def generate_executable_source(*, write_source_files=True, _context=None):
         insert_in_all_files + track_kernel.specialized_source)
 
     with open(_pkg_root.joinpath('executable/main.c'), 'r') as fid:
-        main_c = insert_in_all_files + fid.read()
+        main_c = fid.read()
 
     dct_sources = {
         'sim_config.h': sim_config_h,

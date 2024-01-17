@@ -31,13 +31,6 @@
 // --trickle_down: receive a trickle-up message
 // --network_usage: tell the client we used some network
 
-// #include <stdio.h>
-// #ifndef NULL
-//     #define NULL 0
-// #endif
-// #include <stdlib.h>
-// #include <math.h>
-
 #ifdef _WIN32
 #include "boinc_win.h"
 #else
@@ -88,3 +81,4 @@ UC_SHMEM* shmem;
 #endif
 
 using std::string;
+

@@ -94,6 +94,9 @@ exec_ver=$(( 1000*${minor_ver[0]} + ${minor_ver[1]} ))
 minor_ver=${minor_ver[0]}.${minor_ver[1]}
 if [[ "$minor_ver" != "$current_ver" ]]
 then
+    echo "Warning: we should jump to 0.3 in one go due to out-of-sync with server!"
+    echo "Do this manually."
+    exit
     ./pin_xsuite_versions.sh
     if [[ $? -ne 0 ]]
     then
