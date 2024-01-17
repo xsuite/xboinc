@@ -1,0 +1,28 @@
+0) install tools:
+  sudo dnf install git xauth wget
+
+1) install miniforge3
+
+2) install xsuite:
+  pip install numpy scipy matplotlib pandas ipython pytest
+  cd
+  git clone git@github.com:xsuite/xboinc
+  pip install -e ./xboinc
+
+3) install prerequisites:
+  conda install make m4 libtool autoconf automake gcc gxx libstdcxx-ng pkg-config clang
+
+4) install boinc API:
+  cd
+  git clone https://github.com/BOINC/boinc
+  cd boinc
+  export BOINC_DIR=$PWD
+  ./_autosetup
+  ./configure --disable-server --disable-client --disable-manager
+  make
+
+5) compile xboinc executables with BOINC API:
+  cd ~/xboinc/xboinc/executable
+  python -c 'import xboinc as xb; xb.generate_executable_source()'
+  gcc -O3 -c xtrack.o xtrack.c
+  make

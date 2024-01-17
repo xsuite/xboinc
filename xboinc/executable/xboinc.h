@@ -41,7 +41,6 @@
 #include <cstring>
 #include <cstdlib>
 #include <csignal>
-#include <cstdarg>
 #include <cmath>
 #include <unistd.h>
 #endif
@@ -53,16 +52,16 @@
 #include "mfile.h"
 #include "graphics2.h"
 
-struct UC_SHMEM {
-    double update_time;
-    double fraction_done;
-    double cpu_time;
-    BOINC_STATUS status;
-    int countdown;
-        // graphics app sets this to 5 repeatedly,
-        // main program decrements it once/sec.
-        // If it's zero, don't bother updating shmem
-};
+// struct UC_SHMEM {
+//     double update_time;
+//     double fraction_done;
+//     double cpu_time;
+//     BOINC_STATUS status;
+//     int countdown;
+//         // graphics app sets this to 5 repeatedly,
+//         // main program decrements it once/sec.
+//         // If it's zero, don't bother updating shmem
+// };
 
 #ifdef _WIN32
 
@@ -76,9 +75,9 @@ __declspec( dllimport )  char* xtrack_dll_version();
 
 #include <iostream>
 
-#ifdef APP_GRAPHICS
-UC_SHMEM* shmem;
-#endif
+// #ifdef APP_GRAPHICS
+// UC_SHMEM* shmem;
+// #endif
 
 using std::string;
 

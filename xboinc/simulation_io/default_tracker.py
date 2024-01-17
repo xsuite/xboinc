@@ -106,7 +106,8 @@ def get_default_tracker():
         xt.LimitRect(),
         xt.LimitRacetrack(),
         xt.LimitEllipse(),
-        xt.LimitPolygon(x_vertices=[0.,1.], y_vertices=[0.,1.]),
+        # not supported until per-particle block updated
+#         xt.LimitPolygon(x_vertices=[0.,1.], y_vertices=[0.,1.]),
         xt.LimitRectEllipse(),
         xt.LongitudinalLimitRect()
     ])
