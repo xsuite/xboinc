@@ -83,8 +83,13 @@ install: xboinc
 # specify library paths explicitly (rather than -l)
 # because otherwise you might get a version in /usr/lib etc.
 
-xboinc: xboinc.o $(MAKEFILE_STDLIB) $(BOINC_API_DIR)/libboinc_api.a $(BOINC_LIB_DIR)/libboinc.a
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS) -o xboinc xboinc.o \
-	-o xboinc_executable -lm \
-	-lboinc_api -lboinc $(MAKEFILE_LDFLAGS) \
+xtrack.o: xtrack_tracker.h sim_config.h xtrack.c
+	gcc -g -O3 -lm -std=c99 -c -o xtrack.o xtrack.c
+
+xboinc.o: main.c xtrack.h
+	g++ -g -O3 -c -o xboinc.o main.c -lm
+
+xboinc: xtrack.o xboinc.o $(MAKEFILE_STDLIB) $(BOINC_API_DIR)/libboinc_api.a $(BOINC_LIB_DIR)/libboinc.a
+	$(CXX) -g $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS) -o xboinc xtrack.o xboinc.o \
+	-lm -lboinc_api -lboinc $(MAKEFILE_LDFLAGS) \
 	$(STDCPPTC)

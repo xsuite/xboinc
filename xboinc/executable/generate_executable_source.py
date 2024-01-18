@@ -31,13 +31,18 @@ def generate_executable_source(*, write_source_files=True, _context=None):
     assert write_source_files
     assert_versions()
 
+    # The SimConfig source should not be static, as it has to be exposed to main
+    # TODO: Do we still want to inline this? If yes, we need to adapt xo.specialize_source
+    #       to pass the replacement of /*gpufun*/ as an option
+    conf = xo.typeutils.default_conf.copy()
+    conf['gpufun'] = ''
     sim_config_sources = [
         insert_in_all_files,
-        xo.specialize_source(SimVersion._XoStruct._gen_c_api().source,
+        xo.specialize_source(SimVersion._XoStruct._gen_c_api(conf).source,
                                     specialize_for='cpu_serial'),
-        xo.specialize_source(SimState._XoStruct._gen_c_api().source,
+        xo.specialize_source(SimState._XoStruct._gen_c_api(conf).source,
                                     specialize_for='cpu_serial'),
-        xo.specialize_source(SimConfig._gen_c_api().source,
+        xo.specialize_source(SimConfig._gen_c_api(conf).source,
                                     specialize_for='cpu_serial'),
     ]
 

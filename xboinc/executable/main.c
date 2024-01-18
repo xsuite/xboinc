@@ -4,15 +4,23 @@
 // ######################################### #
 
 
-#ifndef NULL
-#define NULL 0
-#endif
+// ===============================================================================================
+// IMPORTANT
+// ===============================================================================================
+// Only make changes to this file just before a minor version bump (need a separate commit though)
+// to avoid having multiple xboinc versions with out-of-sync executables.
+// ===============================================================================================
+
 
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <math.h>
 #include <stdarg.h>
+
+#ifndef NULL
+#define NULL 0
+#endif
 
 // Xsuite code (in C) that the BOINC app calls
 // This should be compiled separately in advance
@@ -24,17 +32,17 @@ extern "C" {
 };
 #endif
 
+// BOINC API
+#ifdef COMPILE_TO_BOINC
+#ifndef __cplusplus
+#error "Compilation with BOINC API should be done in C++"
+#endif
+#include "xboinc.h"
+#endif
 
 #define XB_INPUT_FILENAME "xboinc_input.bin"
 #define XB_OUTPUT_FILENAME "sim_state_out.bin"
 #define XB_CHECKPOINT_FILE "checkpoint.bin"
-
-
-// ===============================================================================================
-// IMPORTANT
-// ===============================================================================================
-// Only make changes to this file just before a minor version bump (need a separate commit though)
-// to avoid having multiple xboinc versions with out-of-sync executables.
 
 // ===============================================================================================
 // Do not change
@@ -42,7 +50,6 @@ extern "C" {
 // version XXX.YYY as int  (no patch)
 const int64_t xboinc_exec_version = 1;
 // ===============================================================================================
-
 
 int8_t run_slow = 0;
 int8_t early_exit = 0;
@@ -117,24 +124,11 @@ int main(int argc, char **argv){
         XB_fprintf(stderr, "Xboinc version of executable and input file do not match!\n");
         return -1;
     }
-    const int64_t num_turns = SimConfig_get_num_turns(sim_config);
-    const int64_t num_elements = SimConfig_get_num_elements(sim_config);
-    XB_fprintf(stdout, "num_turns: %d\n", (int) num_turns);
-    XB_fprintf(stdout, "num_elements: %d\n", (int) num_elements);
-    int64_t current_turn;
-    ParticlesData particles = SimConfig_getp_sim_state_particles(sim_config);
-    int64_t num_part = 0;
-    for (int ii=0; ii<ParticlesData_get__capacity(particles); ii++){
-        if(ParticlesData_get_state(particles, (int64_t) ii) > 0){
-            num_part++;
-        }
-    }
-    XB_fprintf(stdout, "num_part: %d\n", (int) num_part);
-    SimStateData sim_state = SimConfig_getp_sim_state(sim_config);
-    XB_fprintf(stdout, "sim_state: %p\n", (int8_t*) sim_state);
-    const int64_t checkpoint_every = SimConfig_get_checkpoint_every(sim_config);
 
     // Check for checkpoint file and load if it exists, otherwise use SimState from input
+    SimStateData sim_state = SimConfig_getp_sim_state(sim_config);
+    XB_fprintf(stdout, "sim_state: %p\n", (int8_t*) sim_state);
+    int64_t current_turn;
     FILE* checkpoint_state = XB_fopen_allow_null(XB_CHECKPOINT_FILE, "rb");
     if (checkpoint_state){
         XB_file_to_buffer(checkpoint_state, (int8_t*) sim_state);
@@ -145,13 +139,27 @@ int main(int argc, char **argv){
         XB_fprintf(stdout, "No checkpoint found, starting from turn %d.\n", (int) current_turn);
     }
 
-    int64_t step_turns = 1;  // Seems to best solution to track one turn at a time, to allow BOINC to interrupt
+    const int64_t num_turns = SimConfig_get_num_turns(sim_config);
+    const int64_t num_elements = SimConfig_get_num_elements(sim_config);
+    XB_fprintf(stdout, "num_turns: %d\n", (int) num_turns);
+    XB_fprintf(stdout, "num_elements: %d\n", (int) num_elements);
+    ParticlesData particles = SimStateData_getp_particles(sim_state);
+    int64_t num_part = 0;
+    for (int ii=0; ii<SimStateData_get_particles__capacity(sim_state); ii++){
+        if(SimStateData_get_particles_state(sim_state, (int64_t) ii) > 0){
+            num_part++;
+        }
+    }
+    XB_fprintf(stdout, "num_part: %d\n", (int) num_part);
+
+    const int64_t checkpoint_every = SimConfig_get_checkpoint_every(sim_config);
+    int64_t step_turns = 1;  // Best solution seems to track one turn at a time, to allow BOINC to interrupt
     if (checkpoint_every > 0){
 //         step_turns = checkpoint_every;
-        printf("Checkpointing every %d turns.\n", (int) checkpoint_every);
+        XB_fprintf(stdout, "Checkpointing every %d turns.\n", (int) checkpoint_every);
     } else {
 //         step_turns = num_turns;
-        printf("Not checkpointing\n");
+        XB_fprintf(stdout, "Not checkpointing\n");
     }
 
     // Open output file as test
@@ -164,6 +172,7 @@ int main(int argc, char **argv){
     // Main loop  ================
     // ===========================
     while (current_turn < num_turns){
+        XB_fprintf(stdout, "in main loop\n");
         track_line(
             sim_buffer, // int8_t* buffer,
             SimConfig_getp_line_metadata(sim_config), // ElementRefData elem_ref_data
@@ -180,6 +189,7 @@ int main(int argc, char **argv){
             0,    // int64_t offset_tbt_monitor
             NULL  // int8_t* io_buffer,
         );
+        XB_fprintf(stdout, "tracked");
         current_turn += step_turns;
         SimStateData_set_i_turn(sim_state, current_turn);
 
