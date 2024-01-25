@@ -11,12 +11,21 @@
 // to avoid having multiple xboinc versions with out-of-sync executables.
 // ===============================================================================================
 
-
+#ifdef __cplusplus
+#include <cstdio>
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
+#include <cmath>
+#include <cstdarg>
+#else
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 #include <math.h>
 #include <stdarg.h>
+#endif
 
 #ifndef NULL
 #define NULL 0
@@ -37,12 +46,22 @@ extern "C" {
 #ifndef __cplusplus
 #error "Compilation with BOINC API should be done in C++"
 #endif
-#include "xboinc.h"
+#ifdef _WIN32
+#include "boinc_win.h"
+#else
+#include "config.h"
+#endif
+#include "str_util.h"
+#include "util.h"
+#include "filesys.h"
+#include "boinc_api.h"
+#include "mfile.h"
 #endif
 
 #define XB_INPUT_FILENAME "xboinc_input.bin"
 #define XB_OUTPUT_FILENAME "sim_state_out.bin"
 #define XB_CHECKPOINT_FILE "checkpoint.bin"
+
 
 // ===============================================================================================
 // Do not change
@@ -63,29 +82,29 @@ int8_t network_usage = 0;
 double cpu_time = 20, comp_result;
 
 
-void    XB_fprintf(FILE *stream, char *format, ...);
-FILE*   XB_fopen(char *filename, const char *mode);
-FILE*   XB_fopen_allow_null(char *filename, const char *mode);
-int8_t* XB_file_to_buffer(FILE *fid, int8_t *buf_in);
-int     XB_do_checkpoint(SimConfig sim_config, SimStateData sim_state);
+static void    XB_fprintf(FILE *stream, char *format, ...);
+static FILE*   XB_fopen(char *filename, const char *mode);
+static FILE*   XB_fopen_allow_null(char *filename, const char *mode);
+static int8_t* XB_file_to_buffer(FILE *fid, int8_t *buf_in);
+static int     XB_do_checkpoint(SimConfig sim_config, SimStateData sim_state);
 
 
 int main(int argc, char **argv){
-    int retval, i;
+    int retval;
 #ifdef COMPILE_TO_BOINC
     // Parse BOINC arguments and initialise
-    for (i=0; i<argc; i++) {
-        if (strstr(argv[i], "early_exit")) early_exit = 1;
-        if (strstr(argv[i], "early_crash")) early_crash = 1;
-        if (strstr(argv[i], "early_sleep")) early_sleep = 1;
-        if (strstr(argv[i], "run_slow")) run_slow = 1;
-        if (strstr(argv[i], "critical_section")) critical_section = 1;
-        if (strstr(argv[i], "network_usage")) network_usage = 1;
-        if (strstr(argv[i], "cpu_time")) {
-            cpu_time = atof(argv[++i]);
+    for (int ii=0; ii<argc; ii++) {
+        if (strstr(argv[ii], "early_exit")) early_exit = 1;
+        if (strstr(argv[ii], "early_crash")) early_crash = 1;
+        if (strstr(argv[ii], "early_sleep")) early_sleep = 1;
+        if (strstr(argv[ii], "run_slow")) run_slow = 1;
+        if (strstr(argv[ii], "critical_section")) critical_section = 1;
+        if (strstr(argv[ii], "network_usage")) network_usage = 1;
+        if (strstr(argv[ii], "cpu_time")) {
+            cpu_time = atof(argv[++ii]);
         }
-        if (strstr(argv[i], "trickle_up")) trickle_up = 1;
-        if (strstr(argv[i], "trickle_down")) trickle_down = 1;
+        if (strstr(argv[ii], "trickle_up")) trickle_up = 1;
+        if (strstr(argv[ii], "trickle_down")) trickle_down = 1;
     }
     retval = boinc_init();
     if (retval) {
@@ -228,20 +247,17 @@ int main(int argc, char **argv){
 
 #ifdef COMPILE_TO_BOINC
     // BOINC clean up
-    if (trickle_up) {
-        boinc_send_trickle_up(
-            const_cast<char*>("example_app"),
-            const_cast<char*>("sample trickle message")
-        );
-    }
-    if (trickle_down) {
-        boinc_sleep(10);
-        char buf[256];
-        retval = boinc_receive_trickle_down(buf, sizeof(buf));
-        if (!retval) {
-            fprintf(stderr, "Got trickle-down message: %s\n", buf);
-        }
-    }
+    // if (trickle_up) {
+    //     boinc_send_trickle_up("example_app", "sample trickle message");
+    // }
+    // if (trickle_down) {
+    //     boinc_sleep(10);
+    //     char buf[256];
+    //     retval = boinc_receive_trickle_down(buf, sizeof(buf));
+    //     if (!retval) {
+    //         XB_fprintf(stderr, "Got trickle-down message: %s\n", buf);
+    //     }
+    // }
     boinc_fraction_done(1);
     boinc_finish(0);
 #endif
@@ -255,11 +271,11 @@ int main(int argc, char **argv){
         }
     }
 
-    return 0;
+    // return 0;
 }
 
 
-void XB_fprintf(FILE *stream, char *format, ...) {
+static void XB_fprintf(FILE *stream, char *format, ...) {
     va_list args;
     va_start(args, format);
 #ifdef COMPILE_TO_BOINC
@@ -271,7 +287,7 @@ void XB_fprintf(FILE *stream, char *format, ...) {
 }
 
 
-FILE* XB_fopen(char *filename, const char *mode){
+static FILE* XB_fopen(char *filename, const char *mode){
     FILE *fid;
 #ifdef COMPILE_TO_BOINC
     char resolved_name[512];
@@ -294,7 +310,7 @@ FILE* XB_fopen(char *filename, const char *mode){
 }
 
 
-FILE* XB_fopen_allow_null(char *filename, const char *mode){
+static FILE* XB_fopen_allow_null(char *filename, const char *mode){
     FILE *fid;
 #ifdef COMPILE_TO_BOINC
     char resolved_name[512];
@@ -307,7 +323,7 @@ FILE* XB_fopen_allow_null(char *filename, const char *mode){
 }
 
 
-int8_t* XB_file_to_buffer(FILE *fid, int8_t *buf_in){
+static int8_t* XB_file_to_buffer(FILE *fid, int8_t *buf_in){
     if (!fid){
         return NULL;
     }
@@ -332,7 +348,7 @@ int8_t* XB_file_to_buffer(FILE *fid, int8_t *buf_in){
 }
 
 
-int XB_do_checkpoint(SimConfig sim_config, SimStateData sim_state) {
+static int XB_do_checkpoint(SimConfig sim_config, SimStateData sim_state) {
     FILE *chkp_fid = XB_fopen(XB_CHECKPOINT_FILE, "wb");
     if (!chkp_fid) {
         return 1;

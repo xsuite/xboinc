@@ -9,8 +9,7 @@ from ..simulation_io import SimState, SimConfig, SimVersion, app_version, get_de
 from ..general import _pkg_root, __version__
 
 from pathlib import Path
-import shutil
-import subprocess
+import shutil, subprocess, os
 
 # ===============================================================================================
 # IMPORTANT
@@ -26,48 +25,44 @@ insert_in_all_files = """
 #endif
 """
 
-def generate_executable_source(*, write_source_files=True, _context=None):
+
+sources = [Path.cwd() / "main.c", Path.cwd() / "Makefile", Path.cwd() / "xtrack.c", Path.cwd() / "xtrack.h"]
+
+
+def generate_executable_source(*, overwrite=False, _context=None):
     assert _context is None
-    assert write_source_files
     assert_versions()
 
-    # The SimConfig source should not be static, as it has to be exposed to main
-    # TODO: Do we still want to inline this? If yes, we need to adapt xo.specialize_source
-    #       to pass the replacement of /*gpufun*/ as an option
-    conf = xo.typeutils.default_conf.copy()
-    conf['gpufun'] = ''
-    sim_config_sources = [
-        insert_in_all_files,
-        xo.specialize_source(SimVersion._XoStruct._gen_c_api(conf).source,
-                                    specialize_for='cpu_serial'),
-        xo.specialize_source(SimState._XoStruct._gen_c_api(conf).source,
-                                    specialize_for='cpu_serial'),
-        xo.specialize_source(SimConfig._gen_c_api(conf).source,
-                                    specialize_for='cpu_serial'),
-    ]
+    if not (Path.cwd() / "sim_config.h").exists() or overwrite:
+        # The SimConfig source should not be static, as it has to be exposed to main
+        # TODO: Do we still want to inline this? If yes, we need to adapt xo.specialize_source
+        #       to pass the replacement of /*gpufun*/ as an option
+        conf = xo.typeutils.default_conf.copy()
+        conf['gpufun'] = ''
+        sim_config_sources = [
+            insert_in_all_files,
+            xo.specialize_source(SimVersion._XoStruct._gen_c_api(conf).source,
+                                        specialize_for='cpu_serial'),
+            xo.specialize_source(SimState._XoStruct._gen_c_api(conf).source,
+                                        specialize_for='cpu_serial'),
+            xo.specialize_source(SimConfig._gen_c_api(conf).source,
+                                        specialize_for='cpu_serial'),
+        ]
+        sim_config_h = '\n'.join(sim_config_sources)
+        with (Path.cwd() / "sim_config.h").open('w') as fid:
+            fid.write(sim_config_h)
 
-    sim_config_h = '\n'.join(sim_config_sources)
+    if not (Path.cwd() / "xtrack_tracker.h").exists() or overwrite:
+        default_tracker, default_config_hash = get_default_tracker()
+        track_kernel = default_tracker.track_kernel[default_config_hash]
+        xtrack_tracker_h = (
+            insert_in_all_files + track_kernel.specialized_source)
+        with (Path.cwd() / "xtrack_tracker.h").open('w') as fid:
+            fid.write(xtrack_tracker_h)
 
-    default_tracker, default_config_hash = get_default_tracker()
-    track_kernel = default_tracker.track_kernel[default_config_hash]
-    xtrack_tracker_h = (
-        insert_in_all_files + track_kernel.specialized_source)
-
-    with open(_pkg_root.joinpath('executable/main.c'), 'r') as fid:
-        main_c = fid.read()
-
-    dct_sources = {
-        'sim_config.h': sim_config_h,
-        'xtrack_tracker.h': xtrack_tracker_h,
-        'main.c': main_c,
-    }
-
-    for nn, vv in dct_sources.items():
-        file = Path.cwd() / nn
-        with file.open('w') as fid:
-            fid.write(vv)
-
-    return dct_sources
+    for file in sources:
+        if not file.exists() or overwrite:
+            shutil.copy(_pkg_root / 'executable' / file.name, Path.cwd())
 
 
 # BOINC executable naming conventions:
@@ -88,55 +83,115 @@ def generate_executable_source(*, write_source_files=True, _context=None):
 # aarch64-unknown-linux-gnu   Linux running aarch64
 # x86_64-pc-freebsd__sse2     Free BSD running on 64 bit X86
 
-def generate_executable(*, keep_source=False, windows32=False, windows64=False):
+def generate_executable(*, keep_source=False, clean=True, boinc_path=None):
     assert_versions()
-    main    = Path.cwd() / "main.c"
-    config  = Path.cwd() / "sim_config.h"
-    tracker = Path.cwd() / "xtrack_tracker.h"
-    if not main.exists() or not config.exists() or not tracker.exists():
-        source_files = generate_executable_source()
+    config   = Path.cwd() / "sim_config.h"
+    tracker  = Path.cwd() / "xtrack_tracker.h"
+    if not config.exists() or not tracker.exists() or not all([s.exists() for s in sources]):
+        _ = generate_executable_source()
 
-    tag = f'_{app_version}'
-    if windows64:
-        if shutil.which("x86_64-w64-mingw32-gcc") is not None:
-            compiler = "x86_64-w64-mingw32-gcc"
-        else:
-            raise ValueError("Mingw32 not found!")
-        tag += '-windows_x86_64.exe'
-    elif windows32:
-        if shutil.which("i686-w64-mingw32-gcc") is not None:
-            compiler = "i686-w64-mingw32-gcc"
-        else:
-            raise ValueError("Mingw32 not found!")
-        tag += '-windows_intelx86.exe'
+    # Verify dependencies
+    if shutil.which("gcc") is None and shutil.which("clang") is None:
+        raise RuntimeError("Neither `gcc` or `clang` are found. Install a C compiler.")
+    if shutil.which("g++") is None and shutil.which("clang++") is None:
+        raise RuntimeError("Neither `g++` or `clang++` are found. Install a C++ compiler.")
+    if shutil.which("make") is None:
+        raise RuntimeError("Please install `make` before generating the executable.")
+    if boinc_path is not None:
+        for dep in ["automake", "m4", "libtool", "autoconf", "pkg-config"]:
+            if shutil.which(dep) is None:
+                raise RuntimeError(f"Please install `{dep}` before generating the executable.")
+        _check_libstd()
+
+    # Create executable name
+    exec_name = f'xboinc_{app_version}'
+    cmd = subprocess.run(['uname', '-m'], stdout=subprocess.PIPE)
+    if cmd.returncode == 0:
+        machine = cmd.stdout.decode('UTF-8').strip().lower()
     else:
-        if shutil.which("gcc") is not None:
-            compiler = "gcc"
-        elif shutil.which("clang") is not None:
-            compiler = "clang"
-        else:
-            raise RuntimeError("Neither clang or gcc are found. Install a C compiler.")
-        cmd = subprocess.run(['uname', '-m'], stdout=subprocess.PIPE)
-        if cmd.returncode == 0:
-            machine = cmd.stdout.decode('UTF-8').strip().lower()
-        cmd = subprocess.run(['uname', '-s'], stdout=subprocess.PIPE)
-        if cmd.returncode == 0:
-            thisos = cmd.stdout.decode('UTF-8').strip().lower()
-        vendor = 'apple' if thisos=='darwin' else 'pc'
-        thisos = f'{thisos}-gnu' if thisos=='linux' else thisos
-        tag += f"-{machine}-{vendor}-{thisos}"
+        machine = 'none'
+    cmd = subprocess.run(['uname', '-s'], stdout=subprocess.PIPE)
+    if cmd.returncode == 0:
+        thisos = cmd.stdout.decode('UTF-8').strip().lower()
+    else:
+        thisos = 'none'
+    vendor = 'apple' if thisos=='darwin' else 'pc'
+    thisos = f'{thisos}-gnu' if thisos=='linux' else thisos
+    exec_name += f"-{machine}-{vendor}-{thisos}"
 
-    cmd = subprocess.run([compiler, 'main.c', '-O3', '-o', f'xboinc{tag}', '-lm'],
-                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    # Compile!
+    if boinc_path is None:
+        cmd = subprocess.run(['make', 'xboinc_test'],
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    else:
+        cmd = subprocess.run(['make', 'xboinc'], env={**os.environ, 'BOINC_DIR': \
+                                    Path(boinc_path).expanduser().resolve().as_posix()},
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if cmd.returncode != 0:
-        stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
+        print(cmd.stdout.decode('UTF-8').strip())
+        stderr = cmd.stderr.decode('UTF-8').strip()
         raise RuntimeError(f"Compilation failed. Stderr:\n {stderr}")
-
-    if keep_source:
-        main.rename(main.parent / f'{main.stem}{tag}{main.suffix}')
-        config.rename(config.parent / f'{config.stem}{tag}{config.suffix}')
-        tracker.rename(tracker.parent / f'{tracker.stem}{tag}{tracker.suffix}')
     else:
-        main.unlink()
+        print(cmd.stdout.decode('UTF-8').strip())
+        Path(f"xboinc{'_test' if boinc_path is None else ''}").rename(exec_name)
+
+    # Clean up
+    if clean:
+        cmd = subprocess.run(['make', 'clean'],
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if cmd.returncode != 0:
+            stderr = cmd.stderr.decode('UTF-8').strip()
+            raise RuntimeError(f"Could not run `make clean`. Stderr:\n {stderr}")
+    if not keep_source:
         config.unlink()
         tracker.unlink()
+        for s in sources: s.unlink()
+
+    
+    # if windows64:
+    #     if shutil.which("x86_64-w64-mingw32-gcc") is not None:
+    #         compiler = "x86_64-w64-mingw32-gcc"
+    #     else:
+    #         raise ValueError("Mingw32 not found!")
+    #     tag += '-windows_x86_64.exe'
+    # elif windows32:
+    #     if shutil.which("i686-w64-mingw32-gcc") is not None:
+    #         compiler = "i686-w64-mingw32-gcc"
+    #     else:
+    #         raise ValueError("Mingw32 not found!")
+    #     tag += '-windows_intelx86.exe'
+    # else:
+    #     if shutil.which("gcc") is not None:
+    #         compiler = "gcc"
+    #     elif shutil.which("clang") is not None:
+    #         compiler = "clang"
+    #     else:
+    #         raise RuntimeError("Neither clang or gcc are found. Install a C compiler.")
+
+
+def _check_libstd():
+    missing_lib = False
+    stderr = None
+
+    cmd = subprocess.run(['make', 'libstdc++.a'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if cmd.returncode != 0:
+        stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
+        missing_lib = True
+    lib = Path('libstdc++.a')
+    if lib.is_symlink():
+        try:
+            if not lib.exists() or lib.readlink() == lib:
+                missing_lib = True
+        except PermissionError:
+            missing_lib = True
+    elif lib.exists():
+        raise ValueError("Something is wrong; `libstdc++.a` should be a symlink but is a regular file...")
+    else:
+        missing_lib = True
+
+    if missing_lib == True:
+        stderr = '' if stderr is None else f"\nStderr:\n {stderr}"
+        raise RuntimeError(f"Make cannot find `libstdc++.a`. Please install it (e.g. `conda install libstdcxx-ng`).{stderr}")
+
+
+

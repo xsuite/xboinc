@@ -9,14 +9,12 @@ BOINC_API_DIR = $(BOINC_SOURCE_API_DIR)
 BOINC_LIB_DIR = $(BOINC_SOURCE_LIB_DIR)
 BOINC_ZIP_DIR = $(BOINC_SOURCE_ZIP_DIR)
 
-#MAKEFILE_LDFLAGS = -lpthread libstdc++.a
 MAKEFILE_LDFLAGS = -lpthread libstdc++.a -static
 MAKEFILE_STDLIB  = libstdc++.a
 
-#    -O3 
-CXXFLAGS += -g \
+CXXFLAGS += \
     -Wall -W -Wshadow -Wpointer-arith -Wcast-qual -Wcast-align -Wunused-parameter -Wno-write-strings -fno-common \
-    -DAPP_GRAPHICS \
+    -O3 \
     -I$(BOINC_DIR) \
     -I$(BOINC_SOURCE_API_DIR) \
     -I$(BOINC_SOURCE_LIB_DIR) \
@@ -70,26 +68,26 @@ all: $(PROGS)
 libstdc++.a:
 	ln -s `$(CXX) $(CXXFLAGS) -print-file-name=libstdc++.a`
 
-ttfont.cpp:
-	ln -s ../../api/ttfont.cpp .
+# ttfont.cpp:
+# 	ln -s ../../api/ttfont.cpp .
 
 clean: distclean
 
 distclean:
-	/bin/rm -f $(PROGS) $(addsuffix .exe, $(PROGS)) *.o libstdc++.a ttfont.cpp
+	/bin/rm -f $(PROGS) $(addsuffix .exe, $(PROGS)) *.o libstdc++.a
 
 install: xboinc
 
 # specify library paths explicitly (rather than -l)
-# because otherwise you might get a version in /usr/lib etc.
+# because otherwise, you might get a version in /usr/lib etc.
 
 xtrack.o: xtrack_tracker.h sim_config.h xtrack.c
-	gcc -g -O3 -lm -std=c99 -c -o xtrack.o xtrack.c
+	gcc -O3 -lm -std=c99 -c xtrack.c
 
-xboinc.o: main.c xtrack.h
-	g++ -g -O3 -c -o xboinc.o main.c -lm
+xboinc_test: xtrack.o xtrack.h main.c
+	$(CXX) -O3 -lm -o xboinc_test xtrack.o main.c
 
-xboinc: xtrack.o xboinc.o $(MAKEFILE_STDLIB) $(BOINC_API_DIR)/libboinc_api.a $(BOINC_LIB_DIR)/libboinc.a
-	$(CXX) -g $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS) -o xboinc xtrack.o xboinc.o \
+xboinc: xtrack.o main.o $(MAKEFILE_STDLIB) $(BOINC_API_DIR)/libboinc_api.a $(BOINC_LIB_DIR)/libboinc.a
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS) -DCOMPILE_TO_BOINC -o xboinc xtrack.o main.c \
 	-lm -lboinc_api -lboinc $(MAKEFILE_LDFLAGS) \
 	$(STDCPPTC)
