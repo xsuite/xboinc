@@ -13,7 +13,7 @@ _pkg_root = Path(__file__).parent.absolute()
 # Do not change
 # ==========================================================================================
 
-__version__ = '0.1.6'
+__version__ = '0.1.7'
 
 # These are the xsuite modules that are used by boinc and the versions they are tied to.
 # This will be automatically updated from the active environment when making a minor release.
