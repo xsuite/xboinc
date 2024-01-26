@@ -4,7 +4,7 @@
 1) install miniforge3
 
 2) install xsuite:
-  pip install numpy scipy matplotlib pandas ipython pytest
+  pip install numpy scipy matplotlib pandas ipython pytest poetry
   cd
   git clone git@github.com:xsuite/xboinc
   pip install -e ./xboinc
