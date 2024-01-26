@@ -26,6 +26,10 @@ output_filename     = 'sim_state_out.bin'
 checkpoint_filename = 'checkpoint.bin'
 
 boinc_path = xb._pkg_root.parents[1] / "boinc"
+boinc_api = boinc_path / 'api' / 'libboinc_api.a'
+boinc_lib = boinc_path / 'lib' / 'libboinc.a'
+boinc_missing = not boinc_path.is_dir() or not boinc_path.exists() \
+             or not boinc_api.exists()  or not boinc_lib.exists()
 
 
 def _make_input():
@@ -64,8 +68,7 @@ def test_source():
 
 
 @pytest.mark.parametrize("boinc", [None, 
-    pytest.param(boinc_path, marks=pytest.mark.skipif(not boinc_path.is_dir() or not boinc_path.exists(),
-                                                      reason="BOINC installation not found")
+    pytest.param(boinc_path, marks=pytest.mark.skipif(boinc_missing, reason="BOINC installation not found")
 )], ids=["w/o BOINC api", "with BOINC api"])
 def test_compilation(boinc):
     xb._skip_xsuite_version_check = True
@@ -88,8 +91,7 @@ def _get_exec(boinc):
 
 
 @pytest.mark.parametrize("boinc", [None, 
-    pytest.param(boinc_path, marks=pytest.mark.skipif(not boinc_path.is_dir() or not boinc_path.exists(),
-                                                      reason="BOINC installation not found")
+    pytest.param(boinc_path, marks=pytest.mark.skipif(boinc_missing, reason="BOINC installation not found")
 )], ids=["w/o BOINC api", "with BOINC api"])
 def test_track(boinc):
     xb._skip_xsuite_version_check = True
@@ -139,8 +141,7 @@ def _get_output(boinc):
 
 
 @pytest.mark.parametrize("boinc", [None, 
-    pytest.param(boinc_path, marks=pytest.mark.skipif(not boinc_path.is_dir() or not boinc_path.exists(),
-                                                      reason="BOINC installation not found")
+    pytest.param(boinc_path, marks=pytest.mark.skipif(boinc_missing, reason="BOINC installation not found")
 )], ids=["w/o BOINC api", "with BOINC api"])
 def test_checkpoint(boinc):
     xb._skip_xsuite_version_check = True
@@ -187,24 +188,26 @@ def test_vs_xtrack():
     output_file_2    = _get_output(None)
     sim_state        = xb.SimState.from_binary(output_file_2)
     part_xboinc_test = sim_state.particles
-    output_file_2 = _get_output(boinc_path)
-    sim_state     = xb.SimState.from_binary(output_file_2)
-    part_xboinc   = sim_state.particles
+    if not boinc_missing:
+        output_file_2 = _get_output(boinc_path)
+        sim_state     = xb.SimState.from_binary(output_file_2)
+        part_xboinc   = sim_state.particles
     
     # Testing results with xtrack
     line, part = _make_input()
     line.track(part, num_turns=num_turns, time=True)
     print(f"Done tracking in {line.time_last_track:.1f}s.")
 
-    assert np.array_equal(part.particle_id, part_xboinc.particle_id), "xboinc failed to match xtrack: ids are not equal"
-    assert np.array_equal(part.state, part_xboinc.state),             "xboinc failed to match xtrack: states are not equal"
-    assert np.array_equal(part.at_turn, part_xboinc.at_turn),         "xboinc failed to match xtrack: survivals are not equal"
-    assert np.array_equal(part.x, part_xboinc.x),                     "xboinc failed to match xtrack: x are not equal"
-    assert np.array_equal(part.y, part_xboinc.y),                     "xboinc failed to match xtrack: y are not equal"
-    assert np.array_equal(part.zeta, part_xboinc.zeta),               "xboinc failed to match xtrack: zeta are not equal"
-    assert np.array_equal(part.px, part_xboinc.px),                   "xboinc failed to match xtrack: px are not equal"
-    assert np.array_equal(part.py, part_xboinc.py),                   "xboinc failed to match xtrack: py are not equal"
-    assert np.array_equal(part.delta, part_xboinc.delta),             "xboinc failed to match xtrack: delta are not equal"
+    if not boinc_missing:
+        assert np.array_equal(part.particle_id, part_xboinc.particle_id), "xboinc failed to match xtrack: ids are not equal"
+        assert np.array_equal(part.state, part_xboinc.state),             "xboinc failed to match xtrack: states are not equal"
+        assert np.array_equal(part.at_turn, part_xboinc.at_turn),         "xboinc failed to match xtrack: survivals are not equal"
+        assert np.array_equal(part.x, part_xboinc.x),                     "xboinc failed to match xtrack: x are not equal"
+        assert np.array_equal(part.y, part_xboinc.y),                     "xboinc failed to match xtrack: y are not equal"
+        assert np.array_equal(part.zeta, part_xboinc.zeta),               "xboinc failed to match xtrack: zeta are not equal"
+        assert np.array_equal(part.px, part_xboinc.px),                   "xboinc failed to match xtrack: px are not equal"
+        assert np.array_equal(part.py, part_xboinc.py),                   "xboinc failed to match xtrack: py are not equal"
+        assert np.array_equal(part.delta, part_xboinc.delta),             "xboinc failed to match xtrack: delta are not equal"
     
     assert np.array_equal(part.particle_id, part_xboinc_test.particle_id), "xboinc_test failed to match xtrack: ids are not equal"
     assert np.array_equal(part.state, part_xboinc_test.state),             "xboinc_test failed to match xtrack: states are not equal"
