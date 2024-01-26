@@ -104,8 +104,8 @@ then
     fi
 fi
 
-# Update version in temporary branch
-poetry version $bump
+# Update version in a temporary branch
+poetry version $bump || echo "Poetry version failed! Aborting..."; exit 1
 new_ver=$( poetry version | awk '{print $2;}' )
 if [[ "$new_ver" != "$expected_ver" ]]
 then
@@ -121,11 +121,11 @@ git commit --no-verify -m "Updated version number to v"${new_ver}"."
 git push
 
 # Make and accept pull request
-gh pr create --base main --title "Release "${new_ver} --fill
+gh pr create --base main --title "Release "${new_ver} --fill || echo "gh pr create failed! Aborting..."; exit 1
 git switch main
 git pull
 PR=$( gh pr list --head $branch | tail -1 | awk '{print $1;}' )
-gh pr merge ${PR} --merge --admin --delete-branch
+gh pr merge ${PR} --merge --admin --delete-branch || echo "gh pr merge failed! Aborting..."; exit 1
 git pull
 
 # Make a tag

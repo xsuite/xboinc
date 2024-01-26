@@ -9,10 +9,14 @@
   git clone git@github.com:xsuite/xboinc
   pip install -e ./xboinc
 
-3) install prerequisites:
+3) install gh (for automated versioning to GitHub):
+  conda install gh
+  # need to set up token etc
+
+4) install prerequisites:
   conda install make m4 libtool autoconf automake gcc gxx libstdcxx-ng pkg-config clang
 
-4) install boinc API:
+5) install boinc API:
   cd
   git clone https://github.com/BOINC/boinc
   cd boinc
@@ -21,7 +25,7 @@
   ./configure --disable-server --disable-client --disable-manager
   make
 
-5) compile xboinc executables with BOINC API:
+6) compile xboinc executables with BOINC API:
   cd ~/xboinc/xboinc/executable
   python -c 'import xboinc as xb; xb.generate_executable_source()'
   export BOINC_DIR=~/boinc
