@@ -1,12 +1,12 @@
 # copyright ############################### #
 # This file is part of the Xboinc Package.  #
-# Copyright (c) CERN, 2023.                 #
+# Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
 import xobjects as xo
 
 from ..simulation_io import SimState, SimConfig, SimVersion, app_version, get_default_tracker, assert_versions
-from ..general import _pkg_root, __version__
+from ..general import _pkg_root
 
 from pathlib import Path
 import shutil, subprocess, os
@@ -208,6 +208,7 @@ def _check_libstd():
 
     if missing_lib == True:
         stderr = '' if stderr is None else f"\nStderr:\n {stderr}"
+        if lib.exists(): lib.unlink()
         raise RuntimeError(f"Make cannot find `libstdc++.a`. Please install it (e.g. `conda install libstdcxx-ng`).{stderr}")
 
 

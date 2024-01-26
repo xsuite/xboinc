@@ -59,7 +59,7 @@ class SimVersion(xo.HybridClass):
 
     def assert_version(self):
         if app_version_int != self.xboinc_version:
-            error  = f"Incompatible xboinc version! Output file needs "
+            error  = f"Incompatible xboinc version! This file needs "
             error += f"{_int_to_version(self.xboinc_version)}, "
             error += f"but current version is {__version__}.\n"
             raise ImportError(error)

@@ -1,3 +1,16 @@
+# copyright ############################### #
+# This file is part of the Xboinc Package.  #
+# Copyright (c) CERN, 2024.                 #
+# ######################################### #
+
+
+# ===============================================================================================
+# IMPORTANT
+# ===============================================================================================
+# Only make changes to this file just before a minor version bump (need a separate commit though)
+# to avoid having multiple xboinc versions with out-of-sync executables.
+# ===============================================================================================
+
 # This should work on Linux.  Modify as needed for other platforms.
 
 BOINC_SOURCE_API_DIR = $(BOINC_DIR)/api
@@ -9,8 +22,8 @@ BOINC_API_DIR = $(BOINC_SOURCE_API_DIR)
 BOINC_LIB_DIR = $(BOINC_SOURCE_LIB_DIR)
 BOINC_ZIP_DIR = $(BOINC_SOURCE_ZIP_DIR)
 
-MAKEFILE_LDFLAGS = -lpthread -static
 MAKEFILE_STDLIB  = libstdc++.a
+MAKEFILE_LDFLAGS = -lpthread $(MAKEFILE_STDLIB) -static
 
 CXXFLAGS += \
     -Wall -W -Wshadow -Wpointer-arith -Wcast-qual -Wcast-align -Wunused-parameter -Wno-write-strings -fno-common \
@@ -74,7 +87,7 @@ $(MAKEFILE_STDLIB):
 clean: distclean
 
 distclean:
-	/bin/rm -f $(PROGS) $(addsuffix .exe, $(PROGS)) *.o libstdc++.a
+	/bin/rm -f $(PROGS) $(addsuffix .exe, $(PROGS)) *.o $(MAKEFILE_STDLIB)
 
 install: xboinc
 
@@ -84,10 +97,10 @@ install: xboinc
 xtrack.o: xtrack_tracker.h sim_config.h xtrack.c
 	$(CC) $(CXXFLAGS) -lm -std=c99 -c xtrack.c
 
-xboinc_test: xtrack.o xtrack.h main.c
+xboinc_test: xtrack.o xtrack.h main.c $(MAKEFILE_STDLIB)
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -o xboinc_test xtrack.o main.c -lm $(MAKEFILE_LDFLAGS)
 
 xboinc: xtrack.o main.c $(MAKEFILE_STDLIB) $(BOINC_API_DIR)/libboinc_api.a $(BOINC_LIB_DIR)/libboinc.a
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS) -DCOMPILE_TO_BOINC -o xboinc xtrack.o main.c \
-	-lm -lboinc_api -lboinc $(MAKEFILE_STDLIB) $(MAKEFILE_LDFLAGS) \
+	-lm -lboinc_api -lboinc $(MAKEFILE_LDFLAGS) \
 	$(STDCPPTC)
