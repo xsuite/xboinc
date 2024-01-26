@@ -1,3 +1,16 @@
+# copyright ############################### #
+# This file is part of the Xboinc Package.  #
+# Copyright (c) CERN, 2024.                 #
+# ######################################### #
+
+
+# ===============================================================================================
+# IMPORTANT
+# ===============================================================================================
+# Only make changes to this file just before a minor version bump (need a separate commit though)
+# to avoid having multiple xboinc versions with out-of-sync executables.
+# ===============================================================================================
+
 # This should work on Linux.  Modify as needed for other platforms.
 
 BOINC_SOURCE_API_DIR = $(BOINC_DIR)/api

@@ -1,7 +1,14 @@
 # copyright ############################### #
 # This file is part of the Xboinc Package.  #
-# Copyright (c) CERN, 2023.                 #
+# Copyright (c) CERN, 2024.                 #
 # ######################################### #
+
+# ===============================================================================================
+# IMPORTANT
+# ===============================================================================================
+# Only make changes to this file just before a minor version bump (need a separate commit though)
+# to avoid having multiple xboinc versions with out-of-sync executables.
+# ===============================================================================================
 
 from pathlib import Path
 import numpy as np
@@ -20,6 +27,7 @@ class SimState(xo.HybridClass):
         'particles': xp.Particles,
     }
 
+
     def __init__(self, **kwargs):
         assert_versions()
         if '_xobject' not in kwargs:
@@ -28,6 +36,7 @@ class SimState(xo.HybridClass):
         else:
             kwargs['size'] = kwargs['_xobject']._size
         super().__init__(**kwargs)
+
 
     @classmethod
     def from_binary(cls, filename, offset=0):
