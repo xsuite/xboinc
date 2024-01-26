@@ -14,7 +14,7 @@ MAKEFILE_STDLIB  = libstdc++.a
 
 CXXFLAGS += \
     -Wall -W -Wshadow -Wpointer-arith -Wcast-qual -Wcast-align -Wunused-parameter -Wno-write-strings -fno-common \
-    -O3 \
+    -O2 \
     -I$(BOINC_DIR) \
     -I$(BOINC_SOURCE_API_DIR) \
     -I$(BOINC_SOURCE_LIB_DIR) \
@@ -58,15 +58,16 @@ ifdef BUILD_WITH_MINGW
   LIBFTGL = -lftgl -lfreetype -lpng -lbz2 -lbrotlidec-static -lbrotlienc-static -lbrotlicommon-static -lz
 endif
 
-PROGS = xboinc
+PROGS = xboinc xboinc_test
 # make this optional so compile doesn't break on systems without OpenGL
 
 $(info All PROGS=$(PROGS))
 
 all: $(PROGS)
 
-libstdc++.a:
-	ln -s `$(CXX) $(CXXFLAGS) -print-file-name=libstdc++.a`
+# libstdc++.a:
+$(MAKEFILE_STDLIB):
+	ln -s `$(CXX) $(CXXFLAGS) -print-file-name=$(MAKEFILE_STDLIB)`
 
 # ttfont.cpp:
 # 	ln -s ../../api/ttfont.cpp .
@@ -82,10 +83,10 @@ install: xboinc
 # because otherwise, you might get a version in /usr/lib etc.
 
 xtrack.o: xtrack_tracker.h sim_config.h xtrack.c
-	gcc -O3 -lm -std=c99 -c xtrack.c
+	$(CC) $(CXXFLAGS) -lm -std=c99 -c xtrack.c
 
-xboinc_test: xtrack.o xtrack.h main.c
-	$(CXX) -O3 -lm -o xboinc_test xtrack.o main.c
+xboinc_test: xtrack.o xtrack.h main.c $(MAKEFILE_STDLIB)
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -o xboinc_test xtrack.o main.c -lm $(MAKEFILE_LDFLAGS)
 
 xboinc: xtrack.o main.o $(MAKEFILE_STDLIB) $(BOINC_API_DIR)/libboinc_api.a $(BOINC_LIB_DIR)/libboinc.a
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS) -DCOMPILE_TO_BOINC -o xboinc xtrack.o main.c \

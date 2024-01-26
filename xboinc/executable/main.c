@@ -80,9 +80,10 @@ int8_t critical_section = 0;    // run most of the time in a critical section
 int8_t report_fraction_done = 0;
 int8_t network_usage = 0;
 double cpu_time = 20, comp_result;
+int8_t verbose = 0;
 
 
-static void    XB_fprintf(FILE *stream, char *format, ...);
+static void    XB_fprintf(int8_t verbose_level, FILE *stream, char *format, ...);
 static FILE*   XB_fopen(char *filename, const char *mode);
 static FILE*   XB_fopen_allow_null(char *filename, const char *mode);
 static int8_t* XB_file_to_buffer(FILE *fid, int8_t *buf_in);
@@ -91,9 +92,9 @@ static int     XB_do_checkpoint(SimConfig sim_config, SimStateData sim_state);
 
 int main(int argc, char **argv){
     int retval;
-#ifdef COMPILE_TO_BOINC
     // Parse BOINC arguments and initialise
     for (int ii=0; ii<argc; ii++) {
+#ifdef COMPILE_TO_BOINC
         if (strstr(argv[ii], "early_exit")) early_exit = 1;
         if (strstr(argv[ii], "early_crash")) early_crash = 1;
         if (strstr(argv[ii], "early_sleep")) early_sleep = 1;
@@ -105,13 +106,18 @@ int main(int argc, char **argv){
         }
         if (strstr(argv[ii], "trickle_up")) trickle_up = 1;
         if (strstr(argv[ii], "trickle_down")) trickle_down = 1;
+#endif
+        if (strstr(argv[ii], "verbose")) {
+            verbose = (int8_t) atoi(argv[++ii]);
+        }
     }
+#ifdef COMPILE_TO_BOINC
     retval = boinc_init();
     if (retval) {
-        XB_fprintf(stderr, "Boinc_init returned %d\n", retval);
+        XB_fprintf(0, stderr, "Boinc_init returned %d\n", retval);
         exit(retval);
     }
-    XB_fprintf(stdout, "App started; CPU time %f, flags:%s%s%s%s%s%s%s\n",
+    XB_fprintf(1, stdout, "App started; CPU time %f, flags:%s%s%s%s%s%s%s\n",
         cpu_time,
         early_exit?" early_exit":"",
         early_crash?" early_crash":"",
@@ -140,28 +146,36 @@ int main(int argc, char **argv){
     SimConfig sim_config = (SimConfig) sim_buffer;
     const int64_t input_version = SimConfig_get_sim_state_version_xboinc_version(sim_config);
     if (input_version != xboinc_exec_version){
-        XB_fprintf(stderr, "Xboinc version of executable and input file do not match!\n");
+        XB_fprintf(0, stderr, "Xboinc version of executable and input file do not match!\n");
         return -1;
     }
 
     // Check for checkpoint file and load if it exists, otherwise use SimState from input
     SimStateData sim_state = SimConfig_getp_sim_state(sim_config);
-    XB_fprintf(stdout, "sim_state: %p\n", (int8_t*) sim_state);
+    XB_fprintf(2, stdout, "sim_state: %p\n", (int8_t*) sim_state);
     int64_t current_turn;
     FILE* checkpoint_state = XB_fopen_allow_null(XB_CHECKPOINT_FILE, "rb");
     if (checkpoint_state){
         XB_file_to_buffer(checkpoint_state, (int8_t*) sim_state);
         current_turn = SimStateData_get_i_turn(sim_state);
-        XB_fprintf(stdout, "Loaded checkpoint, continuing from turn %d.\n", (int) current_turn);
+        XB_fprintf(1, stdout, "Loaded checkpoint, continuing from turn %d.\n", (int) current_turn);
     } else {
         current_turn = SimStateData_get_i_turn(sim_state);
-        XB_fprintf(stdout, "No checkpoint found, starting from turn %d.\n", (int) current_turn);
+        XB_fprintf(1, stdout, "No checkpoint found, starting from turn %d.\n", (int) current_turn);
     }
 
+    // Get data
+    const int64_t checkpoint_every = SimConfig_get_checkpoint_every(sim_config);
+    int64_t step_turns = 1;  // Best solution seems to track one turn at a time, to allow BOINC to interrupt
+    if (checkpoint_every > 0){
+        XB_fprintf(1, stdout, "Checkpointing every %d turns.\n", (int) checkpoint_every);
+    } else {
+        XB_fprintf(1, stdout, "Not checkpointing.\n");
+    }
     const int64_t num_turns = SimConfig_get_num_turns(sim_config);
     const int64_t num_elements = SimConfig_get_num_elements(sim_config);
-    XB_fprintf(stdout, "num_turns: %d\n", (int) num_turns);
-    XB_fprintf(stdout, "num_elements: %d\n", (int) num_elements);
+    XB_fprintf(1, stdout, "num_turns: %d\n", (int) num_turns);
+    XB_fprintf(1, stdout, "num_elements: %d\n", (int) num_elements);
     ParticlesData particles = SimStateData_getp_particles(sim_state);
     int64_t num_part = 0;
     for (int ii=0; ii<SimStateData_get_particles__capacity(sim_state); ii++){
@@ -169,17 +183,8 @@ int main(int argc, char **argv){
             num_part++;
         }
     }
-    XB_fprintf(stdout, "num_part: %d\n", (int) num_part);
-
-    const int64_t checkpoint_every = SimConfig_get_checkpoint_every(sim_config);
-    int64_t step_turns = 1;  // Best solution seems to track one turn at a time, to allow BOINC to interrupt
-    if (checkpoint_every > 0){
-//         step_turns = checkpoint_every;
-        XB_fprintf(stdout, "Checkpointing every %d turns.\n", (int) checkpoint_every);
-    } else {
-//         step_turns = num_turns;
-        XB_fprintf(stdout, "Not checkpointing\n");
-    }
+    XB_fprintf(1, stdout, "num_part_alive: %d\n", (int) num_part);
+    ElementRefData elem_ref_data = SimConfig_getp_line_metadata(sim_config);
 
     // Open output file as test
     FILE* outfile = XB_fopen(XB_OUTPUT_FILENAME, "wb");
@@ -191,10 +196,9 @@ int main(int argc, char **argv){
     // Main loop  ================
     // ===========================
     while (current_turn < num_turns){
-        XB_fprintf(stdout, "in main loop\n");
         track_line(
             sim_buffer, // int8_t* buffer,
-            SimConfig_getp_line_metadata(sim_config), // ElementRefData elem_ref_data
+            elem_ref_data, // ElementRefData elem_ref_data
             particles,          // ParticlesData particles,
             step_turns,         // int num_turns,
             0,                  // int ele_start,
@@ -208,8 +212,8 @@ int main(int argc, char **argv){
             0,    // int64_t offset_tbt_monitor
             NULL  // int8_t* io_buffer,
         );
-        XB_fprintf(stdout, "tracked");
         current_turn += step_turns;
+        XB_fprintf(2, stdout, "Tracked turn %i\n", current_turn);
         SimStateData_set_i_turn(sim_state, current_turn);
 
         if (
@@ -219,7 +223,7 @@ int main(int argc, char **argv){
         (checkpoint_every > 0 && current_turn % checkpoint_every == 0) ){
             retval = XB_do_checkpoint(sim_config, sim_state);
             if (retval) {
-                XB_fprintf(stderr, "APP: xtrack checkpoint failed!\n");
+                XB_fprintf(0, stderr, "Checkpointing failed!\n");
                 fclose(outfile);
                 exit(retval);
             }
@@ -238,7 +242,7 @@ int main(int argc, char **argv){
     // End main loop  ===========
     // ==========================
 
-    XB_fprintf(stdout, "Finished tracking\n");
+    XB_fprintf(1, stdout, "Finished tracking\n");
 
     // Write output
     fwrite(SimConfig_getp_sim_state(sim_config), sizeof(int8_t),
@@ -255,35 +259,32 @@ int main(int argc, char **argv){
     //     char buf[256];
     //     retval = boinc_receive_trickle_down(buf, sizeof(buf));
     //     if (!retval) {
-    //         XB_fprintf(stderr, "Got trickle-down message: %s\n", buf);
+    //         XB_fprintf(0, stderr, "Got trickle-down message: %s\n", buf);
     //     }
     // }
     boinc_fraction_done(1);
     boinc_finish(0);
 #endif
 
-    // Remove checkpoint if still present
-    checkpoint_state = XB_fopen_allow_null(XB_CHECKPOINT_FILE, "rb");
-    if (checkpoint_state){
-        fclose(checkpoint_state);
-        if (remove(XB_CHECKPOINT_FILE) != 0){
-            XB_fprintf(stderr, "Could not remove checkpoint file!\n");
-        }
+    // Remove checkpoint file
+    if (remove(XB_CHECKPOINT_FILE) != 0){
+        XB_fprintf(1, stdout, "Warning: Could not remove checkpoint file.\n");
     }
-
     // return 0;
 }
 
 
-static void XB_fprintf(FILE *stream, char *format, ...) {
-    va_list args;
-    va_start(args, format);
+static void XB_fprintf(int8_t verbose_level, FILE *stream, char *format, ...) {
+    if (verbose >= verbose_level) {
+        va_list args;
+        va_start(args, format);
 #ifdef COMPILE_TO_BOINC
-    char buf[256];
-    fprintf(stream, "%s ", boinc_msg_prefix(buf, sizeof(buf)));
+        char buf[256];
+        fprintf(stream, "%s ", boinc_msg_prefix(buf, sizeof(buf)));
 #endif
-    vfprintf(stream, format, args);
-    va_end(args);
+        vfprintf(stream, format, args);
+        va_end(args);
+    }
 }
 
 
@@ -298,10 +299,10 @@ static FILE* XB_fopen(char *filename, const char *mode){
 #endif
     if (!fid) {
 #ifdef COMPILE_TO_BOINC
-        XB_fprintf(stderr, "APP: Could not open file %s (resolved name %s).\n",
+        XB_fprintf(0, stderr, "Could not open file %s (resolved name %s).\n",
             filename, resolved_name);
 #else
-        XB_fprintf(stderr, "Could not open file %s.\n",
+        XB_fprintf(0, stderr, "Could not open file %s.\n",
             filename);
 #endif
         return NULL;
@@ -333,7 +334,7 @@ static int8_t* XB_file_to_buffer(FILE *fid, int8_t *buf_in){
     unsigned long filesize = ftell(fid);
     fseek(fid, 0L, SEEK_SET);
     if (buf_in){
-        XB_fprintf(stdout, "Reusing buffer.\n");
+        XB_fprintf(2, stdout, "Reusing buffer.\n");
         buf = buf_in;
     } else {
         buf = (int8_t*)malloc(filesize*sizeof(int8_t));
@@ -341,7 +342,7 @@ static int8_t* XB_file_to_buffer(FILE *fid, int8_t *buf_in){
     fread(buf, sizeof(int8_t), filesize, fid);
     fclose(fid);
     if (!buf){
-        XB_fprintf(stderr, "Could not allocate buffer!\n");
+        XB_fprintf(0, stderr, "Could not allocate buffer!\n");
         return NULL;
     }
     return (buf);
@@ -353,7 +354,7 @@ static int XB_do_checkpoint(SimConfig sim_config, SimStateData sim_state) {
     if (!chkp_fid) {
         return 1;
     }
-    XB_fprintf(stdout, "Checkpointing turn %d\n", (int) SimStateData_get_i_turn(sim_state));
+    XB_fprintf(1, stdout, "Checkpointing turn %d\n", (int) SimStateData_get_i_turn(sim_state));
     fwrite(SimConfig_getp_sim_state(sim_config), sizeof(int8_t), SimConfig_get_sim_state_size(sim_config), chkp_fid);
     fclose(chkp_fid);
     return 0;

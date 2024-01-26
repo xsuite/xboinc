@@ -26,7 +26,7 @@ insert_in_all_files = """
 """
 
 
-sources = [Path.cwd() / "main.c", Path.cwd() / "Makefile", Path.cwd() / "xtrack.c", Path.cwd() / "xtrack.h"]
+_sources = [Path.cwd() / f for f in ["main.c", "Makefile", "xtrack.c", "xtrack.h"]]
 
 
 def generate_executable_source(*, overwrite=False, _context=None):
@@ -60,7 +60,7 @@ def generate_executable_source(*, overwrite=False, _context=None):
         with (Path.cwd() / "xtrack_tracker.h").open('w') as fid:
             fid.write(xtrack_tracker_h)
 
-    for file in sources:
+    for file in _sources:
         if not file.exists() or overwrite:
             shutil.copy(_pkg_root / 'executable' / file.name, Path.cwd())
 
@@ -83,12 +83,26 @@ def generate_executable_source(*, overwrite=False, _context=None):
 # aarch64-unknown-linux-gnu   Linux running aarch64
 # x86_64-pc-freebsd__sse2     Free BSD running on 64 bit X86
 
-def generate_executable(*, keep_source=False, clean=True, boinc_path=None):
+def generate_executable(*, keep_source=False, clean=True, boinc_path=None, target=None):
+    assert target is None
     assert_versions()
+
+    # Check boinc path
+    if boinc_path is not None:
+        boinc_path = Path(boinc_path)
+        if not boinc_path.is_dir() or not boinc_path.exists():
+            raise RuntimeError(f"BOINC path {boinc_path} does not exist!")
+        boinc_api = boinc_path / 'api' / 'libboinc_api.a'
+        boinc_lib = boinc_path / 'lib' / 'libboinc.a'
+        if not boinc_api.exists():
+            raise RuntimeError(f"Cannot find BOINC API {boinc_api}!")
+        if not boinc_lib.exists():
+            raise RuntimeError(f"Cannot find BOINC LIB {boinc_lib}!")
+
     config   = Path.cwd() / "sim_config.h"
     tracker  = Path.cwd() / "xtrack_tracker.h"
-    if not config.exists() or not tracker.exists() or not all([s.exists() for s in sources]):
-        _ = generate_executable_source()
+    if not config.exists() or not tracker.exists() or not all([s.exists() for s in _sources]):
+        generate_executable_source()
 
     # Verify dependencies
     if shutil.which("gcc") is None and shutil.which("clang") is None:
@@ -104,7 +118,7 @@ def generate_executable(*, keep_source=False, clean=True, boinc_path=None):
         _check_libstd()
 
     # Create executable name
-    exec_name = f'xboinc_{app_version}'
+    app_tag = f'{app_version}'
     cmd = subprocess.run(['uname', '-m'], stdout=subprocess.PIPE)
     if cmd.returncode == 0:
         machine = cmd.stdout.decode('UTF-8').strip().lower()
@@ -117,23 +131,26 @@ def generate_executable(*, keep_source=False, clean=True, boinc_path=None):
         thisos = 'none'
     vendor = 'apple' if thisos=='darwin' else 'pc'
     thisos = f'{thisos}-gnu' if thisos=='linux' else thisos
-    exec_name += f"-{machine}-{vendor}-{thisos}"
+    app_tag += f"-{machine}-{vendor}-{thisos}"
 
     # Compile!
-    if boinc_path is None:
-        cmd = subprocess.run(['make', 'xboinc_test'],
-                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    else:
-        cmd = subprocess.run(['make', 'xboinc'], env={**os.environ, 'BOINC_DIR': \
-                                    Path(boinc_path).expanduser().resolve().as_posix()},
-                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    if cmd.returncode != 0:
-        print(cmd.stdout.decode('UTF-8').strip())
-        stderr = cmd.stderr.decode('UTF-8').strip()
-        raise RuntimeError(f"Compilation failed. Stderr:\n {stderr}")
-    else:
-        print(cmd.stdout.decode('UTF-8').strip())
-        Path(f"xboinc{'_test' if boinc_path is None else ''}").rename(exec_name)
+    if  target is None:
+        if boinc_path is None:
+            app = 'xboinc_test'
+            cmd = subprocess.run(['make', app],
+                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        else:
+            app = 'xboinc'
+            cmd = subprocess.run(['make', app], env={**os.environ, 'BOINC_DIR': \
+                                        boinc_path.expanduser().resolve().as_posix()},
+                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if cmd.returncode != 0:
+            print(cmd.stdout.decode('UTF-8').strip())
+            stderr = cmd.stderr.decode('UTF-8').strip()
+            raise RuntimeError(f"Compilation failed. Stderr:\n {stderr}")
+        else:
+            print(cmd.stdout.decode('UTF-8').strip())
+            Path(app).rename(f"{app}_{app_tag}")
 
     # Clean up
     if clean:
@@ -145,7 +162,7 @@ def generate_executable(*, keep_source=False, clean=True, boinc_path=None):
     if not keep_source:
         config.unlink()
         tracker.unlink()
-        for s in sources: s.unlink()
+        for s in _sources: s.unlink()
 
     
     # if windows64:
