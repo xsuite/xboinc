@@ -27,7 +27,7 @@ def test_clean():
     output_files     = list(Path.cwd().glob(f'{output_filename}*'))
     checkpoint_files = list(Path.cwd().glob(f'{checkpoint_filename}*'))
     exec_files       = list(Path.cwd().glob(f'xboinc*_{xb.app_version}-*'))
-    boinc_files      = [Path.cwd() / f for f in ["boinc_finish_called", "stderr.txt"]]
+    boinc_files      = [Path.cwd() / f for f in ["boinc_finish_called", "stderr.txt", "boinc_lockfile"]]
     sources          = [Path.cwd() / "xtrack_tracker.h", Path.cwd() / "sim_config.h",
                         *xb.executable.generate._sources]
     for file in [*input_files, *output_files, *checkpoint_files, *exec_files, *boinc_files, *sources]:

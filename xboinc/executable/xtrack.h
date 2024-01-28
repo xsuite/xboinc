@@ -20,6 +20,7 @@ int64_t SimStateData_get_particles__capacity(const SimStateData);
 int64_t SimStateData_get_particles_state(const SimStateData,int64_t);
 
 typedef struct SimConfig_s * SimConfig;
+int64_t SimConfig_get_version_xboinc_version(const SimConfig);
 int64_t SimConfig_get_sim_state_version_xboinc_version(const SimConfig);
 int64_t SimConfig_get_checkpoint_every(const SimConfig);
 ElementRefData SimConfig_getp_line_metadata(SimConfig);

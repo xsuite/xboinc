@@ -41,7 +41,7 @@ def generate_executable_source(*, overwrite=False, _context=None):
         conf['gpufun'] = ''
         sim_config_sources = [
             insert_in_all_files,
-            xo.specialize_source(SimVersion._XoStruct._gen_c_api(conf).source,
+            xo.specialize_source(SimVersion._gen_c_api(conf).source,
                                         specialize_for='cpu_serial'),
             xo.specialize_source(SimState._XoStruct._gen_c_api(conf).source,
                                         specialize_for='cpu_serial'),

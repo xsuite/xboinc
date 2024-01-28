@@ -47,10 +47,8 @@ app_version_int = _version_to_int(__version__)
 
 # This class overloads the first field from the SimState,
 # in order to read the correct version from the binary
-class SimVersion(xo.HybridClass):
-    _xofields = {
-        'xboinc_version': xo.Int64,    # version XXX.YYY as int
-    }
+class SimVersion(xo.Struct):
+    xboinc_version = xo.Int64    # version XXX.YYY as int
 
     def __init__(self, **kwargs):
         if '_xobject' not in kwargs:

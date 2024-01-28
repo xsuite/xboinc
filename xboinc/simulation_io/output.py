@@ -53,8 +53,7 @@ class SimState(xo.HybridClass):
                 version_offset = field.offset
         if version_offset == -1:
             raise ValueError("No xofield 'version' found in SimState!")
-        sim_ver_xobject = SimVersion._XoStruct._from_buffer(buffer=buffer_data, offset=offset+version_offset)
-        sim_ver = SimVersion(_xobject=sim_ver_xobject)
+        sim_ver = SimVersion._from_buffer(buffer=buffer_data, offset=offset+version_offset)
         sim_ver.assert_version()
         # Retrieve simulation state
         sim_state_xobject = cls._XoStruct._from_buffer(buffer=buffer_data, offset=offset)

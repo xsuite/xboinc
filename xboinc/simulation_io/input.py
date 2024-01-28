@@ -1,7 +1,13 @@
 # copyright ############################### #
 # This file is part of the Xboinc Package.  #
-# Copyright (c) CERN, 2023.                 #
+# Copyright (c) CERN, 2024.                 #
 # ######################################### #
+# ===============================================================================================
+# IMPORTANT
+# ===============================================================================================
+# Only make changes to this file just before a minor version bump (need a separate commit though)
+# to avoid having multiple xboinc versions with out-of-sync executables.
+# ===============================================================================================
 
 import sys
 import numpy as np
@@ -11,10 +17,11 @@ import xobjects as xo
 import xpart as xp
 import xtrack as xt
 
-from .version import assert_versions
+from .version import SimVersion, assert_versions
 from .default_tracker import get_default_tracker
 from .output import SimState
 
+# TODO: how to make input file smaller??
 
 # The build time of the input file is largely dominated by the rebuilding of the
 # tracker. For this reason we cache the line, such that when submitting many jobs
@@ -32,6 +39,7 @@ class ElementRefData(xo.Struct):
 
 
 class SimConfig(xo.Struct):
+    version          = SimVersion    # This HAS to be the first field!
     line_metadata    = xo.Ref(ElementRefData)
     num_turns        = xo.Int64
     num_elements     = xo.Int64
@@ -41,6 +49,7 @@ class SimConfig(xo.Struct):
     def __init__(self, *args, **kwargs):
         assert_versions()
         if '_xobject' not in kwargs:
+            kwargs['version'] = SimVersion()
             default_tracker, default_config_hash = get_default_tracker()
             tracker_data = default_tracker._tracker_data_cache[default_config_hash]
             kwargs['line_metadata'] = xo.Ref(tracker_data._element_ref_data.__class__)

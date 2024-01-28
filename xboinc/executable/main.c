@@ -1,6 +1,6 @@
 // copyright ############################### #
 // This file is part of the Xboinc Package.  #
-// Copyright (c) CERN, 2023.                 #
+// Copyright (c) CERN, 2024.                 #
 // ######################################### #
 
 
@@ -144,8 +144,9 @@ int main(int argc, char **argv){
 
     // Get sim config and metadata
     SimConfig sim_config = (SimConfig) sim_buffer;
-    const int64_t input_version = SimConfig_get_sim_state_version_xboinc_version(sim_config);
-    if (input_version != xboinc_exec_version){
+    const int64_t input_version    = SimConfig_get_version_xboinc_version(sim_config);
+    const int64_t input_version_ss = SimConfig_get_sim_state_version_xboinc_version(sim_config);
+    if (input_version != xboinc_exec_version || input_version_ss != xboinc_exec_version){
         XB_fprintf(0, stderr, "Xboinc version of executable and input file do not match!\n");
         return -1;
     }
