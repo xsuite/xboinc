@@ -8,6 +8,7 @@ import tarfile
 from pathlib import Path
 import tempfile
 import numpy as np
+from time import sleep
 
 import xobjects as xo
 
@@ -44,7 +45,7 @@ class SubmitJobs:
         self._study_name = study_name
         self._line = line
         self._num_elements = _get_num_elements_from_line(line)
-        self._submit_file = f"{self._study_name}__{timestamp()}.tar.gz"
+        self._submit_file = f"{self._user}__{self._study_name}__{timestamp()}.tar.gz"
         self._json_files = []
         self._bin_files = []
         self._temp    = tempfile.TemporaryDirectory()
@@ -70,6 +71,7 @@ class SubmitJobs:
             num_elements = self._num_elements
         else:
             num_elements = _get_num_elements_from_line(line)
+        sleep(0.001) # To enforce different filenames
         filename = f"{self._user}__{timestamp(ms=True)}"
         json_file = Path(self._tempdir, f"{filename}.json")
         bin_file  = Path(self._tempdir, f"{filename}.bin")
@@ -87,7 +89,7 @@ class SubmitJobs:
         with json_file.open('w') as fid:
             json.dump(json_dict, fid, cls=xo.JEncoder)
         SimConfig.build(filename=bin_file, num_turns=num_turns, line=line,
-                         particles=particles, checkpoint_every=checkpoint_every)
+                        particles=particles, checkpoint_every=checkpoint_every)
         self._json_files += [json_file]
         self._bin_files  += [bin_file]
 
