@@ -174,7 +174,7 @@ def fs_exists(file, cmd=None, is_server=False):
 def fs_rm(file, cmd=None, is_server=False):
     cmd = 'fs_rm' if cmd is None else cmd
     file = fs_path(file)
-    err_mess = f"Failed eos_rm for {file}!"
+    err_mess = f"Failed fs_rm for {file}!"
     try:
         if on_eos(file):
             if missing_eos(err_mess):
@@ -283,17 +283,14 @@ def fs_mv(file, directory, maximum_trials=10, wait=2.7, cmd=None, is_server=Fals
         directory = directory.parent
     cp_failed = fs_cp(file, directory, maximum_trials, wait, cmd=cmd, is_server=is_server)
     # returncode 0 means success
-    if cp_failed:
-        return 1
-    else:
-        mv_failed = 0
-        if new_file is not None:
-            # rename
-            mv_failed = fs_rename(directory / file.name, new_file,
-                                  maximum_trials, wait, cmd=cmd, is_server=is_server)
-        if mv_failed:
-            return 1
-        else:
-            return fs_rm(file, cmd=cmd, is_server=is_server)
+    if cp_failed: return 1
+    if new_file is not None:
+        # rename
+        mv_failed = fs_rename(directory / file.name, new_file,
+                              maximum_trials, wait, cmd=cmd, is_server=is_server)
+        if mv_failed: return 1
+    if fs_exists(file, cmd=cmd, is_server=is_server):
+        return fs_rm(file, cmd=cmd, is_server=is_server)
+    return 0
 
 
