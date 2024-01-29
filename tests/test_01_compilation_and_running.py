@@ -130,8 +130,8 @@ def test_track(boinc):
     output_file_2 = Path.cwd() / f"{output_filename}{'' if boinc is None else '_boinc'}_2"
     output_file.rename(output_file_2)
     xb._skip_xsuite_version_check = False
-    if Path('checkpoint.bin').exists():
-        Path('checkpoint.bin').unlink()
+    if (Path.cwd() / checkpoint_filename).exists():
+        (Path.cwd() / checkpoint_filename).unlink()
 
 def _get_output(boinc):
     output_file_2 = Path.cwd() / f"{output_filename}{'' if boinc is None else '_boinc'}_2"
@@ -179,8 +179,8 @@ def test_checkpoint(boinc):
     assert output_file.exists()
     assert filecmp.cmp(output_file, output_file_2, shallow=False)
     xb._skip_xsuite_version_check = False
-    if Path('checkpoint.bin').exists():
-        Path('checkpoint.bin').unlink()
+    if (Path.cwd() / checkpoint_filename).exists():
+        (Path.cwd() / checkpoint_filename).unlink()
 
 
 def test_vs_xtrack():
