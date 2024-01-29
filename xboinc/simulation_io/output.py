@@ -21,9 +21,9 @@ from .version import SimVersion, assert_versions
 
 class SimState(xo.HybridClass):
     _xofields = {
-        'version':   SimVersion,    # This HAS to be the first field!
-        'i_turn':    xo.Int64,
-        'size':      xo.Int64,
+        '_version':  SimVersion,    # This HAS to be the first field!
+        '_i_turn':   xo.Int64,      # Current turn in tracking (not necessarily the same as particles.at_turn)
+        '_xsize':     xo.Int64,
         'particles': xp.Particles,
     }
 
@@ -31,15 +31,20 @@ class SimState(xo.HybridClass):
     def __init__(self, **kwargs):
         assert_versions()
         if '_xobject' not in kwargs:
-            # TODO: how to set size at construction?
-            kwargs['version'] = SimVersion()
-        else:
-            kwargs['size'] = kwargs['_xobject']._size
+            kwargs['_version'] = SimVersion()
+            # particles = kwargs.pop('particles', None)
         super().__init__(**kwargs)
+        # We have to initialise the dynamic fields after the xobject is created, to
+        # ensure that they are stored at the end of the buffer (such that the buffer
+        # starts with the SimConfig itself)
+        # if '_xobject' not in kwargs:
+        #     if particles is not None:
+        #         self.particles = particles
+        self._xsize = self._xobject._size
 
 
     @classmethod
-    def from_binary(cls, filename, offset=0):
+    def from_binary(cls, filename, offset=0, raise_version_error=True):
         # Read binary
         filename = Path(filename)
         with filename.open('rb') as fid:
@@ -49,14 +54,25 @@ class SimState(xo.HybridClass):
         # Cast to SimVersion to verify versions of xsuite packages
         version_offset = -1
         for field in cls._XoStruct._fields:
-            if field.name == 'version':
+            if field.name == '_version':
                 version_offset = field.offset
         if version_offset == -1:
-            raise ValueError("No xofield 'version' found in SimState!")
+            raise ValueError("No xofield `_version` found in SimState!")
         sim_ver = SimVersion._from_buffer(buffer=buffer_data, offset=offset+version_offset)
-        sim_ver.assert_version()
+        if not sim_ver.assert_version(raise_error=raise_version_error, filename=filename):
+            return None
         # Retrieve simulation state
         sim_state_xobject = cls._XoStruct._from_buffer(buffer=buffer_data, offset=offset)
-        sim_state_out = cls(_xobject=sim_state_xobject)
-        return sim_state_out
+        return cls(_xobject=sim_state_xobject)
+
+    def to_binary(self, filename):
+        assert self._offset == 0
+        assert self._XoStruct._fields[0].offset == 0
+        filename = Path(filename).expanduser().resolve()
+        with filename.open('wb') as fid:
+            fid.write(self._buffer.buffer.tobytes())
+
+    @property
+    def version(self):
+        return self._version
 

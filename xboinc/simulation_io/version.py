@@ -55,9 +55,14 @@ class SimVersion(xo.Struct):
             kwargs['xboinc_version'] = _version_to_int(__version__)
         super().__init__(**kwargs)
 
-    def assert_version(self):
+    def assert_version(self, raise_error=True, filename=None):
         if app_version_int != self.xboinc_version:
-            error  = f"Incompatible xboinc version! This file needs "
-            error += f"{_int_to_version(self.xboinc_version)}, "
+            filename = 'This file' if filename is None else f'File {filename}'
+            error  = f"{filename} needs {_int_to_version(self.xboinc_version)}, "
             error += f"but current version is {__version__}.\n"
-            raise ImportError(error)
+            if raise_error:
+                raise ImportError(f"Incompatible xboinc version! {error}")
+            else:
+                print(f"Warning: {error}")
+                return False
+        return True

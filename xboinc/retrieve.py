@@ -68,11 +68,14 @@ class RetrieveJobs:
             try:
                 with open(json_file, 'r') as json_file_obj:
                     json_content = json.load(json_file_obj)
-                result    = SimState.from_binary(bin_file)
-                particles = result.particles
+                result = SimState.from_binary(bin_file, raise_version_error=False)
             except Exception as e:
                 print(f"Error loading binary file {bin_file}: {e}")
-            else: 
+            else:
+                if result is None:
+                    # Failed because of incompatible versions
+                    return self.__next__()
+                particles = result.particles
                 self._to_delete.append(json_file)
                 return particles, json_content
 

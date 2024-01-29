@@ -19,8 +19,8 @@ part = line.build_particles(x_norm=np.random.normal(0, 10, num_part),
                             y_norm=np.random.normal(0, 10, num_part),
                             nemitt_x=3.5e-6, nemitt_y=3.5e-6)
 
-xb.SimConfig.build(filename=file_in, num_turns=num_turns, line=line,
-                   particles=part, checkpoint_every=checkpoint_every)
+input = xb.SimConfig(num_turns=num_turns, line=line, particles=part, checkpoint_every=checkpoint_every)
+input.to_binary(file_in)
 
 print("")
 now = time.time()

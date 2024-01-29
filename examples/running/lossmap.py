@@ -23,7 +23,8 @@ coll_manager.build_tracker()
 coll_manager.set_openings()
 part = coll_manager.generate_pencil_on_collimator('tcp.c6l7.b1', num_particles=num_particles)
 coll_manager.enable_scattering()
-xb.SimConfig.build(line=line, particles=part, num_turns=num_turns, filename='xboinc_input.bin', checkpoint_every=5)
+input = xb.SimConfig(line=line, particles=part, num_turns=num_turns, checkpoint_every=5)
+input.to_binary('xboinc_input.bin')
 
 
 # Run xboinc

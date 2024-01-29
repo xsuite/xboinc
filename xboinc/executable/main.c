@@ -144,8 +144,8 @@ int main(int argc, char **argv){
 
     // Get sim config and metadata
     SimConfig sim_config = (SimConfig) sim_buffer;
-    const int64_t input_version    = SimConfig_get_version_xboinc_version(sim_config);
-    const int64_t input_version_ss = SimConfig_get_sim_state_version_xboinc_version(sim_config);
+    const int64_t input_version    = SimConfig_get__version_xboinc_version(sim_config);
+    const int64_t input_version_ss = SimConfig_get_sim_state__version_xboinc_version(sim_config);
     if (input_version != xboinc_exec_version || input_version_ss != xboinc_exec_version){
         XB_fprintf(0, stderr, "Xboinc version of executable and input file do not match!\n");
         return -1;
@@ -158,10 +158,10 @@ int main(int argc, char **argv){
     FILE* checkpoint_state = XB_fopen_allow_null(XB_CHECKPOINT_FILE, "rb");
     if (checkpoint_state){
         XB_file_to_buffer(checkpoint_state, (int8_t*) sim_state);
-        current_turn = SimStateData_get_i_turn(sim_state);
+        current_turn = SimStateData_get__i_turn(sim_state);
         XB_fprintf(1, stdout, "Loaded checkpoint, continuing from turn %d.\n", (int) current_turn);
     } else {
-        current_turn = SimStateData_get_i_turn(sim_state);
+        current_turn = SimStateData_get__i_turn(sim_state);
         XB_fprintf(1, stdout, "No checkpoint found, starting from turn %d.\n", (int) current_turn);
     }
 
@@ -215,7 +215,7 @@ int main(int argc, char **argv){
         );
         current_turn += step_turns;
         XB_fprintf(2, stdout, "Tracked turn %i\n", current_turn);
-        SimStateData_set_i_turn(sim_state, current_turn);
+        SimStateData_set__i_turn(sim_state, current_turn);
 
         if (
 #ifdef COMPILE_TO_BOINC
@@ -247,7 +247,7 @@ int main(int argc, char **argv){
 
     // Write output
     fwrite(SimConfig_getp_sim_state(sim_config), sizeof(int8_t),
-           SimConfig_get_sim_state_size(sim_config), outfile);
+           SimConfig_get_sim_state__xsize(sim_config), outfile);
     fclose(outfile);
 
 #ifdef COMPILE_TO_BOINC
@@ -355,8 +355,8 @@ static int XB_do_checkpoint(SimConfig sim_config, SimStateData sim_state) {
     if (!chkp_fid) {
         return 1;
     }
-    XB_fprintf(1, stdout, "Checkpointing turn %d\n", (int) SimStateData_get_i_turn(sim_state));
-    fwrite(SimConfig_getp_sim_state(sim_config), sizeof(int8_t), SimConfig_get_sim_state_size(sim_config), chkp_fid);
+    XB_fprintf(1, stdout, "Checkpointing turn %d\n", (int) SimStateData_get__i_turn(sim_state));
+    fwrite(SimConfig_getp_sim_state(sim_config), sizeof(int8_t), SimConfig_get_sim_state__xsize(sim_config), chkp_fid);
     fclose(chkp_fid);
     return 0;
 }

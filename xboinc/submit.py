@@ -88,8 +88,9 @@ class SubmitJobs:
         }
         with json_file.open('w') as fid:
             json.dump(json_dict, fid, cls=xo.JEncoder)
-        SimConfig.build(filename=bin_file, num_turns=num_turns, line=line,
-                        particles=particles, checkpoint_every=checkpoint_every)
+        data = SimConfig(num_turns=num_turns, line=line, particles=particles,
+                         checkpoint_every=checkpoint_every)
+        data.to_binary(bin_file)
         self._json_files += [json_file]
         self._bin_files  += [bin_file]
 

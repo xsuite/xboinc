@@ -13,7 +13,6 @@ import filecmp
 import pytest
 
 import xtrack as xt
-import xcoll as xc
 import xboinc as xb
 
 
@@ -44,8 +43,8 @@ def test_generate_input():
     xb._skip_xsuite_version_check = True
     line, part = _make_input()
     input_file = Path.cwd() / input_filename
-    xb.SimConfig.build(line=line, particles=part, num_turns=num_turns, checkpoint_every=50,
-                        filename=input_filename)
+    input = xb.SimConfig(line=line, particles=part, num_turns=num_turns, checkpoint_every=50)
+    input.to_binary(input_file)
     assert input_file.exists()
     xb._skip_xsuite_version_check = False
 
