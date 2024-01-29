@@ -139,8 +139,16 @@ def fs_glob(path, pattern, cmd=None, is_server=False):
         if on_eos(path):
             if missing_eos(err_mess):
                 return []
-            cmd = subprocess.run(['eos', 'find', '-name', pattern, f'{path}'],
+            # The command `eos find` has the wrong behaviour on new machines (running eos 5.2).
+            # For this reason, the command `eos oldfind` has been introduced.
+            # However, this command does not exist on the old machines, so in that case we
+            # default back to `eos find`.
+            cmd = subprocess.run(['eos', 'oldfind', '-name', pattern, f'{path}'],
                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=eos_env)
+            if cmd.returncode == 255:
+                # Command not found; we are running on a machine running old eos < 5.2
+                cmd = subprocess.run(['eos', 'find', '-name', pattern, f'{path}'],
+                                     stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=eos_env)
         else:
             cmd = subprocess.run(['find', f'{path}', '-name', pattern],
                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -160,8 +168,16 @@ def fs_exists(file, cmd=None, is_server=False):
         if on_eos(file):
             if missing_eos(err_mess):
                 return False
-            cmd = subprocess.run(['eos', 'find', '-name', file.name, f'{file}'],
+            # The command `eos find` has the wrong behaviour on new machines (running eos 5.2).
+            # For this reason, the command `eos oldfind` has been introduced.
+            # However, this command does not exist on the old machines, so in that case we
+            # default back to `eos find`.
+            cmd = subprocess.run(['eos', 'oldfind', '-name', file.name, f'{file}'],
                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=eos_env)
+            if cmd.returncode == 255:
+                # Command not found; we are running on a machine running old eos < 5.2
+                cmd = subprocess.run(['eos', 'find', '-name', file.name, f'{file}'],
+                                     stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=eos_env)
             if cmd.returncode != 0 or cmd.stdout == b'':
                 return False
             return Path(cmd.stdout.decode('UTF-8').strip()).resolve().stat().st_size!=0
