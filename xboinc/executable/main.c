@@ -87,7 +87,7 @@ static void    XB_fprintf(int8_t verbose_level, FILE *stream, char *format, ...)
 static FILE*   XB_fopen(char *filename, const char *mode);
 static FILE*   XB_fopen_allow_null(char *filename, const char *mode);
 static int8_t* XB_file_to_buffer(FILE *fid, int8_t *buf_in);
-static int     XB_do_checkpoint(SimConfig sim_config, SimStateData sim_state);
+static int     XB_do_checkpoint(SimConfig sim_config, SimState sim_state);
 
 
 int main(int argc, char **argv){
@@ -152,16 +152,16 @@ int main(int argc, char **argv){
     }
 
     // Check for checkpoint file and load if it exists, otherwise use SimState from input
-    SimStateData sim_state = SimConfig_getp_sim_state(sim_config);
+    SimState sim_state = SimConfig_getp_sim_state(sim_config);
     XB_fprintf(2, stdout, "sim_state: %p\n", (int8_t*) sim_state);
     int64_t current_turn;
     FILE* checkpoint_state = XB_fopen_allow_null(XB_CHECKPOINT_FILE, "rb");
     if (checkpoint_state){
         XB_file_to_buffer(checkpoint_state, (int8_t*) sim_state);
-        current_turn = SimStateData_get__i_turn(sim_state);
+        current_turn = SimState_get__i_turn(sim_state);
         XB_fprintf(1, stdout, "Loaded checkpoint, continuing from turn %d.\n", (int) current_turn);
     } else {
-        current_turn = SimStateData_get__i_turn(sim_state);
+        current_turn = SimState_get__i_turn(sim_state);
         XB_fprintf(1, stdout, "No checkpoint found, starting from turn %d.\n", (int) current_turn);
     }
 
@@ -177,10 +177,10 @@ int main(int argc, char **argv){
     const int64_t num_elements = SimConfig_get_num_elements(sim_config);
     XB_fprintf(1, stdout, "num_turns: %d\n", (int) num_turns);
     XB_fprintf(1, stdout, "num_elements: %d\n", (int) num_elements);
-    ParticlesData particles = SimStateData_getp_particles(sim_state);
+    ParticlesData particles = SimState_getp__particles(sim_state);
     int64_t num_part = 0;
-    for (int ii=0; ii<SimStateData_get_particles__capacity(sim_state); ii++){
-        if(SimStateData_get_particles_state(sim_state, (int64_t) ii) > 0){
+    for (int ii=0; ii<SimState_get__particles__capacity(sim_state); ii++){
+        if(SimState_get__particles_state(sim_state, (int64_t) ii) > 0){
             num_part++;
         }
     }
@@ -215,7 +215,7 @@ int main(int argc, char **argv){
         );
         current_turn += step_turns;
         XB_fprintf(2, stdout, "Tracked turn %i\n", current_turn);
-        SimStateData_set__i_turn(sim_state, current_turn);
+        SimState_set__i_turn(sim_state, current_turn);
 
         if (
 #ifdef COMPILE_TO_BOINC
@@ -350,12 +350,12 @@ static int8_t* XB_file_to_buffer(FILE *fid, int8_t *buf_in){
 }
 
 
-static int XB_do_checkpoint(SimConfig sim_config, SimStateData sim_state) {
+static int XB_do_checkpoint(SimConfig sim_config, SimState sim_state) {
     FILE *chkp_fid = XB_fopen(XB_CHECKPOINT_FILE, "wb");
     if (!chkp_fid) {
         return 1;
     }
-    XB_fprintf(1, stdout, "Checkpointing turn %d\n", (int) SimStateData_get__i_turn(sim_state));
+    XB_fprintf(1, stdout, "Checkpointing turn %d\n", (int) SimState_get__i_turn(sim_state));
     fwrite(SimConfig_getp_sim_state(sim_config), sizeof(int8_t), SimConfig_get_sim_state__xsize(sim_config), chkp_fid);
     fclose(chkp_fid);
     return 0;

@@ -19,29 +19,22 @@ import xpart as xp
 from .version import SimVersion, assert_versions
 
 
-class SimState(xo.HybridClass):
-    _xofields = {
-        '_version':  SimVersion,    # This HAS to be the first field!
-        '_i_turn':   xo.Int64,      # Current turn in tracking (not necessarily the same as particles.at_turn)
-        '_xsize':     xo.Int64,
-        'particles': xp.Particles,
-    }
-
+class SimState(xo.Struct):
+    _version   = SimVersion    # This HAS to be the first field!
+    _i_turn    = xo.Int64      # Current turn in tracking (not necessarily the same as particles.at_turn)
+    _xsize     = xo.Int64      # Needed to have access to the size in C
+    _particles = xp.Particles._XoStruct
 
     def __init__(self, **kwargs):
         assert_versions()
         if '_xobject' not in kwargs:
             kwargs['_version'] = SimVersion()
-            # particles = kwargs.pop('particles', None)
+            particles = kwargs.pop('particles', None)
+            if particles is None or not isinstance(particles, xp.Particles):
+                raise ValueError("Need to provide `particles` to SimState.")
+            kwargs['_particles'] = particles._xobject
         super().__init__(**kwargs)
-        # We have to initialise the dynamic fields after the xobject is created, to
-        # ensure that they are stored at the end of the buffer (such that the buffer
-        # starts with the SimConfig itself)
-        # if '_xobject' not in kwargs:
-        #     if particles is not None:
-        #         self.particles = particles
-        self._xsize = self._xobject._size
-
+        self._xsize = self._size
 
     @classmethod
     def from_binary(cls, filename, offset=0, raise_version_error=True):
@@ -53,7 +46,7 @@ class SimState(xo.HybridClass):
         buffer_data.buffer[:] = np.frombuffer(state_bytes, dtype=np.int8)
         # Cast to SimVersion to verify versions of xsuite packages
         version_offset = -1
-        for field in cls._XoStruct._fields:
+        for field in cls._fields:
             if field.name == '_version':
                 version_offset = field.offset
         if version_offset == -1:
@@ -62,17 +55,24 @@ class SimState(xo.HybridClass):
         if not sim_ver.assert_version(raise_error=raise_version_error, filename=filename):
             return None
         # Retrieve simulation state
-        sim_state_xobject = cls._XoStruct._from_buffer(buffer=buffer_data, offset=offset)
-        return cls(_xobject=sim_state_xobject)
+        return cls._from_buffer(buffer=buffer_data, offset=offset)
 
     def to_binary(self, filename):
-        assert self._offset == 0
-        assert self._XoStruct._fields[0].offset == 0
+        assert self._offset == 0     # TODO: create new buffer if this is not the case (like when SimState inside SimConfig)
         filename = Path(filename).expanduser().resolve()
         with filename.open('wb') as fid:
             fid.write(self._buffer.buffer.tobytes())
 
+
     @property
     def version(self):
         return self._version
+
+    @property
+    def particles(self):
+        return xp.Particles(_xobject=self._particles)
+
+    @property
+    def i_turn(self):
+        return self._i_turn
 

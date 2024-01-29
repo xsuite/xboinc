@@ -43,7 +43,7 @@ def generate_executable_source(*, overwrite=False, _context=None):
             insert_in_all_files,
             xo.specialize_source(SimVersion._gen_c_api(conf).source,
                                         specialize_for='cpu_serial'),
-            xo.specialize_source(SimState._XoStruct._gen_c_api(conf).source,
+            xo.specialize_source(SimState._gen_c_api(conf).source,
                                         specialize_for='cpu_serial'),
             xo.specialize_source(SimConfig._gen_c_api(conf).source,
                                         specialize_for='cpu_serial'),
@@ -135,15 +135,21 @@ def generate_executable(*, keep_source=False, clean=True, boinc_path=None, targe
 
     # Compile!
     if  target is None:
+        cmd = subprocess.run(['make', 'clean'],
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if cmd.returncode != 0:
+            print(cmd.stdout.decode('UTF-8').strip())
+            stderr = cmd.stderr.decode('UTF-8').strip()
+            raise RuntimeError(f"Make clean failed. Stderr:\n {stderr}")
         if boinc_path is None:
             app = 'xboinc_test'
             cmd = subprocess.run(['make', app],
-                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         else:
             app = 'xboinc'
             cmd = subprocess.run(['make', app], env={**os.environ, 'BOINC_DIR': \
                                         boinc_path.expanduser().resolve().as_posix()},
-                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if cmd.returncode != 0:
             print(cmd.stdout.decode('UTF-8').strip())
             stderr = cmd.stderr.decode('UTF-8').strip()

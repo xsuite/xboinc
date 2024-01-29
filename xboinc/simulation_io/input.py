@@ -44,22 +44,26 @@ class SimConfig(xo.Struct):
     num_turns        = xo.Int64
     num_elements     = xo.Int64
     checkpoint_every = xo.Int64
-    sim_state        = xo.Ref(SimState)
+    sim_state        = SimState
 
     def __init__(self, *args, **kwargs):
         assert_versions()
         if '_xobject' not in kwargs:
             kwargs['_version'] = SimVersion()
-            kwargs.setdefault('_buffer', xo.ContextCpu().new_buffer())
-            kwargs.setdefault('checkpoint_every', -1)
             line = kwargs.pop('line', None)
             if kwargs.pop('line_metada', None) is not None:
                 raise ValueError("Cannot initialise SimConfig with `line_metadata` "
                                + "as it would scramble the order of the buffer!")
             particles = kwargs.pop('particles', None)
-            if kwargs.pop('sim_state', None) is not None:
-                raise ValueError("Cannot initialise SimConfig with `sim_state` "
-                               + "as it would scramble the order of the buffer!")
+            if particles is not None:
+                if kwargs.pop('sim_state', None) is not None:
+                    raise ValueError("Use `sim_state` or `particles`, not both.")
+                kwargs['sim_state'] = SimState(particles=particles, _i_turn=0)
+            # We create the SimConfig buffer after creating the SimState, to make
+            # sure that the SimConfig will be first (offset=0), and the SimState
+            # will be moved after it in the SimConfig buffer
+            kwargs.setdefault('_buffer', xo.ContextCpu().new_buffer())
+            kwargs.setdefault('checkpoint_every', -1)
         super().__init__(**kwargs)
         # We have to initialise the dynamic fields after the xobject is created, to
         # ensure that they are stored at the end of the buffer (such that the buffer
@@ -68,8 +72,6 @@ class SimConfig(xo.Struct):
             if line is not None:
                 self.line_metadata = _build_line_metadata(line, self._buffer)
                 self.num_elements = len(line.element_names)
-            if particles is not None:
-                self.sim_state = _build_sim_state(particles, self._buffer)
 
     @classmethod
     def from_binary(cls, filename, offset=0, raise_version_error=True):
@@ -94,7 +96,6 @@ class SimConfig(xo.Struct):
 
     def to_binary(self, filename):
         assert self._offset == 0
-        assert self._fields[0].offset == 0
         filename = Path(filename).expanduser().resolve()
         with filename.open('wb') as fid:
             fid.write(self._buffer.buffer.tobytes())
@@ -116,10 +117,6 @@ class SimConfig(xo.Struct):
     @property
     def particles(self):
         return self.sim_state.particles
-
-    @particles.setter
-    def particles(self, val):
-        self.sim_state = _build_sim_state(val, self._buffer)
 
 
     # @classmethod
@@ -146,11 +143,6 @@ class SimConfig(xo.Struct):
     #             fid.write(simbuf.buffer.tobytes())
 
     #     return sim_config
-
-
-def _build_sim_state(particles, buffer):
-    sim_state = SimState(particles=particles, _i_turn=0, _buffer=buffer)
-    return sim_state._xobject
 
 
 def _build_line_metadata(line, buffer):
