@@ -23,7 +23,7 @@ coll_manager.build_tracker()
 coll_manager.set_openings()
 part = coll_manager.generate_pencil_on_collimator('tcp.c6l7.b1', num_particles=num_particles)
 coll_manager.enable_scattering()
-input = xb.SimConfig(line=line, particles=part, num_turns=num_turns, checkpoint_every=5)
+input = xb.XbInput(line=line, particles=part, num_turns=num_turns, checkpoint_every=5)
 input.to_binary('xboinc_input.bin')
 
 
@@ -43,9 +43,9 @@ if cmd.returncode != 0:
 
 
 # Read output
-filename = 'sim_state_out.bin'
-sim_state = xb.SimState.from_binary(filename)
-part = sim_state.particles
+filename = 'xb_state_out.bin'
+xb_state = xb.XbState.from_binary(filename)
+part = xb_state.particles
 _ = coll_manager.lossmap(part, file=Path(path_out,f'lossmap_B1H.json'))
 summary = coll_manager.summary(part, file=Path(path_out,f'coll_summary_B1H.out'))
 print(summary)

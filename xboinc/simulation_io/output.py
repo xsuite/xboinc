@@ -16,11 +16,11 @@ import numpy as np
 import xobjects as xo
 import xpart as xp
 
-from .version import SimVersion, assert_versions
+from .version import XbVersion, assert_versions
 
 
-class SimState(xo.Struct):
-    _version   = SimVersion    # This HAS to be the first field!
+class XbState(xo.Struct):
+    _version   = XbVersion    # This HAS to be the first field!
     _i_turn    = xo.Int64      # Current turn in tracking (not necessarily the same as particles.at_turn)
     _xsize     = xo.Int64      # Needed to have access to the size in C
     _particles = xp.Particles._XoStruct
@@ -28,10 +28,10 @@ class SimState(xo.Struct):
     def __init__(self, **kwargs):
         assert_versions()
         if '_xobject' not in kwargs:
-            kwargs['_version'] = SimVersion()
+            kwargs['_version'] = XbVersion()
             particles = kwargs.pop('particles', None)
             if particles is None or not isinstance(particles, xp.Particles):
-                raise ValueError("Need to provide `particles` to SimState.")
+                raise ValueError("Need to provide `particles` to XbState.")
             kwargs['_particles'] = particles._xobject
         super().__init__(**kwargs)
         self._xsize = self._size
@@ -44,21 +44,21 @@ class SimState(xo.Struct):
             state_bytes = fid.read()
         buffer_data = xo.ContextCpu().new_buffer(capacity=len(state_bytes))
         buffer_data.buffer[:] = np.frombuffer(state_bytes, dtype=np.int8)
-        # Cast to SimVersion to verify versions of xsuite packages
+        # Cast to XbVersion to verify versions of xsuite packages
         version_offset = -1
         for field in cls._fields:
             if field.name == '_version':
                 version_offset = field.offset
         if version_offset == -1:
-            raise ValueError("No xofield `_version` found in SimState!")
-        sim_ver = SimVersion._from_buffer(buffer=buffer_data, offset=offset+version_offset)
-        if not sim_ver.assert_version(raise_error=raise_version_error, filename=filename):
+            raise ValueError("No xofield `_version` found in XbState!")
+        xb_ver = XbVersion._from_buffer(buffer=buffer_data, offset=offset+version_offset)
+        if not xb_ver.assert_version(raise_error=raise_version_error, filename=filename):
             return None
         # Retrieve simulation state
         return cls._from_buffer(buffer=buffer_data, offset=offset)
 
     def to_binary(self, filename):
-        assert self._offset == 0     # TODO: create new buffer if this is not the case (like when SimState inside SimConfig)
+        assert self._offset == 0     # TODO: create new buffer if this is not the case (like when XbState inside XbInput)
         filename = Path(filename).expanduser().resolve()
         with filename.open('wb') as fid:
             fid.write(self._buffer.buffer.tobytes())

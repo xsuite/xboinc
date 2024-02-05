@@ -5,7 +5,7 @@
 
 import xobjects as xo
 
-from ..simulation_io import SimState, SimConfig, SimVersion, app_version, get_default_tracker, assert_versions
+from ..simulation_io import XbState, XbInput, XbVersion, app_version, get_default_tracker, assert_versions
 from ..general import _pkg_root
 
 from pathlib import Path
@@ -33,24 +33,24 @@ def generate_executable_source(*, overwrite=False, _context=None):
     assert _context is None
     assert_versions()
 
-    if not (Path.cwd() / "sim_config.h").exists() or overwrite:
-        # The SimConfig source should not be static, as it has to be exposed to main
+    if not (Path.cwd() / "xb_input.h").exists() or overwrite:
+        # The XbInput source should not be static, as it has to be exposed to main
         # TODO: Do we still want to inline this? If yes, we need to adapt xo.specialize_source
         #       to pass the replacement of /*gpufun*/ as an option
         conf = xo.typeutils.default_conf.copy()
         conf['gpufun'] = ''
-        sim_config_sources = [
+        xb_input_sources = [
             insert_in_all_files,
-            xo.specialize_source(SimVersion._gen_c_api(conf).source,
+            xo.specialize_source(XbVersion._gen_c_api(conf).source,
                                         specialize_for='cpu_serial'),
-            xo.specialize_source(SimState._gen_c_api(conf).source,
+            xo.specialize_source(XbState._gen_c_api(conf).source,
                                         specialize_for='cpu_serial'),
-            xo.specialize_source(SimConfig._gen_c_api(conf).source,
+            xo.specialize_source(XbInput._gen_c_api(conf).source,
                                         specialize_for='cpu_serial'),
         ]
-        sim_config_h = '\n'.join(sim_config_sources)
-        with (Path.cwd() / "sim_config.h").open('w') as fid:
-            fid.write(sim_config_h)
+        xb_input_h = '\n'.join(xb_input_sources)
+        with (Path.cwd() / "xb_input.h").open('w') as fid:
+            fid.write(xb_input_h)
 
     if not (Path.cwd() / "xtrack_tracker.h").exists() or overwrite:
         default_tracker, default_config_hash = get_default_tracker()
@@ -99,7 +99,7 @@ def generate_executable(*, keep_source=False, clean=True, boinc_path=None, targe
         if not boinc_lib.exists():
             raise RuntimeError(f"Cannot find BOINC LIB {boinc_lib}!")
 
-    config   = Path.cwd() / "sim_config.h"
+    config   = Path.cwd() / "xb_input.h"
     tracker  = Path.cwd() / "xtrack_tracker.h"
     if not config.exists() or not tracker.exists() or not all([s.exists() for s in _sources]):
         generate_executable_source()

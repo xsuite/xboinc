@@ -94,7 +94,7 @@ install: xboinc
 # specify library paths explicitly (rather than -l)
 # because otherwise, you might get a version in /usr/lib etc.
 
-xtrack.o: xtrack_tracker.h sim_config.h xtrack.c
+xtrack.o: xtrack_tracker.h xb_input.h xtrack.c
 	$(CC) $(CXXFLAGS) -lm -std=c99 -c xtrack.c
 
 xboinc_test: xtrack.o xtrack.h main.c $(MAKEFILE_STDLIB)

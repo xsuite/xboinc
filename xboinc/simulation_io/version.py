@@ -45,9 +45,9 @@ app_version = '.'.join(__version__.split('.')[:2])
 app_version_int = _version_to_int(__version__)
 
 
-# This class overloads the first field from the SimState,
+# This class overloads the first field from the XbState,
 # in order to read the correct version from the binary
-class SimVersion(xo.Struct):
+class XbVersion(xo.Struct):
     xboinc_version = xo.Int64    # version XXX.YYY as int
 
     def __init__(self, **kwargs):

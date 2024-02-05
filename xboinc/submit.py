@@ -14,7 +14,7 @@ import xobjects as xo
 
 from .user import get_domain, get_directory
 from .server import fs_mv, missing_eos, timestamp
-from .simulation_io import SimConfig, app_version, assert_versions
+from .simulation_io import XbInput, app_version, assert_versions
 
 
 def _get_num_elements_from_line(line):
@@ -88,7 +88,7 @@ class SubmitJobs:
         }
         with json_file.open('w') as fid:
             json.dump(json_dict, fid, cls=xo.JEncoder)
-        data = SimConfig(num_turns=num_turns, line=line, particles=particles,
+        data = XbInput(num_turns=num_turns, line=line, particles=particles,
                          checkpoint_every=checkpoint_every)
         data.to_binary(bin_file)
         self._json_files += [json_file]

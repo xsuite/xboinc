@@ -9,7 +9,7 @@ import xboinc as xb
 line = xt.Line.from_json('../tests/data/sequence_lhc_run3_b1.json')
 line.build_tracker()
 file_in  = Path('xboinc_input.bin')
-file_out = Path('sim_state_out.bin')
+file_out = Path('xb_state_out.bin')
 
 num_part = 200
 num_turns = 50
@@ -19,7 +19,7 @@ part = line.build_particles(x_norm=np.random.normal(0, 10, num_part),
                             y_norm=np.random.normal(0, 10, num_part),
                             nemitt_x=3.5e-6, nemitt_y=3.5e-6)
 
-input = xb.SimConfig(num_turns=num_turns, line=line, particles=part, checkpoint_every=checkpoint_every)
+input = xb.XbInput(num_turns=num_turns, line=line, particles=part, checkpoint_every=checkpoint_every)
 input.to_binary(file_in)
 
 print("")
@@ -29,7 +29,7 @@ print(f"Tracking with executable: done in {time.time()-now:.1f}s")
 line.track(part, num_turns=num_turns, time=True)
 print(f"Tracking from within python: done in {line.time_last_track:.1f}s.")
 
-exec_part = xb.SimState.from_binary(file_out).particles
+exec_part = xb.XbState.from_binary(file_out).particles
 assert np.all(part.state == exec_part.state)
 assert np.allclose(part.x, exec_part.x, rtol=1e-10)
 assert np.allclose(part.px, exec_part.px, rtol=1e-10)

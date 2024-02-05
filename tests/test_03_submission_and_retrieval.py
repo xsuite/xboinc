@@ -24,7 +24,7 @@ from xboinc.server.paths import _test_afs
 input_dir  = _test_afs / 'input_dev'
 output_dir = _test_afs / 'output_dev'
 input_filename      = 'xboinc_input.bin'
-output_filename     = 'sim_state_out.bin'
+output_filename     = 'xb_state_out.bin'
 checkpoint_filename = 'checkpoint.bin'
 
 study_name = "_test_study"

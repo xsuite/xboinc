@@ -17,9 +17,9 @@ import xobjects as xo
 import xpart as xp
 import xtrack as xt
 
-from .version import SimVersion, assert_versions
+from .version import XbVersion, assert_versions
 from .default_tracker import default_element_classes, get_default_tracker
-from .output import SimState
+from .output import XbState
 
 # TODO: How to make input file smaller??
 # Ideas:
@@ -38,35 +38,35 @@ _previous_line_cache = {}
 _xboinc_context = xo.ContextCpu()
 
 # The class ElementRefData is dynamically generated inside the tracker. We
-# extract it here and use it to create the line metadata inside SimConfig
+# extract it here and use it to create the line metadata inside XbInput
 ElementRefData = xt.tracker._element_ref_data_class_from_element_classes(
                         default_element_classes)
 if {f.name for f in ElementRefData._fields} != {'elements', 'names'}:
     raise RunTimeError("The definition of `ElementRefData` has changed inside Xtrack! "
                      + "This renders Xboinc incompatible. Please ask a dev to update Xboinc.")
 
-class SimConfig(xo.Struct):
-    _version         = SimVersion    # This HAS to be the first field!
+class XbInput(xo.Struct):
+    _version         = XbVersion    # This HAS to be the first field!
     num_turns        = xo.Int64
     num_elements     = xo.Int64
     checkpoint_every = xo.Int64
     _parity_check    = xo.Int64      # TODO
-    sim_state        = SimState
+    xb_state        = XbState
     line_metadata    = xo.Ref(ElementRefData)
 
     def __init__(self, *args, **kwargs):
         assert_versions()
         if '_xobject' not in kwargs:
-            kwargs['_version'] = SimVersion()
-            # Build particles / SimState
+            kwargs['_version'] = XbVersion()
+            # Build particles / XbState
             particles = kwargs.pop('particles', None)
-            sim_state = kwargs.get('sim_state', None)
+            xb_state = kwargs.get('xb_state', None)
             if particles is not None:
-                if sim_state is not None:
-                    raise ValueError("Use `sim_state` or `particles`, not both.")
-                kwargs['sim_state'] = SimState(particles=particles, _i_turn=0)
-            elif sim_state is None or not isinstance(sim_state, SimState):
-                raise ValueError("Need to provide `sim_state` or `particles`.")
+                if xb_state is not None:
+                    raise ValueError("Use `xb_state` or `particles`, not both.")
+                kwargs['xb_state'] = XbState(particles=particles, _i_turn=0)
+            elif xb_state is None or not isinstance(xb_state, XbState):
+                raise ValueError("Need to provide `xb_state` or `particles`.")
             line = kwargs.pop('line', None)
             line_metadata = kwargs.pop('line_metadata', None)
             kwargs.setdefault('_buffer', _xboinc_context.new_buffer())
@@ -83,15 +83,15 @@ class SimConfig(xo.Struct):
             state_bytes = fid.read()
         buffer_data = _xboinc_context.new_buffer(capacity=len(state_bytes))
         buffer_data.buffer[:] = np.frombuffer(state_bytes, dtype=np.int8)
-        # Cast to SimVersion to verify versions of xsuite packages
+        # Cast to XbVersion to verify versions of xsuite packages
         version_offset = -1
         for field in cls._fields:
             if field.name == '_version':
                 version_offset = field.offset
         if version_offset == -1:
-            raise ValueError("No xofield `_version` found in SimConfig!")
-        sim_ver = SimVersion._from_buffer(buffer=buffer_data, offset=offset+version_offset)
-        if not sim_ver.assert_version(raise_error=raise_version_error, filename=filename):
+            raise ValueError("No xofield `_version` found in XbInput!")
+        xb_ver = XbVersion._from_buffer(buffer=buffer_data, offset=offset+version_offset)
+        if not xb_ver.assert_version(raise_error=raise_version_error, filename=filename):
             return None
         # Retrieve simulation input
         return cls._from_buffer(buffer=buffer_data, offset=offset)
@@ -117,7 +117,7 @@ class SimConfig(xo.Struct):
 
     @property
     def particles(self):
-        return self.sim_state.particles
+        return self.xb_state.particles
 
     @particles.setter
     def particles(self, val):

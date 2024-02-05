@@ -59,7 +59,7 @@ extern "C" {
 #endif
 
 #define XB_INPUT_FILENAME "xboinc_input.bin"
-#define XB_OUTPUT_FILENAME "sim_state_out.bin"
+#define XB_OUTPUT_FILENAME "xb_state_out.bin"
 #define XB_CHECKPOINT_FILE "checkpoint.bin"
 
 
@@ -87,7 +87,7 @@ static void    XB_fprintf(int8_t verbose_level, FILE *stream, char *format, ...)
 static FILE*   XB_fopen(char *filename, const char *mode);
 static FILE*   XB_fopen_allow_null(char *filename, const char *mode);
 static int8_t* XB_file_to_buffer(FILE *fid, int8_t *buf_in);
-static int     XB_do_checkpoint(SimConfig sim_config, SimState sim_state);
+static int     XB_do_checkpoint(XbInput xb_input, XbState xb_state);
 
 
 int main(int argc, char **argv){
@@ -143,49 +143,49 @@ int main(int argc, char **argv){
     }
 
     // Get sim config and metadata
-    SimConfig sim_config = (SimConfig) sim_buffer;
-    const int64_t input_version    = SimConfig_get__version_xboinc_version(sim_config);
-    const int64_t input_version_ss = SimConfig_get_sim_state__version_xboinc_version(sim_config);
+    XbInput xb_input = (XbInput) sim_buffer;
+    const int64_t input_version    = XbInput_get__version_xboinc_version(xb_input);
+    const int64_t input_version_ss = XbInput_get_xb_state__version_xboinc_version(xb_input);
     if (input_version != xboinc_exec_version || input_version_ss != xboinc_exec_version){
         XB_fprintf(0, stderr, "Xboinc version of executable and input file do not match!\n");
         return -1;
     }
 
-    // Check for checkpoint file and load if it exists, otherwise use SimState from input
-    SimState sim_state = SimConfig_getp_sim_state(sim_config);
-    XB_fprintf(2, stdout, "sim_state: %p\n", (int8_t*) sim_state);
+    // Check for checkpoint file and load if it exists, otherwise use XbState from input
+    XbState xb_state = XbInput_getp_xb_state(xb_input);
+    XB_fprintf(2, stdout, "xb_state: %p\n", (int8_t*) xb_state);
     int64_t current_turn;
     FILE* checkpoint_state = XB_fopen_allow_null(XB_CHECKPOINT_FILE, "rb");
     if (checkpoint_state){
-        XB_file_to_buffer(checkpoint_state, (int8_t*) sim_state);
-        current_turn = SimState_get__i_turn(sim_state);
+        XB_file_to_buffer(checkpoint_state, (int8_t*) xb_state);
+        current_turn = XbState_get__i_turn(xb_state);
         XB_fprintf(1, stdout, "Loaded checkpoint, continuing from turn %d.\n", (int) current_turn);
     } else {
-        current_turn = SimState_get__i_turn(sim_state);
+        current_turn = XbState_get__i_turn(xb_state);
         XB_fprintf(1, stdout, "No checkpoint found, starting from turn %d.\n", (int) current_turn);
     }
 
     // Get data
-    const int64_t checkpoint_every = SimConfig_get_checkpoint_every(sim_config);
+    const int64_t checkpoint_every = XbInput_get_checkpoint_every(xb_input);
     int64_t step_turns = 1;  // Best solution seems to track one turn at a time, to allow BOINC to interrupt
     if (checkpoint_every > 0){
         XB_fprintf(1, stdout, "Checkpointing every %d turns.\n", (int) checkpoint_every);
     } else {
         XB_fprintf(1, stdout, "Not checkpointing.\n");
     }
-    const int64_t num_turns = SimConfig_get_num_turns(sim_config);
-    const int64_t num_elements = SimConfig_get_num_elements(sim_config);
+    const int64_t num_turns = XbInput_get_num_turns(xb_input);
+    const int64_t num_elements = XbInput_get_num_elements(xb_input);
     XB_fprintf(1, stdout, "num_turns: %d\n", (int) num_turns);
     XB_fprintf(1, stdout, "num_elements: %d\n", (int) num_elements);
-    ParticlesData particles = SimState_getp__particles(sim_state);
+    ParticlesData particles = XbState_getp__particles(xb_state);
     int64_t num_part = 0;
-    for (int ii=0; ii<SimState_get__particles__capacity(sim_state); ii++){
-        if(SimState_get__particles_state(sim_state, (int64_t) ii) > 0){
+    for (int ii=0; ii<XbState_get__particles__capacity(xb_state); ii++){
+        if(XbState_get__particles_state(xb_state, (int64_t) ii) > 0){
             num_part++;
         }
     }
     XB_fprintf(1, stdout, "num_part_alive: %d\n", (int) num_part);
-    ElementRefData elem_ref_data = SimConfig_getp_line_metadata(sim_config);
+    ElementRefData elem_ref_data = XbInput_getp_line_metadata(xb_input);
 
     // Open output file as test
     FILE* outfile = XB_fopen(XB_OUTPUT_FILENAME, "wb");
@@ -215,14 +215,14 @@ int main(int argc, char **argv){
         );
         current_turn += step_turns;
         XB_fprintf(2, stdout, "Tracked turn %i\n", current_turn);
-        SimState_set__i_turn(sim_state, current_turn);
+        XbState_set__i_turn(xb_state, current_turn);
 
         if (
 #ifdef COMPILE_TO_BOINC
         boinc_time_to_checkpoint() ||
 #endif
         (checkpoint_every > 0 && current_turn % checkpoint_every == 0) ){
-            retval = XB_do_checkpoint(sim_config, sim_state);
+            retval = XB_do_checkpoint(xb_input, xb_state);
             if (retval) {
                 XB_fprintf(0, stderr, "Checkpointing failed!\n");
                 fclose(outfile);
@@ -246,8 +246,8 @@ int main(int argc, char **argv){
     XB_fprintf(1, stdout, "Finished tracking\n");
 
     // Write output
-    fwrite(SimConfig_getp_sim_state(sim_config), sizeof(int8_t),
-           SimConfig_get_sim_state__xsize(sim_config), outfile);
+    fwrite(XbInput_getp_xb_state(xb_input), sizeof(int8_t),
+           XbInput_get_xb_state__xsize(xb_input), outfile);
     fclose(outfile);
 
 #ifdef COMPILE_TO_BOINC
@@ -350,13 +350,13 @@ static int8_t* XB_file_to_buffer(FILE *fid, int8_t *buf_in){
 }
 
 
-static int XB_do_checkpoint(SimConfig sim_config, SimState sim_state) {
+static int XB_do_checkpoint(XbInput xb_input, XbState xb_state) {
     FILE *chkp_fid = XB_fopen(XB_CHECKPOINT_FILE, "wb");
     if (!chkp_fid) {
         return 1;
     }
-    XB_fprintf(1, stdout, "Checkpointing turn %d\n", (int) SimState_get__i_turn(sim_state));
-    fwrite(SimConfig_getp_sim_state(sim_config), sizeof(int8_t), SimConfig_get_sim_state__xsize(sim_config), chkp_fid);
+    XB_fprintf(1, stdout, "Checkpointing turn %d\n", (int) XbState_get__i_turn(xb_state));
+    fwrite(XbInput_getp_xb_state(xb_input), sizeof(int8_t), XbInput_get_xb_state__xsize(xb_input), chkp_fid);
     fclose(chkp_fid);
     return 0;
 }

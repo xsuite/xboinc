@@ -7,7 +7,7 @@ import pytest
 import sys
 
 from xboinc import __version__, __xsuite__versions__
-from xboinc.simulation_io import SimVersion
+from xboinc.simulation_io import XbVersion
 from xboinc.simulation_io.version import _version_to_int, _int_to_version, assert_versions
 
 
@@ -15,12 +15,12 @@ def test_version():
     assert __version__ == '0.1.7'
 
 
-def test_sim_ver():
-    simver = SimVersion()
-    simver.assert_version()
+def test_xb_ver():
+    xb_ver = XbVersion()
+    xb_ver.assert_version()
     with pytest.raises(ImportError):
-        simver.xboinc_version = _version_to_int('0.0.0')
-        simver.assert_version()
+        xb_ver.xboinc_version = _version_to_int('0.0.0')
+        xb_ver.assert_version()
 
 
 def test_xsuite_versions():

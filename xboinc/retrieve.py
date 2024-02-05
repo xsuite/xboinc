@@ -7,7 +7,7 @@ import json
 
 from .user import get_directory, get_domain
 from .server.tools import untar
-from .simulation_io import SimState, assert_versions
+from .simulation_io import XbState, assert_versions
 
 
 class RetrieveJobs:
@@ -68,7 +68,7 @@ class RetrieveJobs:
             try:
                 with open(json_file, 'r') as json_file_obj:
                     json_content = json.load(json_file_obj)
-                result = SimState.from_binary(bin_file, raise_version_error=False)
+                result = XbState.from_binary(bin_file, raise_version_error=False)
             except Exception as e:
                 print(f"Error loading binary file {bin_file}: {e}")
             else:

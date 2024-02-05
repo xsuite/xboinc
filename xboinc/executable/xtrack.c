@@ -21,7 +21,7 @@
 
 // #include "xtrack.h"
 #include "xtrack_tracker.h"
-#include "sim_config.h"
+#include "xb_input.h"
 
 // gcc -O3 -lm -U__STRICT_ANSI__ -std=c99 -c -o xtrack.o xtrack.c
     

@@ -17,7 +17,7 @@ num_turns = 200
 line = xt.Line(elements=[
     xt.Drift(length=1.0), xt.Multipole(knl=[1e-6]), xt.Drift(length=1.0)])
 particles = xp.Particles(mass0=xp.PROTON_MASS_EV, p0c=7e12, x=[1e-6,2e-6,3e-6])
-input = xb.SimConfig(line=line, particles=particles, num_turns=num_turns)
+input = xb.XbInput(line=line, particles=particles, num_turns=num_turns)
 input.to_binary('xboinc_input.bin')
 
 
@@ -37,12 +37,12 @@ if cmd.returncode != 0:
 
 
 # Read output
-filename = 'sim_state_out.bin'
-sim_state = xb.SimState.from_binary(filename)
-particles = sim_state.particles
+filename = 'xb_state_out.bin'
+xb_state = xb.XbState.from_binary(filename)
+particles = xb_state.particles
 
 assert np.all(particles.s == 0)
 assert np.all(particles.at_turn == num_turns)
-assert sim_state.i_turn == num_turns
+assert xb_state.i_turn == num_turns
 
 print('All checks passed!')

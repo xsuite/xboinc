@@ -21,7 +21,7 @@ num_turns = 1000
 num_part  = 100
 
 input_filename      = 'xboinc_input.bin'
-output_filename     = 'sim_state_out.bin'
+output_filename     = 'xb_state_out.bin'
 checkpoint_filename = 'checkpoint.bin'
 
 boinc_path = xb._pkg_root.parents[1] / "boinc"
@@ -43,7 +43,7 @@ def test_generate_input():
     xb._skip_xsuite_version_check = True
     line, part = _make_input()
     input_file = Path.cwd() / input_filename
-    input = xb.SimConfig(line=line, particles=part, num_turns=num_turns, checkpoint_every=50)
+    input = xb.XbInput(line=line, particles=part, num_turns=num_turns, checkpoint_every=50)
     input.to_binary(input_file)
     assert input_file.exists()
     xb._skip_xsuite_version_check = False
@@ -61,7 +61,7 @@ def test_source():
     assert Path(Path.cwd() / "Makefile").exists()
     assert Path(Path.cwd() / "xtrack.c").exists()
     assert Path(Path.cwd() / "xtrack.h").exists()
-    assert Path(Path.cwd() / "sim_config.h").exists()
+    assert Path(Path.cwd() / "xb_input.h").exists()
     assert Path(Path.cwd() / "xtrack_tracker.h").exists()
     xb._skip_xsuite_version_check = False
 
@@ -113,14 +113,14 @@ def test_track(boinc):
     # Read output
     output_file = Path.cwd() / output_filename
     assert output_file.exists()
-    sim_state = xb.SimState.from_binary(output_file)
+    xb_state = xb.XbState.from_binary(output_file)
 
     # Look at particles state
-    part_xboinc = sim_state.particles
+    part_xboinc = xb_state.particles
     print(f"{len(part_xboinc.state[part_xboinc.state > 0])}/{num_part} survived.")
     assert np.allclose(part_xboinc.s[part_xboinc.state > 0], 0, rtol=1e-6, atol=0), "Unexpected s"
     assert np.all(part_xboinc.at_turn[part_xboinc.state > 0] == num_turns), "Unexpected survivals (particles)"
-    assert sim_state.i_turn == num_turns, "Unexpected survival (sim_state)"
+    assert xb_state.i_turn == num_turns, "Unexpected survival (xb_state)"
 
     # Check that the tracking made sense, i.e. that not all values are the same
     assert not np.allclose(part_xboinc.x,  part_xboinc.x[0],  rtol=1e-4, atol=0)
@@ -188,12 +188,12 @@ def test_checkpoint(boinc):
 def test_vs_xtrack():
     xb._skip_xsuite_version_check = True
     output_file_2    = _get_output(None)
-    sim_state        = xb.SimState.from_binary(output_file_2)
-    part_xboinc_test = sim_state.particles
+    xb_state        = xb.XbState.from_binary(output_file_2)
+    part_xboinc_test = xb_state.particles
     if not boinc_missing:
         output_file_2 = _get_output(boinc_path)
-        sim_state     = xb.SimState.from_binary(output_file_2)
-        part_xboinc   = sim_state.particles
+        xb_state     = xb.XbState.from_binary(output_file_2)
+        part_xboinc   = xb_state.particles
     
     # Testing results with xtrack
     line, part = _make_input()
