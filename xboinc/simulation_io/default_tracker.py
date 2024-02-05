@@ -54,8 +54,7 @@ default_element_classes = [
             xf.BeamBeamBiGaussian3D,
             # # Doesn't work because fieldmap in different buffer
             # xf.ElectronCloud,
-            xf.ElectronLensInterpolated,
-            xf.SpaceCharge3D,
+            # xf.ElectronLensInterpolated,
             xc.BlackAbsorber,
             xc.EverestCollimator,
             xc.EverestCrystal,
@@ -65,7 +64,8 @@ default_element_classes = [
             # # not supported until per-particle block updated
             # xt.LimitPolygon,
             xt.LimitRectEllipse,
-            xt.LongitudinalLimitRect
+            xt.LongitudinalLimitRect,
+            xt.Tracker._get_default_monitor_class()
     ]
 
 def get_default_tracker(**kwargs):
@@ -134,15 +134,10 @@ def get_default_tracker(**kwargs):
             #     y_range=(0.,1.), ny=10,
             #     z_range=(0.,1.), nz=10
             # )),
-            xf.ElectronLensInterpolated(
-                x_range=(0.,1.), nx=10,
-                y_range=(0.,1.), ny=10
-            ),
-            xf.SpaceCharge3D(
-                x_range=(0.,1.), nx=10,
-                y_range=(0.,1.), ny=10,
-                z_range=(0.,1.), nz=10
-            ),
+            # xf.ElectronLensInterpolated(
+            #     x_range=(0.,1.), nx=10,
+            #     y_range=(0.,1.), ny=10
+            # ),
             xc.BlackAbsorber(length=1),
             xc.EverestCollimator(length=1, material=xc.materials.Silicon),
             xc.EverestCrystal(length=1, material=xc.materials.SiliconCrystal),
@@ -152,14 +147,18 @@ def get_default_tracker(**kwargs):
             # # not supported until per-particle block updated
             # xt.LimitPolygon(x_vertices=[0.,1.], y_vertices=[0.,1.]),
             xt.LimitRectEllipse(),
-            xt.LongitudinalLimitRect()
+            xt.LongitudinalLimitRect(),
+            xt.Tracker._get_default_monitor_class()(num_particles=1, start_at_turn=0, stop_at_turn=1)
     ]
     if set(default_element_classes) != set([ el.__class__ for el in default_elements]):
-        raise ValueError("Not all elements in `default_classes` are represented in " \
-                       + "`default_element_classes` or vice versa. Please fix default_tracker.py.")
+        raise RunTimeError("Not all elements in `default_classes` are represented in " \
+                       + "`default_element_classes` or vice versa. Please ask a dev to update Xboinc.")
 
     default_line = xt.Line(elements=default_elements)
 
+    # Need `compile=True` in order to create source, because we need to call
+    # `get_track_kernel_and_data_for_present_config`. However, inside this function, we could in
+    # principle pass `compile=False` to `_build_kernel`..
     default_line.build_tracker(compile=True, use_prebuilt_kernels=False, **kwargs)
     default_config_hash = default_line.tracker._hashable_config()
 

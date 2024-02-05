@@ -2,6 +2,7 @@
 # This file is part of the Xboinc Package.  #
 # Copyright (c) CERN, 2024.                 #
 # ######################################### #
+
 # ===============================================================================================
 # IMPORTANT
 # ===============================================================================================
@@ -9,7 +10,6 @@
 # to avoid having multiple xboinc versions with out-of-sync executables.
 # ===============================================================================================
 
-import sys
 import numpy as np
 from pathlib import Path
 
@@ -21,57 +21,59 @@ from .version import SimVersion, assert_versions
 from .default_tracker import default_element_classes, get_default_tracker
 from .output import SimState
 
-# TODO: how to make input file smaller??
+# TODO: How to make input file smaller??
+# Ideas:
+#  - Do not use names for the elements (they take ~40% of the size of ElementRefData)
+#  - Put all elements in the array instead of Refs (~7%) not sure if possible
+#  - Remove Markers, empty Drifts, etc by default
+#  - Shrink buffer by removing free space
 
 # The build time of the input file is largely dominated by the rebuilding of the
-# tracker. For this reason we cache the line, such that when submitting many jobs
-# on the same line only the first job creation takes some time.
-#
-# Note that this advantage is lost when changing lines at every job, in other
-# words, one should be smart in organising the order of jobs to have a speedy
-# submission.
+# ElementRefData. For this reason we cache the line, such that when submitting
+# many jobs on the same line only the first job creation takes some time.
 _previous_line_cache = {}
+    # TODO: Caching does not work as moving elements to buffer does not work correctly
+    #       Can we cache by making the line_metadata in one buffer which we then always merge to a new one?
 
+_xboinc_context = xo.ContextCpu()
 
-class ElementRefData(xo.Struct):
-    # Stub; this is defined inside Tracker
-    pass
-
+# The class ElementRefData is dynamically generated inside the tracker. We
+# extract it here and use it to create the line metadata inside SimConfig
+ElementRefData = xt.tracker._element_ref_data_class_from_element_classes(
+                        default_element_classes)
+if {f.name for f in ElementRefData._fields} != {'elements', 'names'}:
+    raise RunTimeError("The definition of `ElementRefData` has changed inside Xtrack! "
+                     + "This renders Xboinc incompatible. Please ask a dev to update Xboinc.")
 
 class SimConfig(xo.Struct):
     _version         = SimVersion    # This HAS to be the first field!
-    line_metadata    = xo.Ref(ElementRefData)
     num_turns        = xo.Int64
     num_elements     = xo.Int64
     checkpoint_every = xo.Int64
+    _parity_check    = xo.Int64      # TODO
     sim_state        = SimState
+    line_metadata    = xo.Ref(ElementRefData)
 
     def __init__(self, *args, **kwargs):
         assert_versions()
         if '_xobject' not in kwargs:
             kwargs['_version'] = SimVersion()
-            line = kwargs.pop('line', None)
-            if kwargs.pop('line_metada', None) is not None:
-                raise ValueError("Cannot initialise SimConfig with `line_metadata` "
-                               + "as it would scramble the order of the buffer!")
+            # Build particles / SimState
             particles = kwargs.pop('particles', None)
+            sim_state = kwargs.get('sim_state', None)
             if particles is not None:
-                if kwargs.pop('sim_state', None) is not None:
+                if sim_state is not None:
                     raise ValueError("Use `sim_state` or `particles`, not both.")
                 kwargs['sim_state'] = SimState(particles=particles, _i_turn=0)
-            # We create the SimConfig buffer after creating the SimState, to make
-            # sure that the SimConfig will be first (offset=0), and the SimState
-            # will be moved after it in the SimConfig buffer
-            kwargs.setdefault('_buffer', xo.ContextCpu().new_buffer())
+            elif sim_state is None or not isinstance(sim_state, SimState):
+                raise ValueError("Need to provide `sim_state` or `particles`.")
+            line = kwargs.pop('line', None)
+            line_metadata = kwargs.pop('line_metadata', None)
+            kwargs.setdefault('_buffer', _xboinc_context.new_buffer())
             kwargs.setdefault('checkpoint_every', -1)
         super().__init__(**kwargs)
-        # We have to initialise the dynamic fields after the xobject is created, to
-        # ensure that they are stored at the end of the buffer (such that the buffer
-        # starts with the SimConfig itself)
-        if '_xobject' not in kwargs:
-            if line is not None:
-                self.line_metadata = _build_line_metadata(line, self._buffer)
-                self.num_elements = len(line.element_names)
+        self.line_metadata = _build_line_metadata(line, _buffer=self._buffer)
+        self.num_elements = len(line.elements)
 
     @classmethod
     def from_binary(cls, filename, offset=0, raise_version_error=True):
@@ -79,7 +81,7 @@ class SimConfig(xo.Struct):
         filename = Path(filename)
         with filename.open('rb') as fid:
             state_bytes = fid.read()
-        buffer_data = xo.ContextCpu().new_buffer(capacity=len(state_bytes))
+        buffer_data = _xboinc_context.new_buffer(capacity=len(state_bytes))
         buffer_data.buffer[:] = np.frombuffer(state_bytes, dtype=np.int8)
         # Cast to SimVersion to verify versions of xsuite packages
         version_offset = -1
@@ -107,56 +109,54 @@ class SimConfig(xo.Struct):
 
     @property
     def line(self):
-        return self.line_metadata  # TODO: make readable
-
+        return xt.Line(elements=self.line_metadata.elements,
+                       element_names=self.line_metadata.names)
     @line.setter
     def line(self, val):
-        self.line_metadata = _build_line_metadata(val, self._buffer)
-        self.num_elements = len(line.element_names)
+        raise NotImplementedError
 
     @property
     def particles(self):
         return self.sim_state.particles
 
-
-    # @classmethod
-    # def build(cls, *, num_turns, line, particles, checkpoint_every=-1, filename=None):
-    #     # Assemble data structure
-    #     sim_config = cls()
-    #     simbuf = sim_config._buffer
-
-    #     # Create SimConfig metadata
-    #     sim_config.line_metadata = _build_line_metadata(line, simbuf)
-    #     sim_config.num_turns = num_turns
-    #     sim_config.num_elements = len(line.element_names)   # THIS THIS THIS
-    #     sim_config.checkpoint_every = checkpoint_every
-    #     sim_state = SimState(particles=particles, _i_turn=0, _buffer=simbuf)
-    #     sim_config.sim_state = sim_state._xobject
-    #     sim_state._xsize = sim_state._xobject._size # store size of sim_state TODO: in init of SimState
-    #     assert sim_config._offset == 0
-    #     assert sim_config._fields[0].offset == 0
-
-    #     # Write sim buffer to file
-    #     if filename is not None:
-    #         filename = Path(filename).expanduser().resolve()
-    #         with filename.open('wb') as fid:
-    #             fid.write(simbuf.buffer.tobytes())
-
-    #     return sim_config
+    @particles.setter
+    def particles(self, val):
+        raise NotImplementedError
 
 
-def _build_line_metadata(line, buffer):
-    # Default tracker (cached, only compiles the first time)
-    default_tracker, default_config_hash = get_default_tracker()
-    # Verify compatibility and rebuild tracker with full kernel
-    if 'line' not in _previous_line_cache\
-    or _previous_line_cache['line'] != line.tracker:
+def _build_line_metadata(line, _buffer=None):
+    line_id = id(line)
+    _previous_line_cache = {}  # TODO
+    if line_id not in _previous_line_cache:
+        _check_config(line)
         _check_compatible_elements(line)
-        _rebuild_tracker(line, buffer)
-        _previous_line_cache['line'] = line.tracker
-    # Get the ElementRefData
-    tracker_data = line.tracker._tracker_data_cache[default_config_hash]
-    return tracker_data._element_ref_data
+        if _buffer is None:
+            _buffer = _xboinc_context.new_buffer()
+        element_ref_data = ElementRefData(
+            elements=len(line.element_names),
+            names=list(line.element_names),
+            _buffer=_buffer,
+        )
+        element_ref_data.elements = [
+            line.element_dict[name]._xobject for name in line.element_names
+        ]
+        _previous_line_cache[line_id] = element_ref_data
+
+    return _previous_line_cache[line_id]
+
+def _check_config(line):
+    _, default_config_hash = get_default_tracker()
+    for key, val in default_config_hash:
+        if key not in line.config:
+            print(f"Warning: Configuration option `{key}` not found in line.config! "
+                + f"Set to Xboinc default `{val}`.")
+        elif val != line.config[key]:
+            print(f"Warning: Configuration option `{key}` set to `{line.config[key]}` "
+                + f"in line.config! Not supported by Xboinc. Overwritten to default `{val}`.")
+    for key in set(line.config.keys()) - {k[0] for k in default_config_hash}:
+        print(f"Warning: Configuration option `{key}` requested in line.config!"
+            + f"Not supported by Xboinc. Ignored.")
+
 
 def _check_compatible_elements(line):
     default_elements = [d.__name__ for d in default_element_classes]
@@ -164,13 +164,4 @@ def _check_compatible_elements(line):
         if ee not in default_elements:
             raise ValueError(f"Element of type {ee} not supported "
                            + f"in this version of xboinc!")
-
-def _rebuild_tracker(line, buffer):
-    default_tracker, default_config_hash = get_default_tracker()
-    line.discard_tracker()
-    line.build_tracker(_context=buffer.context, _buffer=buffer,
-                       track_kernel=default_tracker.track_kernel)
-    if default_config_hash not in line.tracker._tracker_data_cache:
-        raise RuntimeError('Tracker data for default config not found')
-    
 

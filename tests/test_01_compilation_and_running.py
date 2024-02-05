@@ -99,11 +99,14 @@ def test_track(boinc):
 
     # run xboinc tracker
     t1 = time.time()
-    cmd = subprocess.run([exec_file, '--verbose', '1'])
+    cmd = subprocess.run([exec_file, '--verbose', '1'],
+                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     calculation_time = round(time.time() - t1, 1)
     # request.config.cache.set('calculation_time', calculation_time)
     if cmd.returncode != 0:
-        raise RuntimeError(f"Tracking failed.")
+        stdout = cmd.stdout.decode('UTF-8').strip().split('\n')
+        stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
+        raise RuntimeError(f"Tracking failed:\n{stdout}{stderr}")
     else:
         print(f"Tracking done in {calculation_time}s.")
 
