@@ -119,7 +119,7 @@ def generate_executable(*, keep_source=False, clean=True, boinc_path=None, targe
 
     # Check boinc path
     if boinc_path is not None:
-        boinc_path = Path(boinc_path)
+        boinc_path = Path(boinc_path).expanduser().resolve()
         if not boinc_path.is_dir() or not boinc_path.exists():
             raise RuntimeError(f"BOINC path {boinc_path} does not exist!")
         boinc_api = boinc_path / 'api' / 'libboinc_api.a'
@@ -178,7 +178,7 @@ def generate_executable(*, keep_source=False, clean=True, boinc_path=None, targe
         else:
             app = 'xboinc'
             cmd = subprocess.run(['make', app], env={**os.environ, 'BOINC_DIR': \
-                                        boinc_path.expanduser().resolve().as_posix()},
+                                                     boinc_path.as_posix()},
                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if cmd.returncode != 0:
             print(cmd.stdout.decode('UTF-8').strip())

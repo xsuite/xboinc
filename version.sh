@@ -89,8 +89,7 @@ esac
 current_ver=(${current_ver//./ })
 current_ver=${current_ver[0]}.${current_ver[1]}
 minor_ver=(${expected_ver//./ })
-# TODO: exec_ver should come from python app_version_int
-exec_ver=$(( 1000*${minor_ver[0]} + ${minor_ver[1]} ))
+exec_ver=$( python -c 'import xboinc as xb; print(xb.app_version_int)' )
 minor_ver=${minor_ver[0]}.${minor_ver[1]}
 if [[ "$minor_ver" != "$current_ver" ]]
 then
@@ -102,7 +101,7 @@ then
 fi
 
 # Update version in a temporary branch
-poetry version $bump || echo "Poetry version failed! Aborting..."; exit 1
+poetry version $bump || (echo "Poetry version failed! Aborting..."; exit 1)
 new_ver=$( poetry version | awk '{print $2;}' )
 if [[ "$new_ver" != "$expected_ver" ]]
 then
@@ -114,15 +113,34 @@ sed -i "s/\(__version__ =\).*/\1 '"${new_ver}"'/"                 xboinc/general
 sed -i "s/\(assert __version__ ==\).*/\1 '"${new_ver}"'/"         tests/test_00_version.py
 git reset
 git add pyproject.toml xboinc/general.py tests/test_00_version.py xboinc/executable/main.c
-git commit --no-verify -m "Updated version number to v"${new_ver}"."
+git commit --no-verify -m "Updated version number to v"${new_ver}"." || (echo "Git commit version failed! Aborting..."; exit 1)
 git push
 
+# Create example executables
+if [[ "$minor_ver" != "$current_ver" ]]
+then
+    created=0
+    cd examples/running
+    python -c 'import xboinc as xb; xb.generate_executable(); xb.generate_executable()' && created=1
+    python -c 'import xboinc as xb; xb.generate_executable(); xb.generate_executable(boinc_path="~/boinc/")' && created=1
+    if [ "$created" == "1" ]]
+    then
+        git add xboinc_${minor_ver}-*
+        git add xboinc_test_${minor_ver}-*
+        git commit -m "Provided example executables for Linux for Xboinc "${minor_ver}
+        git push
+    else
+        git stash
+    fi
+    cd ../../
+fi
+
 # Make and accept pull request
-gh pr create --base main --title "Release "${new_ver} --fill || echo "gh pr create failed! Aborting..."; exit 1
+gh pr create --base main --title "Release "${new_ver} --fill || (echo "gh pr create failed! Aborting..."; exit 1)
 git switch main
 git pull
 PR=$( gh pr list --head $branch | tail -1 | awk '{print $1;}' )
-gh pr merge ${PR} --merge --admin --delete-branch || echo "gh pr merge failed! Aborting..."; exit 1
+gh pr merge ${PR} --merge --admin --delete-branch || (echo "gh pr merge failed! Aborting..."; exit 1)
 git pull
 
 # Make a tag
