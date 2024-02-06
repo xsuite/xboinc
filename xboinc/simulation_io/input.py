@@ -22,22 +22,15 @@ from .default_tracker import default_element_classes, get_default_config, Elemen
 from .output import XbState
 
 # TODO: check compilation on office PC
-# TODO: check submission of input files
 # TODO: line.particle_ref is not dumped nor retrieved... Why is this no issue?
 # TODO: update xsuite_versions
 # TODO: parity
 # TODO: can we cache the view on line?
-
-# TODO: How to make input file smaller??
-# Ideas:
-#  - Do not use names for the elements (they take ~40% of the size of ElementRefData)
-#  - Put all elements in the array instead of Refs (~7%) not sure if possible
-#  - Remove Markers, empty Drifts, etc by default
+# TODO: docstrings!!
 
 # TODO: Caching does not work as moving elements to buffer does not work correctly
 #       Can we cache by making the line_metadata in one buffer which we then always merge to a new one?
 #       Input creation should be faster than it is now (~4s)
-
 # The build time of the input file is largely dominated by the rebuilding of the
 # ElementRefData. For this reason we cache the line, such that when submitting
 # many jobs on the same line only the first job creation takes some time.
@@ -52,14 +45,16 @@ class XbInput(xo.Struct):
     num_elements     = xo.Int64
     checkpoint_every = xo.Int64
     _parity_check    = xo.Int64      # TODO
-    xb_state        = XbState
+    xb_state         = XbState
     line_metadata    = xo.Ref(ElementRefData)
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, **kwargs):
         assert_versions()
         if '_xobject' not in kwargs:
             kwargs['_version'] = XbVersion()
-            # Build particles / XbState
+            kwargs.setdefault('_buffer', _xboinc_context.new_buffer())
+            kwargs.setdefault('checkpoint_every', -1)
+            # Pre-build particles / XbState; will be moved to correct buffer at XoStruct init
             particles = kwargs.pop('particles', None)
             xb_state = kwargs.get('xb_state', None)
             if particles is not None:
@@ -69,13 +64,14 @@ class XbInput(xo.Struct):
             elif xb_state is None or not isinstance(xb_state, XbState):
                 raise ValueError("Need to provide `xb_state` or `particles`.")
             # Get the line, build the metadata after building the XoStruct
+            # We need to do it like this because the elements are not moved correctly
             line = kwargs.pop('line', None)
             if kwargs.pop('line_metadata', None) is not None:
                 raise ValueError("Cannot provide the line metadata directly!")
-            kwargs.setdefault('_buffer', _xboinc_context.new_buffer())
-            kwargs.setdefault('checkpoint_every', -1)
+            store_element_names = kwargs.pop('store_element_names', True)
         super().__init__(**kwargs)
-        self.line_metadata = _build_line_metadata(line, _buffer=self._buffer)
+        self.line_metadata = _build_line_metadata(line, _buffer=self._buffer,
+                                                  store_element_names=store_element_names)
         self.num_elements = len(line.elements)
         _shrink(self._buffer)
 
@@ -117,10 +113,15 @@ class XbInput(xo.Struct):
     def line(self):
         elements = [el._DressingClass(_xobject=el) for el in self.line_metadata.elements]
         names = self.line_metadata.names
+        if len(names) == 0:
+            n = len(elements)
+            digits = int(np.ceil(np.log10(n)))
+            names = [f"el_{i:>0{digits}}" for i in range(n)]
         return xt.Line(elements=elements, element_names=names)
 
     @line.setter
     def line(self, val):
+        # Only works as long as line_metadata is an xo.Ref, but we try to avoid this
         raise NotImplementedError
 
     @property
@@ -128,7 +129,7 @@ class XbInput(xo.Struct):
         return self.xb_state.particles
 
 
-def _build_line_metadata(line, _buffer=None):
+def _build_line_metadata(line, _buffer=None, store_element_names=True):
     line_id = id(line)
     _previous_line_cache = {}  # TODO
     if line_id not in _previous_line_cache:
@@ -136,9 +137,10 @@ def _build_line_metadata(line, _buffer=None):
         _check_compatible_elements(line)
         if _buffer is None:
             _buffer = _xboinc_context.new_buffer()
+        names = list(line.element_names) if store_element_names else []
         element_ref_data = ElementRefData(
             elements=len(line.element_names),
-            names=list(line.element_names),
+            names=names,
             _buffer=_buffer,
         )
         element_ref_data.elements = [
