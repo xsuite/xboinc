@@ -29,6 +29,19 @@ _sources = [Path.cwd() / f for f in ["main.c", "Makefile", "xtrack.c", "xtrack.h
 
 
 def generate_executable_source(*, overwrite=False, _context=None):
+    """
+    Generate all source files needed to compile the Xboinc executable.
+
+    Parameters
+    ----------
+    overwrite : bool, optional
+        Whether or not to overwrite existing source files.
+    
+    Returns
+    -------
+    None
+    """
+
     assert _context is None
     assert_versions()
 
@@ -77,11 +90,30 @@ def generate_executable_source(*, overwrite=False, _context=None):
 # sparc64-sun-solaris         Solaris 2.8 or later running on a SPARC 64-bit CPU
 # powerpc64-ps3-linux-gnu     Sony Playstation 3 running Linux
 # arm-android-linux-gnu       Android running on ARM
-# aarch64-android-linux-gnu   Android running on aarch64 
+# aarch64-android-linux-gnu   Android running on aarch64
 # aarch64-unknown-linux-gnu   Linux running aarch64
 # x86_64-pc-freebsd__sse2     Free BSD running on 64 bit X86
 
 def generate_executable(*, keep_source=False, clean=True, boinc_path=None, target=None):
+    """
+    Generate the Xboinc executable.
+
+    Parameters
+    ----------
+    keep_source : bool, optional
+        Whether or not to keep the source files. Defaults to False.
+    clean : bool, optional
+        Whether or not to clean the make directory. Defaults to True.
+    boinc_path : pathlib.Path, optional
+        The path to the local BOINC installation. If none, an executable
+        without the BOINC API is generated. Defaults to None.
+    target : string, optional
+        The target architecture to compile to. Not yet implemented.
+    
+    Returns
+    -------
+    None
+    """
     assert target is None
     assert_versions()
 
@@ -155,6 +187,8 @@ def generate_executable(*, keep_source=False, clean=True, boinc_path=None, targe
         else:
             print(cmd.stdout.decode('UTF-8').strip())
             Path(app).rename(f"{app}_{app_tag}")
+    else:
+        raise NotImplementedError
 
     # Clean up
     if clean:

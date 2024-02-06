@@ -4,7 +4,6 @@
 ########################################### #
 
 import subprocess
-import json
 import numpy as np
 from pathlib import Path
 import os
@@ -21,7 +20,7 @@ num_turns = 1000
 num_part  = 100
 
 input_filename      = 'xboinc_input.bin'
-output_filename     = 'xb_state_out.bin'
+output_filename     = 'xboinc_state_out.bin'
 checkpoint_filename = 'checkpoint.bin'
 
 boinc_path = xb._pkg_root.parents[1] / "boinc"

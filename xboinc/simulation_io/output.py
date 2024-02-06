@@ -26,18 +26,39 @@ class XbState(xo.Struct):
     _particles = xp.Particles._XoStruct
 
     def __init__(self, **kwargs):
+        """
+        Parameters
+        ----------
+        particles : xpart.Particles
+            The particles in their binary state.
+        """
+
         assert_versions()
-        if '_xobject' not in kwargs:
-            kwargs['_version'] = XbVersion()
-            particles = kwargs.pop('particles', None)
-            if particles is None or not isinstance(particles, xp.Particles):
-                raise ValueError("Need to provide `particles` to XbState.")
-            kwargs['_particles'] = particles._xobject
+        kwargs['_version'] = XbVersion()
+        particles = kwargs.pop('particles', None)
+        if particles is None or not isinstance(particles, xp.Particles):
+            raise ValueError("Need to provide `particles` to XbState.")
+        kwargs['_particles'] = particles._xobject
         super().__init__(**kwargs)
         self._xsize = self._size
 
+
     @classmethod
     def from_binary(cls, filename, offset=0, raise_version_error=True):
+        """
+        Create an XbState from a binary file. The file should not
+        contain anything else (otherwise the offset will be wrong).
+    
+        Parameters
+        ----------
+        filename : pathlib.Path
+            The binary containing the simulation state.
+    
+        Returns
+        -------
+        XbState
+        """
+
         # Read binary
         filename = Path(filename)
         with filename.open('rb') as fid:
@@ -58,6 +79,18 @@ class XbState(xo.Struct):
         return cls._from_buffer(buffer=buffer_data, offset=offset)
 
     def to_binary(self, filename):
+        """
+        Dump the XbState to a binary file.
+    
+        Parameters
+        ----------
+        filename : pathlib.Path
+            The binary containing the simulation state.
+    
+        Returns
+        -------
+        None.
+        """
         assert self._offset == 0     # TODO: create new buffer if this is not the case (like when XbState inside XbInput)
         filename = Path(filename).expanduser().resolve()
         with filename.open('wb') as fid:

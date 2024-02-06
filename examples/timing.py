@@ -6,10 +6,10 @@ import numpy as np
 import xtrack as xt
 import xboinc as xb
 
-line = xt.Line.from_json('../tests/data/sequence_lhc_run3_b1.json')
+line = xt.Line.from_json(xb._pkg_root.parent / 'tests' / 'data' / 'lhc_2024_30cm_b1.json')
 line.build_tracker()
 file_in  = Path('xboinc_input.bin')
-file_out = Path('xb_state_out.bin')
+file_out = Path('xboinc_state_out.bin')
 
 num_part = 200
 num_turns = 50

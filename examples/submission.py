@@ -1,6 +1,6 @@
 # copyright ############################### #
 # This file is part of the Xboinc Package.  #
-# Copyright (c) CERN, 2023.                 #
+# Copyright (c) CERN, 2024.                 #
 ########################################### #
 
 
@@ -12,7 +12,7 @@ import xboinc as xb
 
 
 user = 'sixtadm'
-line = xt.Line.from_json(xb._pkg_root.parent / 'tests' / 'data' / 'sequence_lhc_run3_b1.json')
+line = xt.Line.from_json(xb._pkg_root.parent / 'tests' / 'data' / 'lhc_2024_30cm_b1.json')
 line.build_tracker()
 
 # Each of these jobs takes ~3h  (~3500 particle*turns / second)

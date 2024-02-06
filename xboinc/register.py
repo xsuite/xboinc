@@ -1,6 +1,6 @@
 # copyright ############################### #
 # This file is part of the Xboinc Package.  #
-# Copyright (c) CERN, 2023.                 #
+# Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
 import json
@@ -51,6 +51,27 @@ def _remove_rights(directory, domain):
 
 
 def register(user, directory):
+    """
+    Register a user to the BOINC server and dev server, by declaring
+    the username and user boinc directory, and giving access rights
+    to the BOINC admin process. This is not instantaneous, as the
+    BOINC server periodically parses new users.
+
+    Parameters
+    ----------
+    user : string
+        Name of the user to register.
+    directory : pathlib.Path
+        Dedicated folder that the BOINC server can reach (i.e. on CERN
+        AFS or EOS), which will hold the new submissions and results.
+        Should not be accessed manually by the user to avoid syncing
+        issues.
+
+    Returns
+    -------
+    None.
+    """
+
     missing_eos()
     directory = fs_path(directory)
     if not directory.is_dir():
@@ -103,6 +124,21 @@ def register(user, directory):
 
 
 def deregister(user):
+    """
+    Remove a user from the BOINC server and dev server.  This is
+    not instantaneous, as the BOINC server periodically parses
+    the users to remove.
+
+    Parameters
+    ----------
+    user : string
+        Name of the user to deregister.
+
+    Returns
+    -------
+    None.
+    """
+
     missing_eos()
     user_file, _ = _create_json(user, '', remove=True)
     try:
@@ -138,6 +174,6 @@ def deregister(user):
     except:
         user_file.unlink()
         raise Exception(f"Failed to copy deregister file to server dropdir.\n"
-                       + "Please inform an xboinc admin to deregister manually.")
+                      + f"Please inform an xboinc admin to deregister manually.")
     user_file.unlink()
     remove_user(user)

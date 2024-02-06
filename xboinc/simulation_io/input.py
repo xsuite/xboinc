@@ -27,6 +27,7 @@ from .output import XbState
 # TODO: parity
 # TODO: can we cache the view on line?
 # TODO: docstrings!!
+# TODO: remove xobject
 
 # TODO: Caching does not work as moving elements to buffer does not work correctly
 #       Can we cache by making the line_metadata in one buffer which we then always merge to a new one?
@@ -49,26 +50,50 @@ class XbInput(xo.Struct):
     line_metadata    = xo.Ref(ElementRefData)
 
     def __init__(self, **kwargs):
+        """
+        Parameters
+        ----------
+        particles : xpart.Particles
+            The particles to be tracked.
+        xb_state : XbState
+            The state of the particles. Use either this parameter or
+            particles, not both.
+        line : xtrack.Line
+            The line to be tracked.
+        line_metadata : ElementRefData
+            Currently not supported (need to fix bug in xobjects).
+        num_turns : Int64
+            The number of turns to track
+        checkpoint_every : Int64, optional
+            When to checkpoint. The default value -1 represents no
+            checkpointing.
+        store_element_names : bool, optional
+            Whether or not to store the element names in the binary.
+            Defaults to True.
+
+        The other xofields are generated automatically and will be
+        overwritten if provided.
+        """
+
         assert_versions()
-        if '_xobject' not in kwargs:
-            kwargs['_version'] = XbVersion()
-            kwargs.setdefault('_buffer', _xboinc_context.new_buffer())
-            kwargs.setdefault('checkpoint_every', -1)
-            # Pre-build particles / XbState; will be moved to correct buffer at XoStruct init
-            particles = kwargs.pop('particles', None)
-            xb_state = kwargs.get('xb_state', None)
-            if particles is not None:
-                if xb_state is not None:
-                    raise ValueError("Use `xb_state` or `particles`, not both.")
-                kwargs['xb_state'] = XbState(particles=particles, _i_turn=0)
-            elif xb_state is None or not isinstance(xb_state, XbState):
-                raise ValueError("Need to provide `xb_state` or `particles`.")
-            # Get the line, build the metadata after building the XoStruct
-            # We need to do it like this because the elements are not moved correctly
-            line = kwargs.pop('line', None)
-            if kwargs.pop('line_metadata', None) is not None:
-                raise ValueError("Cannot provide the line metadata directly!")
-            store_element_names = kwargs.pop('store_element_names', True)
+        kwargs['_version'] = XbVersion()
+        kwargs.setdefault('_buffer', _xboinc_context.new_buffer())
+        kwargs.setdefault('checkpoint_every', -1)
+        # Pre-build particles / XbState; will be moved to correct buffer at XoStruct init
+        particles = kwargs.pop('particles', None)
+        xb_state = kwargs.get('xb_state', None)
+        if particles is not None:
+            if xb_state is not None:
+                raise ValueError("Use `xb_state` or `particles`, not both.")
+            kwargs['xb_state'] = XbState(particles=particles, _i_turn=0)
+        elif xb_state is None or not isinstance(xb_state, XbState):
+            raise ValueError("Need to provide `xb_state` or `particles`.")
+        # Get the line, build the metadata after building the XoStruct
+        # We need to do it like this because the elements are not moved correctly
+        line = kwargs.pop('line', None)
+        if kwargs.pop('line_metadata', None) is not None:
+            raise ValueError("Cannot provide the line metadata directly!")
+        store_element_names = kwargs.pop('store_element_names', True)
         super().__init__(**kwargs)
         self.line_metadata = _build_line_metadata(line, _buffer=self._buffer,
                                                   store_element_names=store_element_names)
@@ -78,6 +103,20 @@ class XbInput(xo.Struct):
 
     @classmethod
     def from_binary(cls, filename, offset=0, raise_version_error=True):
+        """
+        Create an XbInput from a binary file. The file should not
+        contain anything else (otherwise the offset will be wrong).
+    
+        Parameters
+        ----------
+        filename : pathlib.Path
+            The binary containing the simulation state.
+    
+        Returns
+        -------
+        XbInput
+        """
+
         # Read binary
         filename = Path(filename)
         with filename.open('rb') as fid:
@@ -98,6 +137,18 @@ class XbInput(xo.Struct):
         return cls._from_buffer(buffer=buffer_data, offset=offset)
 
     def to_binary(self, filename):
+        """
+        Dump the XbInput to a binary file.
+    
+        Parameters
+        ----------
+        filename : pathlib.Path
+            The binary containing the simulation state.
+    
+        Returns
+        -------
+        None.
+        """
         _shrink(self._buffer)
         assert self._offset == 0
         filename = Path(filename).expanduser().resolve()
@@ -130,8 +181,10 @@ class XbInput(xo.Struct):
 
 
 def _build_line_metadata(line, _buffer=None, store_element_names=True):
+    # Create the ElementRefData from a given line
     line_id = id(line)
-    _previous_line_cache = {}  # TODO
+    # TODO: caching currently doesn't work
+    _previous_line_cache = {}
     if line_id not in _previous_line_cache:
         _check_config(line)
         _check_compatible_elements(line)
@@ -151,6 +204,7 @@ def _build_line_metadata(line, _buffer=None, store_element_names=True):
     return _previous_line_cache[line_id]
 
 def _check_config(line):
+    # Check that the present config is on Xboinc
     default_config_hash = get_default_config()
     for key, val in default_config_hash:
         if key not in line.config:
@@ -164,6 +218,7 @@ def _check_config(line):
             + f"Not supported by Xboinc. Ignored.")
 
 def _check_compatible_elements(line):
+    # Check that all elements are supported by Xboinc
     default_elements = [d.__name__ for d in default_element_classes]
     for ee in np.unique([ee.__class__.__name__ for ee in line.elements]):
         if ee not in default_elements:
@@ -172,6 +227,7 @@ def _check_compatible_elements(line):
 
 
 def _shrink(buffer):
+    # Shrink a buffer by removing all free capacity
     if buffer.get_free() > 0:
         new_capacity = buffer.capacity - buffer.get_free()
         newbuff = buffer._new_buffer(new_capacity)

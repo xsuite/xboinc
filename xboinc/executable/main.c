@@ -59,7 +59,7 @@ extern "C" {
 #endif
 
 #define XB_INPUT_FILENAME "xboinc_input.bin"
-#define XB_OUTPUT_FILENAME "xb_state_out.bin"
+#define XB_OUTPUT_FILENAME "xboinc_state_out.bin"
 #define XB_CHECKPOINT_FILE "checkpoint.bin"
 
 

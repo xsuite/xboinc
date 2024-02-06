@@ -1,6 +1,6 @@
 # copyright ############################### #
 # This file is part of the Xboinc Package.  #
-# Copyright (c) CERN, 2023.                 #
+# Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
 import json
@@ -78,6 +78,40 @@ def _get_num_elements_from_line(line):
 class SubmitJobs:
 
     def __init__(self, user, study_name, line=None, dev_server=False, **kwargs):
+        """
+        Parameters
+        ----------
+        user : string
+            The user that submits to BOINC. Make sure all permissions are set
+            (the user should be member of the CERN xboinc-submitters egroup).
+        study_name : string
+            The name of the study. This will go inside the job jsons and the
+            filenames of the tars.
+        line : xtrack.Line, optional
+            The line to be tracked. Can be provided globally at the class
+            construction, or for each job separately. The latter is much
+            slower as it will be preprocessed at each job addition.
+        dev_server: bool, optional
+            Whether or not to submit to the dev server. Defaults to False.
+
+        Additionally, the following optimisation flags can be passed
+        globally:
+            store_element_names : default False.
+            remove_markers : default True.
+            remove_zero_length_drifts : default True.
+            remove_inactive_multipoles : default True.
+            remove_redundant_apertures : default True.
+            merge_consecutive_multipoles : default True.
+            merge_consecutive_drifts : default True.
+            use_simple_bends : default False.
+            use_simple_quadrupoles : default False.
+
+        Usage
+        -----
+        Create one SubmitJobs instance per study, add jobs one-by-one with
+        SubmitJobs.add(), and submit with SubmitJobs.submit().
+        """
+
         assert_versions()
         if not dev_server:
             raise NotImplementedError("Regular server not yet operational. "
@@ -111,6 +145,31 @@ class SubmitJobs:
 
 
     def add(self, *, job_name, num_turns, particles, line=None, checkpoint_every=-1, **kwargs):
+        """
+        Add a single job to the SubmitJobs instance. This will create a binary input file and a
+        json file (with the same name) containing the job metadata.
+
+        Parameters
+        ----------
+        job_name : dict
+            Name of this individual job.
+        num_turns : int
+            The number of turns this job should track.
+        particles : xpart.Particles
+            The particles to be tracked.
+        line : xtrack.Line, optional
+            The line to be tracked. Can be provided globally at the class
+            construction, or here, for each job separately. The latter is
+            much slower as it will be preprocessed at each job addition.
+        checkpoint_every : int, optional
+            When to checkpoint. The default value -1 represents no
+            checkpointing.
+
+        Returns
+        -------
+        None.
+        """
+
         self._assert_not_submitted()
         if '__' in job_name:
             raise ValueError("The character sequence '__' is not allowed in 'job_name'!")
@@ -160,6 +219,20 @@ class SubmitJobs:
 
 
     def submit(self):
+        """
+        Zip all files into a tarfile, and move it to the dedicated user
+        folder for submission, which the BOINC server will periodically
+        query for new submissions.
+
+        Parameters
+        ----------
+        None.
+
+        Returns
+        -------
+        None.
+        """
+
         self._assert_not_submitted()
         with tarfile.open(self._tempdir / self._submit_file, "w:gz") as tar:
             for thisfile in self._json_files + self._bin_files:

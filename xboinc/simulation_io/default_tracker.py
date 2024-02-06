@@ -78,6 +78,9 @@ _default_tracker_cache = {}
 
 
 def get_default_tracker():
+    """
+    Returns the default tracker used by Xboinc.
+    """
     assert_versions()
     if 'tracker' in _default_tracker_cache:
         return _default_tracker_cache['tracker']

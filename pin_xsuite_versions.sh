@@ -2,7 +2,7 @@
 
 # copyright ############################### #
 # This file is part of the Xboinc Package.  #
-# Copyright (c) CERN, 2023.                 #
+# Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
 # Get list op modules to pin

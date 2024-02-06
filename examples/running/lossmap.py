@@ -1,6 +1,6 @@
 # copyright ############################### #
 # This file is part of the Xboinc Package.  #
-# Copyright (c) CERN, 2023.                 #
+# Copyright (c) CERN, 2024.                 #
 ########################################### #
 
 import subprocess
@@ -43,7 +43,7 @@ if cmd.returncode != 0:
 
 
 # Read output
-filename = 'xb_state_out.bin'
+filename = 'xboinc_state_out.bin'
 xb_state = xb.XbState.from_binary(filename)
 part = xb_state.particles
 _ = coll_manager.lossmap(part, file=Path(path_out,f'lossmap_B1H.json'))

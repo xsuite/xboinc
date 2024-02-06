@@ -1,13 +1,12 @@
 # copyright ############################### #
 # This file is part of the Xboinc Package.  #
-# Copyright (c) CERN, 2023.                 #
+# Copyright (c) CERN, 2024.                 #
 ########################################### #
 
 import tarfile
 import numpy as np
 import pandas as pd
 import subprocess
-import tarfile
 from pathlib import Path
 import time
 import shutil
@@ -24,7 +23,7 @@ from xboinc.server.paths import _test_afs
 input_dir  = _test_afs / 'input_dev'
 output_dir = _test_afs / 'output_dev'
 input_filename      = 'xboinc_input.bin'
-output_filename     = 'xb_state_out.bin'
+output_filename     = 'xboinc_state_out.bin'
 checkpoint_filename = 'checkpoint.bin'
 
 study_name = "_test_study"
