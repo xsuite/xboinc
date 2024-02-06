@@ -44,8 +44,27 @@ def test_generate_input():
     line, part = _make_input()
     input_file = Path.cwd() / input_filename
     input = xb.XbInput(line=line, particles=part, num_turns=num_turns, checkpoint_every=50)
+
+    # Verify that the line and particles are correct
+    part_dict_1 = part.to_dict()
+    part_dict_2 = input.particles.to_dict()
+    assert xt.line._dicts_equal(part_dict_1, part_dict_2)
+    assert list(line.element_names) == list(input.line.element_names)
+    line_dict_1 = line.to_dict()
+    line_dict_2 = input.line.to_dict()
+    assert xt.line._dicts_equal(line_dict_1['elements'], line_dict_2['elements'])
+
+    # Dump to file
     input.to_binary(input_file)
     assert input_file.exists()
+
+    # Test round-trip by loading the file back in
+    new_input = xb.XbInput.from_binary(input_file)
+    part_dict_3 = new_input.particles.to_dict()
+    assert xt.line._dicts_equal(part_dict_1, part_dict_3)
+    assert list(line.element_names) == list(new_input.line.element_names)
+    line_dict_3 = new_input.line.to_dict()
+    assert xt.line._dicts_equal(line_dict_1['elements'], line_dict_3['elements'])
     xb._skip_xsuite_version_check = False
 
 def _get_input():
@@ -126,9 +145,10 @@ def test_track(boinc):
     assert not np.allclose(part_xboinc.y,  part_xboinc.y[0],  rtol=1e-4, atol=0)
     assert not np.allclose(part_xboinc.py, part_xboinc.py[0], rtol=1e-4, atol=0)
 
-    # Rename file for comparison in next test
+    # Test round-trip by dumping the file again
     output_file_2 = Path.cwd() / f"{output_filename}{'' if boinc is None else '_boinc'}_2"
-    output_file.rename(output_file_2)
+    xb_state.to_binary(output_file_2)
+    filecmp.cmp(output_file, output_file_2, shallow=False)
     xb._skip_xsuite_version_check = False
     if (Path.cwd() / checkpoint_filename).exists():
         (Path.cwd() / checkpoint_filename).unlink()

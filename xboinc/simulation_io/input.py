@@ -21,9 +21,12 @@ from .version import XbVersion, assert_versions
 from .default_tracker import default_element_classes, get_default_config, ElementRefData
 from .output import XbState
 
-# TODO: make roundtrip test for XbState and XbInput: dump to file and reload
 # TODO: check compilation on office PC
 # TODO: check submission of input files
+# TODO: line.particle_ref is not dumped nor retrieved... Why is this no issue?
+# TODO: update xsuite_versions
+# TODO: parity
+# TODO: can we cache the view on line?
 
 # TODO: How to make input file smaller??
 # Ideas:
@@ -112,8 +115,10 @@ class XbInput(xo.Struct):
 
     @property
     def line(self):
-        return xt.Line(elements=self.line_metadata.elements,
-                       element_names=self.line_metadata.names)
+        elements = [el._DressingClass(_xobject=el) for el in self.line_metadata.elements]
+        names = self.line_metadata.names
+        return xt.Line(elements=elements, element_names=names)
+
     @line.setter
     def line(self, val):
         raise NotImplementedError
