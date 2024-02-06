@@ -99,16 +99,14 @@ def test_track(boinc):
 
     # run xboinc tracker
     t1 = time.time()
-    cmd = subprocess.run([exec_file, '--verbose', '1'],
-                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    cmd = subprocess.run([exec_file, '--verbose', '1'])
     calculation_time = round(time.time() - t1, 1)
     # request.config.cache.set('calculation_time', calculation_time)
     if cmd.returncode != 0:
-        stdout = cmd.stdout.decode('UTF-8').strip().split('\n')
-        stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
         raise RuntimeError(f"Tracking failed:\n{stdout}{stderr}")
     else:
-        print(f"Tracking done in {calculation_time}s.")
+        app = 'Xboinc Test' if boinc is None else 'Xboinc'
+        print(f"Tracking ({app}) done in {calculation_time}s.")
 
     # Read output
     output_file = Path.cwd() / output_filename
@@ -174,7 +172,8 @@ def test_checkpoint(boinc):
         raise RuntimeError(f"Tracking failed.")
     else:
         t3 = time.time()
-        print(f"Continued tracking done in {round(t3 - t2, 1)}s (total tracking time {round(t3 - t1, 1)}s).")
+        app = 'Xboinc Test' if boinc is None else 'Xboinc'
+        print(f"Continued tracking ({app}) done in {round(t3 - t2, 1)}s (total tracking time {round(t3 - t1, 1)}s).")
 
     # Compare file to previous result
     output_file = Path.cwd() / output_filename
@@ -198,7 +197,7 @@ def test_vs_xtrack():
     # Testing results with xtrack
     line, part = _make_input()
     line.track(part, num_turns=num_turns, time=True)
-    print(f"Done tracking in {line.time_last_track:.1f}s.")
+    print(f"Tracking (Xtrack) done in {line.time_last_track:.1f}s.")
 
     if not boinc_missing:
         assert np.array_equal(part.particle_id, part_xboinc.particle_id), "xboinc failed to match xtrack: ids are not equal"

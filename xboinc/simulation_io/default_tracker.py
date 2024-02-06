@@ -1,18 +1,7 @@
 # copyright ############################### #
 # This file is part of the Xboinc Package.  #
-# Copyright (c) CERN, 2023.                 #
+# Copyright (c) CERN, 2024.                 #
 # ######################################### #
-
-import xtrack as xt
-import xfields as xf
-import xobjects as xo
-import xcoll as xc
-
-from .version import assert_versions
-
-
-_default_tracker_cache = {}
-
 
 # ===============================================================================================
 # IMPORTANT
@@ -20,6 +9,13 @@ _default_tracker_cache = {}
 # Only make changes to this file just before a minor version bump (need a separate commit though)
 # to avoid having multiple xboinc versions with out-of-sync executables.
 # ===============================================================================================
+
+import xtrack as xt
+import xfields as xf
+import xobjects as xo
+import xcoll as xc
+
+from .version import assert_versions
 
 
 default_element_classes = [
@@ -68,101 +64,62 @@ default_element_classes = [
             xt.Tracker._get_default_monitor_class()
     ]
 
-def get_default_tracker(**kwargs):
-    """
-    Returns a default tracker object.
-    """
 
-    if 'tracker' in _default_tracker_cache\
-    and 'config' in _default_tracker_cache:
-        return _default_tracker_cache['tracker'], _default_tracker_cache['config']
+# The class ElementRefData is dynamically generated inside the tracker. We
+# extract it here and use it to create the line metadata inside XbInput
+ElementRefData = xt.tracker._element_ref_data_class_from_element_classes(
+                        default_element_classes)
+if {f.name for f in ElementRefData._fields} != {'elements', 'names'}:
+    raise RunTimeError("The definition of `ElementRefData` has changed inside Xtrack! "
+                     + "This renders Xboinc incompatible. Please ask a dev to update Xboinc.")
+
+
+_default_tracker_cache = {}
+
+
+def get_default_tracker():
+    assert_versions()
+    if 'tracker' in _default_tracker_cache:
+        return _default_tracker_cache['tracker']
+
+    line = xt.Line(elements=[])
+
+    # We build the tracker on an empty line, but without compiling.
+    line.build_tracker(compile=False, use_prebuilt_kernels=False)
+    # Now we overwrite the TrackerData with our ElementRefData class, based on all elements
+    tracker = line.tracker._tracker_data_cache[None]
+    tracker._element_ref_data = tracker.build_ref_data(tracker._buffer, ElementRefData)
+
+    _default_tracker_cache['tracker'] = line.tracker
+    return line.tracker
+
+
+def get_default_config():
+    """
+    Returns the default config used by Xboinc.
+    """
 
     assert_versions()
+    if 'config' in _default_tracker_cache:
+        return _default_tracker_cache['config']
 
-    # Dummy line containing all supported element types
-    default_elements = [
-            xt.Marker(),
-            xt.Drift(),
-            xt.Bend(length=1.0),
-            xt.Multipole(),
-            xt.CombinedFunctionMagnet(length=1.0),
-            xt.Quadrupole(length=1.0),
-            xt.Sextupole(length=1.0),
-            xt.SimpleThinBend(),
-            xt.SimpleThinQuadrupole(),
-            xt.ReferenceEnergyIncrease(),
-            xt.Cavity(),
-            xt.Solenoid(length=1.0),
-            xt.XYShift(),
-            xt.Elens(),
-            xt.NonLinearLens(),
-            xt.Wire(),
-            xt.SRotation(),
-            xt.XRotation(),
-            xt.YRotation(),
-            xt.ZetaShift(),
-            xt.RFMultipole(knl=[0], pn=[0]),
-            # xt.Fringe(),
-            # xt.Wedge(),
-            xt.DipoleEdge(),
-            xt.Exciter(nsamples=1),
-            xt.LineSegmentMap(),
-            xt.FirstOrderTaylorMap(),
-            xf.BeamBeamBiGaussian2D(
-                other_beam_Sigma_11=1.,
-                other_beam_Sigma_33=1.,
-                other_beam_num_particles=0.,
-                other_beam_q0=1.,
-                other_beam_beta0=1.,
-            ),
-            xf.BeamBeamBiGaussian3D(
-                slices_other_beam_zeta_center=[0],
-                slices_other_beam_num_particles=[0],
-                phi=0.,
-                alpha=0,
-                other_beam_q0=1.,
-                slices_other_beam_Sigma_11=[1],
-                slices_other_beam_Sigma_12=[0],
-                slices_other_beam_Sigma_22=[0],
-                slices_other_beam_Sigma_33=[1],
-                slices_other_beam_Sigma_34=[0],
-                slices_other_beam_Sigma_44=[0],
-            ),
-            # # Doesn't work because fieldmap in different buffer
-            # xf.ElectronCloud(fieldmap=xf.TriCubicInterpolatedFieldMap(
-            #     x_range=(0.,1.), nx=10,
-            #     y_range=(0.,1.), ny=10,
-            #     z_range=(0.,1.), nz=10
-            # )),
-            # xf.ElectronLensInterpolated(
-            #     x_range=(0.,1.), nx=10,
-            #     y_range=(0.,1.), ny=10
-            # ),
-            xc.BlackAbsorber(length=1),
-            xc.EverestCollimator(length=1, material=xc.materials.Silicon),
-            xc.EverestCrystal(length=1, material=xc.materials.SiliconCrystal),
-            xt.LimitRect(),
-            xt.LimitRacetrack(),
-            xt.LimitEllipse(),
-            # # not supported until per-particle block updated
-            # xt.LimitPolygon(x_vertices=[0.,1.], y_vertices=[0.,1.]),
-            xt.LimitRectEllipse(),
-            xt.LongitudinalLimitRect(),
-            xt.Tracker._get_default_monitor_class()(num_particles=1, start_at_turn=0, stop_at_turn=1)
-    ]
-    if set(default_element_classes) != set([ el.__class__ for el in default_elements]):
-        raise RunTimeError("Not all elements in `default_classes` are represented in " \
-                       + "`default_element_classes` or vice versa. Please ask a dev to update Xboinc.")
+    default_config_hash = get_default_tracker()._hashable_config()
+    _default_tracker_cache['config'] = default_config_hash
+    return default_config_hash
 
-    default_line = xt.Line(elements=default_elements)
 
-    # Need `compile=True` in order to create source, because we need to call
-    # `get_track_kernel_and_data_for_present_config`. However, inside this function, we could in
-    # principle pass `compile=False` to `_build_kernel`..
-    default_line.build_tracker(compile=True, use_prebuilt_kernels=False, **kwargs)
-    default_config_hash = default_line.tracker._hashable_config()
+def get_default_tracker_kernel():
+    """
+    Returns the default tracker kernel used by Xboinc.
+    """
 
-    _default_tracker_cache['tracker'] = default_line.tracker
-    _default_tracker_cache['config']  = default_config_hash
+    assert_versions()
+    if 'kernel' in _default_tracker_cache:
+        return _default_tracker_cache['kernel']
 
-    return default_line.tracker, default_config_hash
+    # Now we trigger compilation
+    get_default_tracker().get_track_kernel_and_data_for_present_config()
+    kernel = get_default_tracker().track_kernel[get_default_config()]
+    _default_tracker_cache['kernel'] = kernel
+
+    return kernel

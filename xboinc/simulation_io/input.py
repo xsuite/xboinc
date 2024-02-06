@@ -18,32 +18,30 @@ import xpart as xp
 import xtrack as xt
 
 from .version import XbVersion, assert_versions
-from .default_tracker import default_element_classes, get_default_tracker
+from .default_tracker import default_element_classes, get_default_config, ElementRefData
 from .output import XbState
+
+# TODO: make roundtrip test for XbState and XbInput: dump to file and reload
+# TODO: check compilation on office PC
+# TODO: check submission of input files
 
 # TODO: How to make input file smaller??
 # Ideas:
 #  - Do not use names for the elements (they take ~40% of the size of ElementRefData)
 #  - Put all elements in the array instead of Refs (~7%) not sure if possible
 #  - Remove Markers, empty Drifts, etc by default
-#  - Shrink buffer by removing free space
+
+# TODO: Caching does not work as moving elements to buffer does not work correctly
+#       Can we cache by making the line_metadata in one buffer which we then always merge to a new one?
+#       Input creation should be faster than it is now (~4s)
 
 # The build time of the input file is largely dominated by the rebuilding of the
 # ElementRefData. For this reason we cache the line, such that when submitting
 # many jobs on the same line only the first job creation takes some time.
 _previous_line_cache = {}
-    # TODO: Caching does not work as moving elements to buffer does not work correctly
-    #       Can we cache by making the line_metadata in one buffer which we then always merge to a new one?
 
 _xboinc_context = xo.ContextCpu()
 
-# The class ElementRefData is dynamically generated inside the tracker. We
-# extract it here and use it to create the line metadata inside XbInput
-ElementRefData = xt.tracker._element_ref_data_class_from_element_classes(
-                        default_element_classes)
-if {f.name for f in ElementRefData._fields} != {'elements', 'names'}:
-    raise RunTimeError("The definition of `ElementRefData` has changed inside Xtrack! "
-                     + "This renders Xboinc incompatible. Please ask a dev to update Xboinc.")
 
 class XbInput(xo.Struct):
     _version         = XbVersion    # This HAS to be the first field!
@@ -67,13 +65,17 @@ class XbInput(xo.Struct):
                 kwargs['xb_state'] = XbState(particles=particles, _i_turn=0)
             elif xb_state is None or not isinstance(xb_state, XbState):
                 raise ValueError("Need to provide `xb_state` or `particles`.")
+            # Get the line, build the metadata after building the XoStruct
             line = kwargs.pop('line', None)
-            line_metadata = kwargs.pop('line_metadata', None)
+            if kwargs.pop('line_metadata', None) is not None:
+                raise ValueError("Cannot provide the line metadata directly!")
             kwargs.setdefault('_buffer', _xboinc_context.new_buffer())
             kwargs.setdefault('checkpoint_every', -1)
         super().__init__(**kwargs)
         self.line_metadata = _build_line_metadata(line, _buffer=self._buffer)
         self.num_elements = len(line.elements)
+        _shrink(self._buffer)
+
 
     @classmethod
     def from_binary(cls, filename, offset=0, raise_version_error=True):
@@ -97,6 +99,7 @@ class XbInput(xo.Struct):
         return cls._from_buffer(buffer=buffer_data, offset=offset)
 
     def to_binary(self, filename):
+        _shrink(self._buffer)
         assert self._offset == 0
         filename = Path(filename).expanduser().resolve()
         with filename.open('wb') as fid:
@@ -118,10 +121,6 @@ class XbInput(xo.Struct):
     @property
     def particles(self):
         return self.xb_state.particles
-
-    @particles.setter
-    def particles(self, val):
-        raise NotImplementedError
 
 
 def _build_line_metadata(line, _buffer=None):
@@ -145,7 +144,7 @@ def _build_line_metadata(line, _buffer=None):
     return _previous_line_cache[line_id]
 
 def _check_config(line):
-    _, default_config_hash = get_default_tracker()
+    default_config_hash = get_default_config()
     for key, val in default_config_hash:
         if key not in line.config:
             print(f"Warning: Configuration option `{key}` not found in line.config! "
@@ -157,7 +156,6 @@ def _check_config(line):
         print(f"Warning: Configuration option `{key}` requested in line.config!"
             + f"Not supported by Xboinc. Ignored.")
 
-
 def _check_compatible_elements(line):
     default_elements = [d.__name__ for d in default_element_classes]
     for ee in np.unique([ee.__class__.__name__ for ee in line.elements]):
@@ -165,3 +163,14 @@ def _check_compatible_elements(line):
             raise ValueError(f"Element of type {ee} not supported "
                            + f"in this version of xboinc!")
 
+
+def _shrink(buffer):
+    if buffer.get_free() > 0:
+        new_capacity = buffer.capacity - buffer.get_free()
+        newbuff = buffer._new_buffer(new_capacity)
+        buffer.copy_to_native(
+                dest=newbuff, dest_offset=0, source_offset=0, nbytes=new_capacity
+            )
+        buffer.buffer = newbuff
+        buffer.capacity = new_capacity
+        buffer.chunks = []

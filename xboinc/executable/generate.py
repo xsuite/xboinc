@@ -5,7 +5,7 @@
 
 import xobjects as xo
 
-from ..simulation_io import XbState, XbInput, XbVersion, app_version, get_default_tracker, assert_versions
+from ..simulation_io import XbState, XbInput, XbVersion, app_version, get_default_tracker_kernel, assert_versions
 from ..general import _pkg_root
 
 from pathlib import Path
@@ -25,7 +25,6 @@ insert_in_all_files = """
 #endif
 """
 
-
 _sources = [Path.cwd() / f for f in ["main.c", "Makefile", "xtrack.c", "xtrack.h"]]
 
 
@@ -34,7 +33,7 @@ def generate_executable_source(*, overwrite=False, _context=None):
     assert_versions()
 
     if not (Path.cwd() / "xb_input.h").exists() or overwrite:
-        # The XbInput source should not be static, as it has to be exposed to main
+        # The XbInput source API should not be static, as it has to be exposed to main.
         # TODO: Do we still want to inline this? If yes, we need to adapt xo.specialize_source
         #       to pass the replacement of /*gpufun*/ as an option
         conf = xo.typeutils.default_conf.copy()
@@ -53,8 +52,7 @@ def generate_executable_source(*, overwrite=False, _context=None):
             fid.write(xb_input_h)
 
     if not (Path.cwd() / "xtrack_tracker.h").exists() or overwrite:
-        default_tracker, default_config_hash = get_default_tracker()
-        track_kernel = default_tracker.track_kernel[default_config_hash]
+        track_kernel = get_default_tracker_kernel()
         xtrack_tracker_h = (
             insert_in_all_files + track_kernel.specialized_source)
         with (Path.cwd() / "xtrack_tracker.h").open('w') as fid:
