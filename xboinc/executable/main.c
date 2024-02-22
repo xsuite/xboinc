@@ -31,6 +31,10 @@
 #define NULL 0
 #endif
 
+#ifndef UNUSED
+#define UNUSED(expr) (void)(expr)
+#endif
+
 // Xsuite code (in C) that the BOINC app calls
 // This should be compiled separately in advance
 #ifdef __cplusplus
@@ -82,7 +86,9 @@ int8_t network_usage = 0;
 double cpu_time = 20, comp_result;
 int8_t verbose = 0;
 
+FILE* outfile;
 
+static int64_t XB_track(int8_t*, XbState, XbInput, int64_t, int64_t, int64_t, int64_t, int64_t);
 static void    XB_fprintf(int8_t verbose_level, FILE *stream, char *format, ...);
 static FILE*   XB_fopen(char *filename, const char *mode);
 static FILE*   XB_fopen_allow_null(char *filename, const char *mode);
@@ -92,6 +98,8 @@ static int     XB_do_checkpoint(XbInput xb_input, XbState xb_state);
 
 int main(int argc, char **argv){
     int retval;
+    UNUSED(retval);
+
     // Parse BOINC arguments and initialise
     for (int ii=0; ii<argc; ii++) {
 #ifdef COMPILE_TO_BOINC
@@ -142,7 +150,7 @@ int main(int argc, char **argv){
         return -1;
     }
 
-    // Get sim config and metadata
+    // Get input and metadata
     XbInput xb_input = (XbInput) sim_buffer;
     const int64_t input_version    = XbInput_get__version_xboinc_version(xb_input);
     const int64_t input_version_ss = XbInput_get_xb_state__version_xboinc_version(xb_input);
@@ -167,17 +175,15 @@ int main(int argc, char **argv){
 
     // Get data
     const int64_t checkpoint_every = XbInput_get_checkpoint_every(xb_input);
-    int64_t step_turns = 1;  // Best solution seems to track one turn at a time, to allow BOINC to interrupt
     if (checkpoint_every > 0){
         XB_fprintf(1, stdout, "Checkpointing every %d turns.\n", (int) checkpoint_every);
     } else {
         XB_fprintf(1, stdout, "Not checkpointing.\n");
     }
-    const int64_t num_turns = XbInput_get_num_turns(xb_input);
-    const int64_t num_elements = XbInput_get_num_elements(xb_input);
+    int64_t num_turns = XbInput_get_num_turns(xb_input);
+    const int64_t num_elements = XbInput_get__num_elements(xb_input);
     XB_fprintf(1, stdout, "num_turns: %d\n", (int) num_turns);
     XB_fprintf(1, stdout, "num_elements: %d\n", (int) num_elements);
-    ParticlesData particles = XbState_getp__particles(xb_state);
     int64_t num_part = 0;
     for (int ii=0; ii<XbState_get__particles__capacity(xb_state); ii++){
         if(XbState_get__particles_state(xb_state, (int64_t) ii) > 0){
@@ -185,65 +191,72 @@ int main(int argc, char **argv){
         }
     }
     XB_fprintf(1, stdout, "num_part_alive: %d\n", (int) num_part);
-    ElementRefData elem_ref_data = XbInput_getp_line_metadata(xb_input);
 
     // Open output file as test
-    FILE* outfile = XB_fopen(XB_OUTPUT_FILENAME, "wb");
+    outfile = XB_fopen(XB_OUTPUT_FILENAME, "wb");
     if (!outfile){
+        XB_fprintf(0, stderr, "Could not open output file.\n");
         return 1;
     }
 
+    // Deduce from where to where to track (same logic as in xtrack.Tracker)
+    int64_t num_middle_turns = 0;
+    int64_t num_elements_last_turn = 0;
+    int64_t num_elements_first_turn;
+    const int64_t ele_start = XbInput_get_ele_start(xb_input);
+    const int64_t ele_stop  = XbInput_get_ele_stop(xb_input);
+    if (ele_stop < 1){
+        // Track the first turn until the end of the lattice
+        // (last turn is also a full cycle, so will be treated as a middle turn)
+        num_elements_first_turn = num_elements - ele_start;
+        num_middle_turns = num_turns - 1;
+    } else {
+        if (ele_stop <= ele_start && num_turns == 1){
+            // Correct for overflow
+            num_turns = 2;
+        }
+        if (num_turns == 1) {
+            // Track only the first partial turn
+            num_elements_first_turn = ele_stop - ele_start;
+        } else {
+            // Track the first turn until the end of the lattice
+            num_elements_first_turn = num_elements - ele_start;
+            // Track the middle turns
+            num_middle_turns = num_turns - 2;
+            // Track the last turn until ele_stop
+            num_elements_last_turn = ele_stop;
+        }
+    }
 
     // Main loop  ================
     // ===========================
-    while (current_turn < num_turns){
-        track_line(
-            sim_buffer, // int8_t* buffer,
-            elem_ref_data, // ElementRefData elem_ref_data
-            particles,          // ParticlesData particles,
-            step_turns,         // int num_turns,
-            0,                  // int ele_start,
-            (int) num_elements, // int num_ele_track,
-            1,    // int flag_end_turn_actions,
-            1,    // int flag_reset_s_at_end_turn,
-            0,    // int flag_monitor,
-            0,    // int64_t num_ele_line, (needed only for backtracking)
-            0.0,  // double line_length, (needed only for backtracking)
-            NULL, // int8_t* buffer_tbt_monitor,
-            0,    // int64_t offset_tbt_monitor
-            NULL  // int8_t* io_buffer,
-        );
-        current_turn += step_turns;
-        XB_fprintf(2, stdout, "Tracked turn %i\n", current_turn);
-        XbState_set__i_turn(xb_state, current_turn);
 
-        if (
-#ifdef COMPILE_TO_BOINC
-        boinc_time_to_checkpoint() ||
-#endif
-        (checkpoint_every > 0 && current_turn % checkpoint_every == 0) ){
-            retval = XB_do_checkpoint(xb_input, xb_state);
-            if (retval) {
-                XB_fprintf(0, stderr, "Checkpointing failed!\n");
-                fclose(outfile);
-                exit(retval);
-            }
-#ifdef COMPILE_TO_BOINC
-            boinc_checkpoint_completed();
-#endif
-        }
-#ifdef COMPILE_TO_BOINC
-        if (report_fraction_done) {
-            double fd = (int)current_turn / (int)num_turns;
-            if (cpu_time) fd /= 2;
-            boinc_fraction_done(fd);
-        }
-#endif
+    // First turn
+    if (current_turn < 1) {
+        current_turn = XB_track(sim_buffer, xb_state, xb_input, ele_start, num_elements_first_turn, current_turn, num_turns, checkpoint_every);
     }
+
+    // Middle turns
+    while (current_turn <= num_middle_turns){
+        current_turn = XB_track(sim_buffer, xb_state, xb_input, 0, num_elements, current_turn, num_turns, checkpoint_every);
+    }
+
+    // Last turn, only if incomplete
+    if (num_elements_last_turn > 0){
+        XB_track(sim_buffer, xb_state, xb_input, 0, num_elements_last_turn, current_turn, num_turns, checkpoint_every);
+    }
+
     // End main loop  ===========
     // ==========================
 
     XB_fprintf(1, stdout, "Finished tracking\n");
+    num_part = 0;
+    for (int ii=0; ii<XbState_get__particles__capacity(xb_state); ii++){
+        if(XbState_get__particles_state(xb_state, (int64_t) ii) > 0){
+            num_part++;
+        }
+    }
+    XB_fprintf(1, stdout, "num_part_alive: %d\n", (int) num_part);
 
     // Write output
     fwrite(XbInput_getp_xb_state(xb_input), sizeof(int8_t),
@@ -272,6 +285,59 @@ int main(int argc, char **argv){
         XB_fprintf(1, stdout, "Warning: Could not remove checkpoint file.\n");
     }
     // return 0;
+}
+
+
+static int64_t XB_track(int8_t* buffer, XbState xb_state, XbInput xb_input, \
+                        int64_t ele_start, int64_t num_ele_track, int64_t current_turn, \
+                        int64_t total_turns, int64_t checkpoint_every){
+    UNUSED(total_turns);
+    ElementRefData elem_ref_data = XbInput_getp_line_metadata(xb_input);
+    ParticlesData particles = XbState_getp__particles(xb_state);
+    track_line(
+        buffer,              // int8_t* buffer,
+        elem_ref_data,       // ElementRefData elem_ref_data
+        particles,           // ParticlesData particles,
+        1,                   // int num_turns,
+        (int) ele_start,     // int ele_start,
+        (int) num_ele_track, // int num_ele_track,
+        1,    // int flag_end_turn_actions,
+        1,    // int flag_reset_s_at_end_turn,
+        0,    // int flag_monitor,
+        0,    // int64_t num_ele_line, (needed only for backtracking)
+        0.0,  // double line_length, (needed only for backtracking)
+        NULL, // int8_t* buffer_tbt_monitor,
+        0,    // int64_t offset_tbt_monitor
+        NULL  // int8_t* io_buffer,
+    );
+    current_turn += 1;
+    XB_fprintf(2, stdout, "Tracked turn %i\n", current_turn);
+    XbState_set__i_turn(xb_state, current_turn);
+
+#ifdef COMPILE_TO_BOINC
+    if (report_fraction_done) {
+        double fd = (double)current_turn / (double)total_turns;
+        if (cpu_time) fd /= 2;
+        boinc_fraction_done(fd);
+    }
+#endif
+
+    if (
+#ifdef COMPILE_TO_BOINC
+    boinc_time_to_checkpoint() ||
+#endif
+    (checkpoint_every > 0 && current_turn % checkpoint_every == 0) ){
+        int retval = XB_do_checkpoint(xb_input, xb_state);
+        if (retval) {
+            XB_fprintf(0, stderr, "Checkpointing failed!\n");
+            fclose(outfile);
+            exit(retval);
+        }
+#ifdef COMPILE_TO_BOINC
+        boinc_checkpoint_completed();
+#endif
+    }
+    return current_turn;
 }
 
 

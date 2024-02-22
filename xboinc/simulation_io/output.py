@@ -21,8 +21,8 @@ from .version import XbVersion, assert_versions
 
 class XbState(xo.Struct):
     _version   = XbVersion    # This HAS to be the first field!
-    _i_turn    = xo.Int64      # Current turn in tracking (not necessarily the same as particles.at_turn)
-    _xsize     = xo.Int64      # Needed to have access to the size in C
+    _i_turn    = xo.Int64     # Current turn in tracking (not necessarily the same as particles.at_turn)
+    _xsize     = xo.Int64     # Needed to have access to the size in C
     _particles = xp.Particles._XoStruct
 
     def __init__(self, **kwargs):

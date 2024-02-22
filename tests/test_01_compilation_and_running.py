@@ -18,6 +18,8 @@ import xboinc as xb
 line_file = xb._pkg_root.parent / 'tests' / 'data' / 'lhc_2024_30cm_b1.json'
 num_turns = 1000
 num_part  = 100
+ele_start = 'tcp.c6l7.b1'
+ele_stop  = 'tctph.4l2.b1'
 
 input_filename      = 'xboinc_input.bin'
 output_filename     = 'xboinc_state_out.bin'
@@ -33,20 +35,35 @@ boinc_missing = not boinc_path.is_dir() or not boinc_path.exists() \
 def _make_input():
     line = xt.Line.from_json(line_file)
     line.build_tracker()
-    x_norm = np.linspace(-15, 15, num_part)
+    x_norm = np.linspace(-10, 10, num_part)
     delta = np.linspace(-1.e-5, 1.e-5, num_part)
-    part = line.build_particles(x_norm=x_norm, delta=delta, nemitt_x=3.5e-6, nemitt_y=3.5e-6)
+    part = line.build_particles(x_norm=x_norm, delta=delta, at_element=ele_start, \
+                                nemitt_x=3.5e-6, nemitt_y=3.5e-6)
     return line, part
 
 def test_generate_input():
     xb._skip_xsuite_version_check = True
     line, part = _make_input()
     input_file = Path.cwd() / input_filename
-    input = xb.XbInput(line=line, particles=part, num_turns=num_turns, checkpoint_every=50)
+    input = xb.XbInput(line=line, particles=part, num_turns=num_turns, \
+                       ele_stop=ele_stop, checkpoint_every=50)
+    with pytest.raises(ValueError):
+        _ = xb.XbInput(line=line, particles=part, ele_start=10)
+
+    at_turn = np.unique(input.particles.at_turn)
+    assert len(at_turn) == 1
+    assert at_turn[0] == input.xb_state._i_turn
+    at_element = np.unique(input.particles.at_element)
+    assert len(at_element) == 1
+    assert at_element[0] == line.element_names.index(ele_start)
+    assert at_element[0] == input.ele_start
+    assert input.ele_stop == line.element_names.index(ele_stop)
 
     # Verify that the line and particles are correct
     part_dict_1 = part.to_dict()
     part_dict_2 = input.particles.to_dict()
+    part_dict_1.pop('start_tracking_at_element')
+    part_dict_2.pop('start_tracking_at_element')
     assert xt.line._dicts_equal(part_dict_1, part_dict_2)
     assert list(line.element_names) == list(input.line.element_names)
     line_dict_1 = line.to_dict()
@@ -60,6 +77,7 @@ def test_generate_input():
     # Test round-trip by loading the file back in
     new_input = xb.XbInput.from_binary(input_file)
     part_dict_3 = new_input.particles.to_dict()
+    part_dict_3.pop('start_tracking_at_element')
     assert xt.line._dicts_equal(part_dict_1, part_dict_3)
     assert list(line.element_names) == list(new_input.line.element_names)
     line_dict_3 = new_input.line.to_dict()
@@ -113,6 +131,7 @@ def _get_exec(boinc):
 def test_track(boinc):
     xb._skip_xsuite_version_check = True
     exec_file = _get_exec(boinc)
+    line, _ = _make_input()
     _get_input()
 
     # run xboinc tracker
@@ -134,9 +153,12 @@ def test_track(boinc):
     # Look at particles state
     part_xboinc = xb_state.particles
     print(f"{len(part_xboinc.state[part_xboinc.state > 0])}/{num_part} survived.")
+    at_element = np.unique(part_xboinc.at_element[part_xboinc.state > 0])
+    assert len(at_element) == 1
+    assert at_element[0] == line.element_names.index(ele_stop)
     assert np.allclose(part_xboinc.s[part_xboinc.state > 0], 0, rtol=1e-6, atol=0), "Unexpected s"
-    assert np.all(part_xboinc.at_turn[part_xboinc.state > 0] == num_turns), "Unexpected survivals (particles)"
-    assert xb_state.i_turn == num_turns, "Unexpected survival (xb_state)"
+    assert np.all(part_xboinc.at_turn[part_xboinc.state > 0] == num_turns-1), "Unexpected survivals (particles)"
+    assert xb_state.i_turn == num_turns-1, "Unexpected survival (xb_state)"
 
     # Check that the tracking made sense, i.e. that not all values are the same
     assert not np.allclose(part_xboinc.x,  part_xboinc.x[0],  rtol=1e-4, atol=0)
@@ -206,28 +228,28 @@ def test_checkpoint(boinc):
 def test_vs_xtrack():
     xb._skip_xsuite_version_check = True
     output_file_2    = _get_output(None)
-    xb_state        = xb.XbState.from_binary(output_file_2)
+    xb_state         = xb.XbState.from_binary(output_file_2)
     part_xboinc_test = xb_state.particles
     if not boinc_missing:
         output_file_2 = _get_output(boinc_path)
-        xb_state     = xb.XbState.from_binary(output_file_2)
+        xb_state      = xb.XbState.from_binary(output_file_2)
         part_xboinc   = xb_state.particles
     
     # Testing results with xtrack
     line, part = _make_input()
-    line.track(part, num_turns=num_turns, time=True)
+    line.track(part, num_turns=num_turns, ele_start=ele_start, ele_stop=ele_stop, time=True)
     print(f"Tracking (Xtrack) done in {line.time_last_track:.1f}s.")
 
     if not boinc_missing:
-        assert np.array_equal(part.particle_id, part_xboinc.particle_id), "xboinc failed to match xtrack: ids are not equal"
-        assert np.array_equal(part.state, part_xboinc.state),             "xboinc failed to match xtrack: states are not equal"
-        assert np.array_equal(part.at_turn, part_xboinc.at_turn),         "xboinc failed to match xtrack: survivals are not equal"
-        assert np.array_equal(part.x, part_xboinc.x),                     "xboinc failed to match xtrack: x are not equal"
-        assert np.array_equal(part.y, part_xboinc.y),                     "xboinc failed to match xtrack: y are not equal"
-        assert np.array_equal(part.zeta, part_xboinc.zeta),               "xboinc failed to match xtrack: zeta are not equal"
-        assert np.array_equal(part.px, part_xboinc.px),                   "xboinc failed to match xtrack: px are not equal"
-        assert np.array_equal(part.py, part_xboinc.py),                   "xboinc failed to match xtrack: py are not equal"
-        assert np.array_equal(part.delta, part_xboinc.delta),             "xboinc failed to match xtrack: delta are not equal"
+        assert np.array_equal(part.particle_id, part_xboinc.particle_id),  "xboinc failed to match xtrack: ids are not equal"
+        assert np.array_equal(part.state, part_xboinc.state),              "xboinc failed to match xtrack: states are not equal"
+        assert np.array_equal(part.at_turn, part_xboinc.at_turn),          "xboinc failed to match xtrack: survivals are not equal"
+        assert np.array_equal(part.x, part_xboinc.x),                      "xboinc failed to match xtrack: x are not equal"
+        assert np.array_equal(part.y, part_xboinc.y),                      "xboinc failed to match xtrack: y are not equal"
+        assert np.array_equal(part.zeta, part_xboinc.zeta),                "xboinc failed to match xtrack: zeta are not equal"
+        assert np.array_equal(part.px, part_xboinc.px),                    "xboinc failed to match xtrack: px are not equal"
+        assert np.array_equal(part.py, part_xboinc.py),                    "xboinc failed to match xtrack: py are not equal"
+        assert np.array_equal(part.delta, part_xboinc.delta),              "xboinc failed to match xtrack: delta are not equal"
     
     assert np.array_equal(part.particle_id, part_xboinc_test.particle_id), "xboinc_test failed to match xtrack: ids are not equal"
     assert np.array_equal(part.state, part_xboinc_test.state),             "xboinc_test failed to match xtrack: states are not equal"
