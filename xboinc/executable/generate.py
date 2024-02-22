@@ -145,7 +145,7 @@ def generate_executable(*, keep_source=False, clean=True, boinc_path=None, targe
         for dep in ["automake", "m4", "libtool", "autoconf", "pkg-config"]:
             if shutil.which(dep) is None:
                 raise RuntimeError(f"Please install `{dep}` before generating the executable.")
-        _check_libstd()
+    _check_libstd()
 
     # Create executable name
     app_tag = f'{app_version}'
