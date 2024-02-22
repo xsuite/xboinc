@@ -21,9 +21,9 @@ from .version import assert_versions
 default_element_classes = [
             xt.Marker,
             xt.Drift,
+            # xt.CombinedFunctionMagnet  # deprecated
             xt.Bend,
             xt.Multipole,
-            xt.CombinedFunctionMagnet,
             xt.Quadrupole,
             xt.Sextupole,
             xt.SimpleThinBend,
@@ -40,12 +40,14 @@ default_element_classes = [
             xt.YRotation,
             xt.ZetaShift,
             xt.RFMultipole,
-            # xt.Fringe,
-            # xt.Wedge,
+            # xt.Fringe,  # untested
+            # xt.Wedge,   # untested
             xt.DipoleEdge,
             xt.Exciter,
+            # xt.LinearTransferMatrix  # deprecated
             xt.LineSegmentMap,
             xt.FirstOrderTaylorMap,
+            xt.SecondOrderTaylorMap,
             xf.BeamBeamBiGaussian2D,
             xf.BeamBeamBiGaussian3D,
             # # Doesn't work because fieldmap in different buffer
@@ -57,8 +59,7 @@ default_element_classes = [
             xt.LimitRect,
             xt.LimitRacetrack,
             xt.LimitEllipse,
-            # # not supported until per-particle block updated
-            # xt.LimitPolygon,
+            xt.LimitPolygon,
             xt.LimitRectEllipse,
             xt.LongitudinalLimitRect,
             xt.Tracker._get_default_monitor_class()
