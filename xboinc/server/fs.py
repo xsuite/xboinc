@@ -108,6 +108,21 @@ def missing_eos(message='', cmd=None, is_server=False):
                   EnvironmentError(), cmd=cmd, is_server=is_server)
         return 1
 
+
+def eos_command_for_find():
+    # The command `eos find` has the wrong behaviour on new machines (running eos 5.2).
+    # For this reason, the command `eos oldfind` has been introduced.
+    # However, this command does not exist on the old machines, so in that case we
+    # default back to `eos find`.
+    cmd = subprocess.run(['eos', 'oldfind'], stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE, env=eos_env)
+    if cmd.returncode == 255:
+        # Command not found; we are running on a machine running old eos < 5.2
+        return 'find'
+    else:
+        # Command found; we are running on a machine running new eos >= 5.2
+        return 'oldfind'
+
 # def xrdcp_installed():
 #     try:
 #         cmd = subprocess.run(["xrdcp", "--version"], stdout=subprocess.PIPE,
@@ -139,23 +154,15 @@ def fs_glob(path, pattern, cmd=None, is_server=False):
         if on_eos(path):
             if missing_eos(err_mess):
                 return []
-            # The command `eos find` has the wrong behaviour on new machines (running eos 5.2).
-            # For this reason, the command `eos oldfind` has been introduced.
-            # However, this command does not exist on the old machines, so in that case we
-            # default back to `eos find`.
-            cmd = subprocess.run(['eos', 'oldfind', '-name', pattern, f'{path}'],
+            cmd = subprocess.run(['eos', eos_command_for_find(), '-name', pattern, f'{path}'],
                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=eos_env)
-            if cmd.returncode == 255:
-                # Command not found; we are running on a machine running old eos < 5.2
-                cmd = subprocess.run(['eos', 'find', '-name', pattern, f'{path}'],
-                                     stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=eos_env)
         else:
             cmd = subprocess.run(['find', f'{path}', '-name', pattern],
                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if cmd.returncode != 0 or cmd.stdout == b'':
             return []
-        files = [Path(ss).resolve() for ss in cmd.stdout.decode('UTF-8').strip().split('\n')]
-        return [f for f in files if f.stat().st_size!=0]
+        files = [fs_path(ss) for ss in cmd.stdout.decode('UTF-8').split()]
+        return [f for f in files if fs_exists(f)]
     except Exception as e:
         log_error(f"{err_mess}\n", e, cmd=cmd, is_server=is_server)
         return []
@@ -168,19 +175,25 @@ def fs_exists(file, cmd=None, is_server=False):
         if on_eos(file):
             if missing_eos(err_mess):
                 return False
-            # The command `eos find` has the wrong behaviour on new machines (running eos 5.2).
-            # For this reason, the command `eos oldfind` has been introduced.
-            # However, this command does not exist on the old machines, so in that case we
-            # default back to `eos find`.
-            cmd = subprocess.run(['eos', 'oldfind', '-name', file.name, f'{file}'],
-                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=eos_env)
-            if cmd.returncode == 255:
-                # Command not found; we are running on a machine running old eos < 5.2
-                cmd = subprocess.run(['eos', 'find', '-name', file.name, f'{file}'],
-                                     stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=eos_env)
+            cmd = subprocess.run(['eos', eos_command_for_find(), '-name', file.name,
+                                  f'{file.parent}'], stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE, env=eos_env)
             if cmd.returncode != 0 or cmd.stdout == b'':
+                # Command failed, assume file not found
                 return False
-            return Path(cmd.stdout.decode('UTF-8').strip()).resolve().stat().st_size!=0
+            files = cmd.stdout.decode('UTF-8').split()
+            if len(files) == 0:
+                # File not found
+                return False
+            # If the file is found, we need to ensure that it is not empty
+            # This command will list zero-length files
+            cmd = subprocess.run(['eos', eos_command_for_find(), '-0', '-name', file.name,
+                                  f'{file.parent}'], stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE, env=eos_env)
+            if cmd.returncode != 0 or cmd.stdout == b'':
+                # Command failed, assume no empty file found
+                return True
+            return len(cmd.stdout.decode('UTF-8').split()) == 0
         else:
             return file.exists() and file.stat().st_size!=0
     except Exception as e:
