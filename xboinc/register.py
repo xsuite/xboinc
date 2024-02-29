@@ -9,7 +9,7 @@ from pathlib import Path
 
 from .general import _pkg_root
 from .user import update_user_data, get_user_data, remove_user
-from .server import server_account, dropdir, missing_eos, fs_exists, fs_rm, fs_cp,\
+from .server import server_account, dropdir, assert_eos_accessible, fs_exists, fs_rm, fs_cp,\
                     afs_add_acl, afs_remove_acl, on_afs, on_eos, fs_path, fs_rename
 
 
@@ -72,7 +72,7 @@ def register(user, directory):
     None.
     """
 
-    missing_eos()
+    assert_eos_accessible()
     directory = fs_path(directory)
     if not directory.is_dir():
         raise ValueError(f"Directory {directory} not found or not a directory (or no permissions)!")
@@ -139,7 +139,7 @@ def deregister(user):
     None.
     """
 
-    missing_eos()
+    assert_eos_accessible()
     user_file, _ = _create_json(user, '', remove=True)
     try:
         data = get_user_data(user)
