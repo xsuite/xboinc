@@ -14,7 +14,7 @@ import xobjects as xo
 import xtrack as xt
 
 from .user import get_domain, get_directory
-from .server import fs_mv, missing_eos, timestamp
+from .server import fs_mv, assert_eos_accessible, timestamp
 from .simulation_io import XbInput, app_version, assert_versions
 
 
@@ -121,7 +121,7 @@ class SubmitJobs:
         self._user = user
         self._domain = get_domain(user)
         if self._domain=='eos':
-            missing_eos()
+            assert_eos_accessible()
         if dev_server:
             self._target = get_directory(user) / 'input_dev'
         else:

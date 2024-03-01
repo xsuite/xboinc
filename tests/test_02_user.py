@@ -9,7 +9,7 @@ import pytest
 
 import xboinc as xb
 from xboinc.user import user_data_file, get_directory, get_domain, get_user_data
-from xboinc.server import server_account, dropdir, fs_exists
+from xboinc.server import server_account, dropdir, fs_exists, fs_path
 from xboinc.server.paths import _test_afs, _test_eos
 
 register_file       = dropdir / f"register_{server_account}.json"
@@ -30,14 +30,14 @@ def test_register():
     assert get_user_data(server_account)['domain'] == 'afs'
     assert fs_exists(register_file)
     assert not fs_exists(deregister_file)
-    with register_file.open('r') as fid:
+    with fs_path(register_file).open('r') as fid:
         userdict = json.load(fid)
     assert userdict['user'] == server_account
     assert userdict['directory'] == _test_afs.as_posix()
     assert userdict['domain'] == 'afs'
     assert fs_exists(register_file_dev)
     assert not fs_exists(deregister_file_dev)
-    with register_file_dev.open('r') as fid:
+    with fs_path(register_file_dev).open('r') as fid:
         userdict = json.load(fid)
     assert userdict['user'] == server_account
     assert userdict['directory'] == _test_afs.as_posix()
@@ -57,10 +57,10 @@ def test_deregister():
     assert not fs_exists(register_file)
     assert not fs_exists(register_file_dev)
     assert fs_exists(deregister_file)
-    with deregister_file.open('r') as fid:
+    with fs_path(deregister_file).open('r') as fid:
         userdict = json.load(fid)
     assert userdict['user'] == server_account
     assert fs_exists(deregister_file_dev)
-    with deregister_file_dev.open('r') as fid:
+    with fs_path(deregister_file_dev).open('r') as fid:
         userdict = json.load(fid)
     assert userdict['user'] == server_account

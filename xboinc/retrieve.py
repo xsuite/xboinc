@@ -6,7 +6,7 @@
 import json
 
 from .user import get_directory, get_domain
-from .server.tools import untar
+from .server import untar, assert_eos_accessible
 from .simulation_io import XbState, assert_versions
 
 
@@ -38,7 +38,7 @@ class RetrieveJobs:
         self._user = user
         self._domain = get_domain(user)
         if self._domain=='eos':
-            missing_eos()
+            assert_eos_accessible()
         if dev_server:
             self._directory = get_directory(user) / "output_dev"
         else:

@@ -21,6 +21,13 @@ def on_afs(file):
     else:
         return parents[-3] == Path('/afs/cern.ch')
 
+def afs_accessible():
+    return Path('/afs/cern.ch').exists()
+
+def assert_afs_accessible():
+    if not afs_accessible():
+        raise EnvironmentError(f"AFS is not installed on your system.")
+
 def afs_add_acl(user, directory, acl='rlwik', cmd=None, is_server=False):
     cmd = 'afs_add_acl' if cmd is None else cmd
     try:
@@ -89,7 +96,14 @@ def on_eos(file):
     else:
         return parents[-2] == Path('/eos')
 
-def eos_installed():
+def eos_accessible():
+    return Path('/eos').exists()
+
+def assert_eos_accessible():
+    if not eos_accessible():
+        raise EnvironmentError(f"EOS is not installed on your system.")
+
+def _eos_installed():
     try:
         cmd = subprocess.run(['eos', '--version'], stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE, env=eos_env)
@@ -98,22 +112,38 @@ def eos_installed():
     except (subprocess.CalledProcessError, FileNotFoundError):
         return False
 
-def missing_eos(message='', cmd=None, is_server=False):
-    cmd = 'missing_eos' if cmd is None else cmd
-    if eos_installed():
-        return 0
+# def missing_eos(message='', cmd=None, is_server=False):
+#     cmd = 'missing_eos' if cmd is None else cmd
+#     if _eos_installed():
+#         return 0
+#     else:
+#         message = '' if message == '' else f"{message} "
+#         log_error(f"{message}EOS is not installed on your system.",
+#                   EnvironmentError(), cmd=cmd, is_server=is_server)
+#         return 1
+
+# TODO: option to use xrdcp instead of eos
+def _use_eos_command(file):
+    if not on_eos(file):
+        # File not on EOS
+        return False
+    elif _eos_installed():
+        # `eos` command installed, so use this
+        return True
+    elif eos_accessible():
+        # `eos` command not installed, but EOS is accessible,
+        # hence use the normal file commands
+        return False
     else:
-        message = '' if message == '' else f"{message} "
-        log_error(f"{message}EOS is not installed on your system.",
-                  EnvironmentError(), cmd=cmd, is_server=is_server)
-        return 1
+        # File on EOS but no way to work with it!
+        raise EnvironmentError(f"Working with file {file}, which is on EOS, "
+                             + f"but EOS is not installed on your system.")
 
-
-def eos_command_for_find():
-    # The command `eos find` has the wrong behaviour on new machines (running eos 5.2).
-    # For this reason, the command `eos oldfind` has been introduced.
-    # However, this command does not exist on the old machines, so in that case we
-    # default back to `eos find`.
+# The command `eos find` has the wrong behaviour on new machines (running eos 5.2).
+# For this reason, the command `eos oldfind` has been introduced.
+# However, this command does not exist on the old machines, so in that case we
+# default back to `eos find`. This function gives the correct argument for eos find.
+def _eos_arg_for_find():
     cmd = subprocess.run(['eos', 'oldfind'], stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE, env=eos_env)
     if cmd.returncode == 255:
@@ -146,15 +176,13 @@ def fs_path(path):
     path = Path(path).expanduser().resolve()
     return Path(path.as_posix().replace('/eos/home-','/eos/user/'))
 
-def fs_glob(path, pattern, cmd=None, is_server=False):
+def fs_glob(path, pattern, allow_empty=False, cmd=None, is_server=False):
     cmd = 'fs_glob' if cmd is None else cmd
     path = fs_path(path)
     err_mess = f"Failed fs_glob {pattern} in {path}!"
     try:
-        if on_eos(path):
-            if missing_eos(err_mess):
-                return []
-            cmd = subprocess.run(['eos', eos_command_for_find(), '-name', pattern, f'{path}'],
+        if _use_eos_command(path):
+            cmd = subprocess.run(['eos', _eos_arg_for_find(), '-name', pattern, f'{path}'],
                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=eos_env)
         else:
             cmd = subprocess.run(['find', f'{path}', '-name', pattern],
@@ -162,20 +190,21 @@ def fs_glob(path, pattern, cmd=None, is_server=False):
         if cmd.returncode != 0 or cmd.stdout == b'':
             return []
         files = [fs_path(ss) for ss in cmd.stdout.decode('UTF-8').split()]
-        return [f for f in files if fs_exists(f)]
+        if allow_empty:
+            return files
+        else:
+            return [f for f in files if fs_exists(f)]
     except Exception as e:
         log_error(f"{err_mess}\n", e, cmd=cmd, is_server=is_server)
         return []
 
-def fs_exists(file, cmd=None, is_server=False):
+def fs_exists(file, allow_empty=False, cmd=None, is_server=False):
     cmd = 'fs_exists' if cmd is None else cmd
     file = fs_path(file)
     err_mess = f"Failed fs_exists for {file}!"
     try:
-        if on_eos(file):
-            if missing_eos(err_mess):
-                return False
-            cmd = subprocess.run(['eos', eos_command_for_find(), '-name', file.name,
+        if _use_eos_command(file):
+            cmd = subprocess.run(['eos', _eos_arg_for_find(), '-name', file.name,
                                   f'{file.parent}'], stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE, env=eos_env)
             if cmd.returncode != 0 or cmd.stdout == b'':
@@ -185,9 +214,11 @@ def fs_exists(file, cmd=None, is_server=False):
             if len(files) == 0:
                 # File not found
                 return False
+            if allow_empty:
+                return True
             # If the file is found, we need to ensure that it is not empty
             # This command will list zero-length files
-            cmd = subprocess.run(['eos', eos_command_for_find(), '-0', '-name', file.name,
+            cmd = subprocess.run(['eos', _eos_arg_for_find(), '-0', '-name', file.name,
                                   f'{file.parent}'], stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE, env=eos_env)
             if cmd.returncode != 0 or cmd.stdout == b'':
@@ -195,7 +226,10 @@ def fs_exists(file, cmd=None, is_server=False):
                 return True
             return len(cmd.stdout.decode('UTF-8').split()) == 0
         else:
-            return file.exists() and file.stat().st_size!=0
+            if allow_empty:
+                return file.exists()
+            else:
+                return file.exists() and file.stat().st_size!=0
     except Exception as e:
         log_error(f"{err_mess}\n", e, cmd=cmd, is_server=is_server)
         return False
@@ -205,9 +239,7 @@ def fs_rm(file, cmd=None, is_server=False):
     file = fs_path(file)
     err_mess = f"Failed fs_rm for {file}!"
     try:
-        if on_eos(file):
-            if missing_eos(err_mess):
-                return 1
+        if _use_eos_command(file):
             cmd = subprocess.run(['eos', 'rm', '-r', _dir(file)],
                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                  env=eos_env)
@@ -239,9 +271,7 @@ def fs_cp(file, directory, maximum_trials=10, wait=2.7, cmd=None, is_server=Fals
     err_mess = f"Failed fs_cp {file} to {directory}!"
     try:
         for i in range(maximum_trials):
-            if on_eos(file) or on_eos(directory):
-                if missing_eos(err_mess):
-                    return 1
+            if _use_eos_command(file) or _use_eos_command(directory):
                 cmd = subprocess.run(['eos', 'cp', f'{file}', _dir(directory)],
                                      stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                      env=eos_env)
@@ -277,9 +307,7 @@ def fs_rename(file, new_file, maximum_trials=10, wait=2.7, cmd=None, is_server=F
     err_mess = f"Failed fs_rename {file} to {new_file}!"
     try:
         for i in range(maximum_trials):
-            if on_eos(file):
-                if missing_eos(err_mess):
-                    return 1
+            if _use_eos_command(file):
                 cmd = subprocess.run(['eos', 'mv', f'{file}', new_file],
                                      stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                      env=eos_env)
