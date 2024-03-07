@@ -5,7 +5,10 @@
 # ######################################### #
 
 # Check necessary setup and installs
+poetry --version || exit 1
 gh pr list || exit 1
+
+
 
 if [ $# -eq 0 ]
 then
@@ -83,6 +86,11 @@ case ${answer:0:1} in
     ;;
 esac
 
+
+
+# Kill script on first error
+set -e
+
 # Two cases:
 #    patch: Only internal changes (interface to xboinc and server etc)
 #           No changes to the underlying C  ->  xsuite versions remain pinned
@@ -101,9 +109,6 @@ then
         exit 1
     fi
 fi
-
-# Kill script on first error
-set -e
 
 # Update version in the release branch
 echo "Poetry version bump..."
