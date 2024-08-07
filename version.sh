@@ -120,9 +120,16 @@ then
     exit 1
 fi
 echo "Adapting version files..."
-sed -i "s/\(int64_t xboinc_exec_version =\).*/\1 "${exec_ver}";/" xboinc/executable/main.c
-sed -i "s/\(__version__ =\).*/\1 '"${new_ver}"'/"                 xboinc/general.py
-sed -i "s/\(assert __version__ ==\).*/\1 '"${new_ver}"'/"         tests/test_00_version.py
+if [[ "$OSTYPE" == "darwin"* ]]
+then
+    sed -i '' "s/\(int64_t xboinc_exec_version =\).*/\1 "${exec_ver}";/" xboinc/executable/main.c
+    sed -i '' "s/\(__version__ =\).*/\1 '"${new_ver}"'/"                 xboinc/general.py
+    sed -i '' "s/\(assert __version__ ==\).*/\1 '"${new_ver}"'/"         tests/test_00_version.py
+else
+    sed -i'' "s/\(int64_t xboinc_exec_version =\).*/\1 "${exec_ver}";/" xboinc/executable/main.c
+    sed -i'' "s/\(__version__ =\).*/\1 '"${new_ver}"'/"                 xboinc/general.py
+    sed -i'' "s/\(assert __version__ ==\).*/\1 '"${new_ver}"'/"         tests/test_00_version.py
+fi
 echo "Committing version change..."
 git reset
 git add pyproject.toml xboinc/general.py tests/test_00_version.py xboinc/executable/main.c
