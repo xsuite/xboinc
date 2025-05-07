@@ -30,7 +30,7 @@ xfields  = '==0.15.0'
 xcoll    = '==0.2.7'
 xaux    =  '==0.1.2'
 
-[tool.poetry.dev-dependencies]
+[poetry.group.dev.dependencies]
 pytest = ">7"
 
 [build-system]
