@@ -9,7 +9,7 @@ from pathlib import Path
 
 from .general import _pkg_root
 from .user import update_user_data, get_user_data, remove_user
-from .server import server_account, dropdir, assert_eos_accessible, fs_exists, fs_rm, fs_cp,\
+from .server import server_account, dropdir, fs_exists, fs_rm, fs_cp,\
                     afs_add_acl, afs_remove_acl, on_afs, on_eos, fs_path, fs_rename
 
 

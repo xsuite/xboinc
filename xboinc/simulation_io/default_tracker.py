@@ -15,61 +15,131 @@ import xfields as xf
 import xobjects as xo
 import xcoll as xc
 
+from xtrack.beam_elements import *
+from xtrack.monitors import *
+from xtrack.random import *
+from xtrack.multisetter import MultiSetter
+
 from .version import assert_versions
 
+ONLY_XTRACK_ELEMENTS = [
+    Drift,
+    Multipole,
+    Bend,
+    RBend,
+    Quadrupole,
+    Sextupole,
+    Octupole,
+    Magnet,
+    SecondOrderTaylorMap,
+    Marker,
+    ReferenceEnergyIncrease,
+    Cavity,
+    Elens,
+    Wire,
+    Solenoid,
+    RFMultipole,
+    DipoleEdge,
+    MultipoleEdge,
+    SimpleThinBend,
+    SimpleThinQuadrupole,
+    LineSegmentMap,
+    FirstOrderTaylorMap,
+    NonLinearLens,
+    # Slices
+    DriftSlice,
+    DriftSliceBend,
+    DriftSliceRBend,
+    DriftSliceOctupole,
+    DriftSliceQuadrupole,
+    DriftSliceSextupole,
+    ThickSliceBend,
+    ThickSliceRBend,
+    ThickSliceOctupole,
+    ThickSliceQuadrupole,
+    ThickSliceSextupole,
+    ThickSliceSolenoid,
+    ThinSliceBend,
+    ThinSliceRBend,
+    ThinSliceBendEntry,
+    ThinSliceBendExit,
+    ThinSliceRBendEntry,
+    ThinSliceRBendExit,
+    ThinSliceQuadrupoleEntry,
+    ThinSliceQuadrupoleExit,
+    ThinSliceSextupoleEntry,
+    ThinSliceSextupoleExit,
+    ThinSliceOctupoleEntry,
+    ThinSliceOctupoleExit,
+    ThinSliceOctupole,
+    ThinSliceQuadrupole,
+    ThinSliceSextupole,
+    # Transformations
+    XYShift,
+    ZetaShift,
+    XRotation,
+    SRotation,
+    YRotation,
+    # Apertures
+    LimitEllipse,
+    LimitRectEllipse,
+    LimitRect,
+    LimitRacetrack,
+    LimitPolygon,
+    LongitudinalLimitRect,
+    # Monitors
+    BeamPositionMonitor,
+    BeamSizeMonitor,
+    BeamProfileMonitor,
+    LastTurnsMonitor,
+    ParticlesMonitor,
+]
 
-default_element_classes = [
-            xt.Marker,
-            xt.Drift,
-            # xt.CombinedFunctionMagnet  # deprecated
-            xt.Bend,
-            xt.Multipole,
-            xt.Quadrupole,
-            xt.Sextupole,
-            xt.SimpleThinBend,
-            xt.SimpleThinQuadrupole,
-            xt.ReferenceEnergyIncrease,
-            xt.Cavity,
-            xt.Solenoid,
-            xt.XYShift,
-            xt.Elens,
-            xt.NonLinearLens,
-            xt.Wire,
-            xt.SRotation,
-            xt.XRotation,
-            xt.YRotation,
-            xt.ZetaShift,
-            xt.RFMultipole,
-            # xt.Fringe,  # untested
-            # xt.Wedge,   # untested
-            xt.DipoleEdge,
-            xt.Exciter,
-            # xt.LinearTransferMatrix  # deprecated
-            xt.LineSegmentMap,
-            xt.FirstOrderTaylorMap,
-            xt.SecondOrderTaylorMap,
-            xf.BeamBeamBiGaussian2D,
-            xf.BeamBeamBiGaussian3D,
-            # # Doesn't work because fieldmap in different buffer
-            # xf.ElectronCloud,
-            # xf.ElectronLensInterpolated,
-            xc.BlackAbsorber,
-            xc.EverestCollimator,
-            xc.EverestCrystal,
-            xt.LimitRect,
-            xt.LimitRacetrack,
-            xt.LimitEllipse,
-            xt.LimitPolygon,
-            xt.LimitRectEllipse,
-            xt.LongitudinalLimitRect,
-            xt.Tracker._get_default_monitor_class()
-    ]
+NO_SYNRAD_ELEMENTS = [
+    Exciter,
+]
 
+# Xfields elements
+DEFAULT_XF_ELEMENTS = [
+    xf.BeamBeamBiGaussian2D,
+    xf.BeamBeamBiGaussian3D,
+    xf.SpaceChargeBiGaussian,
+]
+
+# Xcoll elements
+DEFAULT_XCOLL_ELEMENTS = [
+    # ZetaShift,
+    xc.BlackAbsorber,
+    xc.EverestBlock,
+    xc.EverestCollimator,
+    xc.EverestCrystal,
+    xc.BlowUp,
+    xc.EmittanceMonitor,
+]
+
+NON_TRACKING_ELEMENTS = [
+    RandomUniform,
+    RandomExponential,
+    RandomNormal,
+    RandomRutherford,
+    MultiSetter,
+]
+
+default_element_classes = (
+    ONLY_XTRACK_ELEMENTS
+    + NO_SYNRAD_ELEMENTS
+    + DEFAULT_XF_ELEMENTS
+    + DEFAULT_XCOLL_ELEMENTS
+)
 
 # The class ElementRefData is dynamically generated inside the tracker. We
 # extract it here and use it to create the line metadata inside XbInput
 ElementRefData = xt.tracker._element_ref_data_class_from_element_classes(
-                        default_element_classes)
+    ONLY_XTRACK_ELEMENTS
+    + NO_SYNRAD_ELEMENTS
+    + DEFAULT_XF_ELEMENTS
+    + DEFAULT_XCOLL_ELEMENTS,
+)
 if {f.name for f in ElementRefData._fields} != {'elements', 'names'}:
     raise RunTimeError("The definition of `ElementRefData` has changed inside Xtrack! "
                      + "This renders Xboinc incompatible. Please ask a dev to update Xboinc.")
