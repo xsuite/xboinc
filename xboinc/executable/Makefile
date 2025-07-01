@@ -13,6 +13,12 @@
 
 # This should work on Linux.  Modify as needed for other platforms.
 
+# If needed, set the BOINC_DIR to the location of your BOINC installation.
+# BOINC_DIR = /home/boincadm/boinc
+
+# If needed, set the directory where the xtrack Python package is installed.
+# XTRACK_PYTHON_DIR = /home/boincadm/anaconda3/lib/python3.13/site-packages/xtrack
+
 BOINC_SOURCE_API_DIR = $(BOINC_DIR)/api
 BOINC_SOURCE_LIB_DIR = $(BOINC_DIR)/lib
 BOINC_SOURCE_ZIP_DIR = $(BOINC_DIR)/zip
@@ -28,6 +34,7 @@ MAKEFILE_LDFLAGS = -lpthread $(MAKEFILE_STDLIB) -static
 CXXFLAGS += \
     -Wall -W -Wshadow -Wpointer-arith -Wcast-qual -Wcast-align -Wunused-parameter -Wno-write-strings -fno-common \
     -O2 \
+	-I$(XTRACK_PYTHON_DIR) \
     -I$(BOINC_DIR) \
     -I$(BOINC_SOURCE_API_DIR) \
     -I$(BOINC_SOURCE_LIB_DIR) \
@@ -37,7 +44,13 @@ CXXFLAGS += \
     -L$(BOINC_LIB_DIR) \
     -L/usr/X11R6/lib \
     -L/usr/lib \
-    -L.
+    -L. \
+	-DXO_CONTEXT_CPU \
+	-DXO_CONTEXT_CPU_OPENMP
+# These last two flags are now needed for the xtrack Python package
+# to compile the xboinc executable correctly
+# For GPU context, different flags are needed, but we are not using them here for now.
+# For CPU context, single core, we can use -DXO_CONTEXT_CPU_SERIAL instead of -DXO_CONTEXT_CPU_OPENMP.
 
 # to get the graphics app to compile you may need to install some packages
 # e.g. ftgl-devel.x86_64
@@ -95,7 +108,7 @@ install: xboinc
 # because otherwise, you might get a version in /usr/lib etc.
 
 xtrack.o: xtrack_tracker.h xb_input.h xtrack.c
-	$(CC) $(CXXFLAGS) -lm -std=c99 -c xtrack.c
+	$(CXX) $(CXXFLAGS) -lm -x c -std=c99 -c xtrack.c
 
 xboinc_test: xtrack.o xtrack.h main.c $(MAKEFILE_STDLIB)
 	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -o xboinc_test xtrack.o main.c -lm $(MAKEFILE_LDFLAGS)
