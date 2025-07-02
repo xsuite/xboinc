@@ -6,7 +6,6 @@
 import sys
 
 import xobjects as xo
-import xpart as xp
 import xboinc as xb
 
 from ..general import __version__, __xsuite__versions__
