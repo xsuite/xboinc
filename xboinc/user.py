@@ -1,6 +1,6 @@
 # copyright ############################### #
 # This file is part of the Xboinc Package.  #
-# Copyright (c) CERN, 2023.                 #
+# Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
 import json
@@ -16,6 +16,21 @@ if not user_data_file.exists():
 
 
 def update_user_data(user, data):
+    """
+    Update the user data in this xboinc installation.
+
+    Parameters
+    ----------
+    user : string
+        Name of the user.
+    data : dict
+        User metadata.
+
+    Returns
+    -------
+    None.
+    """
+
     with user_data_file.open('r') as fid:
         userdict = json.load(fid)
     data.pop('user', None)
@@ -26,20 +41,75 @@ def update_user_data(user, data):
     with user_data_file.open('w') as fid:
         json.dump(userdict, fid)
 
+
 def get_user_data(user):
+    """
+    Retrieve the user data in this xboinc installation.
+
+    Parameters
+    ----------
+    user : string
+        Name of the user.
+
+    Returns
+    -------
+    data : dict
+        User metadata.
+    """
+
     with user_data_file.open('r') as fid:
         userdict = json.load(fid)
     if user not in userdict:
         raise ValueError(f"User {user} not registered!")
     return userdict[user]
 
+  
 def get_directory(user):
+    """
+    Retrieve the user directory in this xboinc installation.
+
+    Parameters
+    ----------
+    user : string
+        Name of the user.
+
+    Returns
+    -------
+    directory : pathlib.Path
+        User metadata.
+    """
     return Path(get_user_data(user)['directory']).resolve()
 
 def get_domain(user):
+    """
+    Retrieve the user domain (AFS or EOS) in this xboinc
+    installation.
+
+    Parameters
+    ----------
+    user : string
+        Name of the user.
+
+    Returns
+    -------
+    domain : string
+        User domain.
+    """
     return get_user_data(user)['domain']
 
 def remove_user(user):
+    """
+    Delete a user from this xboinc installation.
+
+    Parameters
+    ----------
+    user : string
+        Name of the user.
+
+    Returns
+    -------
+    None
+    """
     with user_data_file.open('r') as fid:
         userdict = json.load(fid)
     if user in userdict:

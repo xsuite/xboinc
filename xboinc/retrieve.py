@@ -1,18 +1,35 @@
 # copyright ############################### #
 # This file is part of the Xboinc Package.  #
-# Copyright (c) CERN, 2023.                 #
+# Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
 import json
 
 from .user import get_directory, get_domain
 from .server.tools import untar
-from .simulation_io import SimState, assert_versions
+from .simulation_io import XbState, assert_versions
 
 
 class RetrieveJobs:
 
     def __init__(self, user, study_name, dev_server=False):
+        """
+        Parameters
+        ----------
+        user : string
+            The user that submitted to BOINC. Make sure all permissions are set
+            (the user should be member of the CERN xboinc-submitters egroup).
+        study_name : string
+            The name of the study to look for.
+        dev_server: bool
+            Whether or not to retrieve from the dev server. Defaults to False.
+
+        Usage
+        -----
+        And RetrieveJobs instance works as an interator. Loop over it to
+        retrieve a tuple (xpart.Particles, json_file) per finished job.
+        """
+
         if not dev_server:
             raise NotImplementedError("Regular server not yet operational. "
                                     + "Please use dev_server=True.")
@@ -27,6 +44,8 @@ class RetrieveJobs:
         else:
             self._directory = get_directory(user) / "output"
         self._to_delete = []
+        # Untar all results, also if not from this study, as it is not
+        # known yet which study's jobs are in which result tar.
         for tar_file in self._directory.glob('*.tar.gz'):
             untar(tar_file)
 
@@ -42,6 +61,7 @@ class RetrieveJobs:
 
 
     def __iter__(self):
+        # Create an iterator over all results that are from this study only.
         json_files = []
         for json_file in self._directory.glob('*/*.json'):
             with open(json_file, 'r') as json_file_obj:
@@ -58,6 +78,7 @@ class RetrieveJobs:
 
 
     def __next__(self):
+        # Retrieve the next result
         try:
             json_file = next(self._json_files)
         except StopIteration:
@@ -65,14 +86,20 @@ class RetrieveJobs:
             raise StopIteration
         else:
             bin_file = json_file.with_suffix('.bin')
+            # We parse the result in a try context, which fails if the versions
+            # are not compatible. Instead of raising an error, we just continue.
             try:
                 with open(json_file, 'r') as json_file_obj:
                     json_content = json.load(json_file_obj)
-                result    = SimState.from_binary(bin_file)
-                particles = result.particles
+                result = XbState.from_binary(bin_file, raise_version_error=False)
             except Exception as e:
                 print(f"Error loading binary file {bin_file}: {e}")
-            else: 
+            else:
+                if result is None:
+                    # Failed because of incompatible versions
+                    # TODO: should we print a warning??? Probably yes..
+                    return self.__next__()
+                particles = result.particles
                 self._to_delete.append(json_file)
                 return particles, json_content
 

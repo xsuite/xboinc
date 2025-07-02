@@ -1,16 +1,16 @@
 # copyright ############################### #
 # This file is part of the Xboinc Package.  #
-# Copyright (c) CERN, 2023.                 #
+# Copyright (c) CERN, 2024.                 #
 ########################################### #
 
 import tarfile
 import numpy as np
 import pandas as pd
 import subprocess
-import tarfile
 from pathlib import Path
 import time
 import shutil
+import filecmp
 import pytest
 
 import xtrack as xt
@@ -23,7 +23,16 @@ from xboinc.server.paths import _test_afs
 input_dir  = _test_afs / 'input_dev'
 output_dir = _test_afs / 'output_dev'
 input_filename      = 'xboinc_input.bin'
-output_filename     = 'sim_state_out.bin'
+output_filename     = 'xboinc_state_out.bin'
+checkpoint_filename = 'checkpoint.bin'
+
+study_name = "_test_study"
+
+num_turns = 100
+num_particles = 5000
+checkpoint_every = 25
+particles_per_sub = 500
+num_jobs = int(num_particles/particles_per_sub)
 
 
 def test_submission():
@@ -34,28 +43,25 @@ def test_submission():
     checkpoint_every = 25
     line = xt.Line(elements=[
         xt.Drift(length=1.0), xt.Multipole(knl=[1e-4]), xt.Drift(length=1.0)])
-
-    particles_per_sub = 1000
-    num_jobs = int(num_particles/particles_per_sub)
+    # line = xt.Line.from_json(xb._pkg_root.parent / 'tests' / 'data' / 'lhc_2024_30cm_b1.json')
 
     # Clean potential leftover from failed test
-    for file in input_dir.glob('*'):
+    for file in input_dir.glob(f"{server_account}__*"):
         if file.is_dir():
             shutil.rmtree(file)
         else:
             file.unlink()
-    for file in output_dir.glob('*/'):
+    for file in output_dir.glob(f"{server_account}__*"):
         if file.is_dir():
             shutil.rmtree(file)
         else:
             file.unlink()
 
-    study_name = "test_study_1"
-    jobs = xb.SubmitJobs(user=server_account, study_name=study_name, line=line, dev_server=True)
+    jobs = xb.SubmitJobs(user=server_account, study_name=f"{study_name}_1", line=line, dev_server=True)
     for i in range(num_jobs):
         particles = xp.Particles(x=np.random.normal(0, 0.01, particles_per_sub),
                                  y=np.random.normal(0, 0.003, particles_per_sub))
-        jobs.add(job_name=f'{study_name}_{i}', num_turns=num_turns, particles=particles,
+        jobs.add(job_name=f'{study_name}_1_job{i}', num_turns=num_turns, particles=particles,
                 checkpoint_every=checkpoint_every)
     jobs.submit()
     with pytest.raises(ValueError):
@@ -63,18 +69,21 @@ def test_submission():
                 checkpoint_every=checkpoint_every)
 
     time.sleep(5)
-    study_name = "test_study_2"
-    jobs = xb.SubmitJobs(user=server_account, study_name=study_name, line=line, dev_server=True)
+    jobs = xb.SubmitJobs(user=server_account, study_name=f"{study_name}_2", line=line, dev_server=True)
     for i in range(num_jobs):
         particles = xp.Particles(x=np.random.normal(0, 4.7, particles_per_sub),
                                  y=np.random.normal(0, 0.39, particles_per_sub))
-        jobs.add(job_name=f'{study_name}_{i}', num_turns=num_turns, particles=particles,
+        jobs.add(job_name=f'{study_name}_2_job{i}', num_turns=num_turns, particles=particles,
                 checkpoint_every=checkpoint_every)
     jobs.submit()
 
+    time.sleep(5)
+    with pytest.raises(NotImplementedError):
+        jobs = xb.SubmitJobs(user=server_account, study_name=f"{study_name}_3", line=line)
+
     now = pd.Timestamp.now().timestamp()
-    tarfiles = list(input_dir.glob(f'{study_name}__*'))
-    assert len(tarfiles) > 0
+    tarfiles = list(input_dir.glob(f"{server_account}__{study_name}_?__*"))
+    assert len(tarfiles) == 2
     # Look for the tar that is just generated
     for tar in tarfiles:
         ts = tar.name.split('__')[-1].split('.')[0].replace('_','T').replace('-', ':').replace(':', '-', 2)
@@ -95,43 +104,59 @@ def test_submission():
 
 
 def test_running():
-    exec_file = list(Path.cwd().glob(f'xboinc_{xb.app_version}-*'))
+    exec_file = list(Path.cwd().glob(f'xboinc_test_{xb.app_version}-*'))
     if len(exec_file) == 0 or not exec_file[0].exists():
         raise ValueError("No executable found! Check order of tests.")
     exec_file = exec_file[0]
+    exec_file_boinc = list(Path.cwd().glob(f'xboinc_{xb.app_version}-*'))
+    if len(exec_file_boinc) == 0 or not exec_file_boinc[0].exists():
+        raise ValueError("No executable with boinc API found! Check order of tests.")
+    exec_file_boinc = exec_file_boinc[0]
 
-    for tar in input_dir.glob('*.tar.gz'):
+    for tar in input_dir.glob(f"{server_account}__*.tar.gz"):
         xb.server.untar(tar)
 
-    json_files = list(input_dir.glob('*/*.json'))
+    json_files = list(input_dir.glob(f"{server_account}__*/*.json"))
+    if len(json_files) == 0:
+        raise FileNotFoundError("No json files in server directory!")
+
+    # Run all jobs
     for json_file in json_files:
         bin_file = json_file.with_suffix('.bin')
         input_name = bin_file
-        shutil.move(bin_file, Path.cwd() / input_filename)
-        cmd = subprocess.run([exec_file])
-        if cmd.returncode != 0:
-            raise RuntimeError(f"Tracking failed.")
+        xb.server.fs_mv(bin_file, Path.cwd() / input_filename)
         out_file = Path.cwd() / output_filename
-        shutil.move(out_file, input_name)
+        # Run with BOINC API
+        cmd = subprocess.run([exec_file_boinc, '--verbose', '1'])
+        if cmd.returncode != 0:
+            raise RuntimeError(f"Tracking of file {input_name} with BOINC API failed.")
+        xb.server.fs_mv(out_file, Path.cwd() / f"{output_filename}_boinc")
+        if (Path.cwd() / checkpoint_filename).exists():
+            (Path.cwd() / checkpoint_filename).unlink()
+        # Run without BOINC API
+        cmd = subprocess.run([exec_file, '--verbose', '1'])
+        if cmd.returncode != 0:
+            raise RuntimeError(f"Tracking of file {input_name} failed.")
+        # Compare
+        if not filecmp.cmp(output_filename, f"{output_filename}_boinc", shallow=False):
+            raise RunTimeError("Tracking with and without BOINC API produced different results!")
+        # Move output
+        xb.server.fs_mv(out_file, input_name)
 
-    tar1 = output_dir / f"{server_account}__{xb.server.timestamp(ms=True)}.tar.gz"
-    with tarfile.open(tar1, "w:gz") as tar:
-        for json_file in json_files[:3]:
-            tar.add(json_file, arcname=json_file.name)
-            binfile = json_file.with_suffix('.bin')
-            tar.add(binfile, arcname=binfile.name)
-            json_file.unlink()
-            binfile.unlink()
-
-    time.sleep(5)
-    tar2 = output_dir / f"{server_account}__{xb.server.timestamp(ms=True)}.tar.gz"
-    with tarfile.open(tar2, "w:gz") as tar:
-        for json_file in json_files[3:]:
-            tar.add(json_file, arcname=json_file.name)
-            binfile = json_file.with_suffix('.bin')
-            tar.add(binfile, arcname=binfile.name)
-            json_file.unlink()
-            binfile.unlink()
+    # Collect output in tars, putting more jobs in each tar
+    ii = 1
+    while len(json_files) > 0:
+        tar = output_dir / f"{server_account}__{xb.server.timestamp(ms=True)}.tar.gz"
+        with tarfile.open(tar, "w:gz") as tar:
+            for json_file in json_files[:ii]:
+                tar.add(json_file, arcname=json_file.name)
+                binfile = json_file.with_suffix('.bin')
+                tar.add(binfile, arcname=binfile.name)
+                json_file.unlink()
+                binfile.unlink()
+            ii += 1
+        json_files = list(input_dir.glob(f"{server_account}__*/*.json"))
+        time.sleep(0.5)
 
     # Clean folders
     for folder in input_dir.glob('*/'):
@@ -141,16 +166,16 @@ def test_running():
 def test_retrieval():
     xb._skip_xsuite_version_check = True
     xb.register(server_account, _test_afs)
-    for study_name in ['test_study_1', 'test_study_2']:
-        num_jobs = 0
+    for this_study_name in [f"{study_name}_1", f"{study_name}_2"]:
+        this_num_jobs = 0
         x_mean_prev = 0
         x_std_prev = 0
         y_mean_prev = 0
         y_std_prev = 0
-        for particles, job in xb.RetrieveJobs(user=server_account, study_name=study_name, dev_server=True):
+        for particles, job in xb.RetrieveJobs(user=server_account, study_name=this_study_name, dev_server=True):
             assert job['user'] == server_account
-            assert job['study_name'] == study_name
-            num_jobs += 1
+            assert job['study_name'] == this_study_name
+            this_num_jobs += 1
             x_mean = np.mean(particles.x)
             x_std = np.std(particles.x)
             y_mean = np.mean(particles.y)
@@ -166,7 +191,7 @@ def test_retrieval():
             print(f"Job {job['job_name']} : x = {x_mean:.4} +- {x_std:.4}  "\
                 + f"y = {y_mean:.4} +- {y_std:.4}")
             
-        assert num_jobs == 5
+        assert this_num_jobs == num_jobs
     xb._skip_xsuite_version_check = False
     xb.deregister(server_account)
 
