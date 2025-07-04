@@ -12,7 +12,6 @@
 
 import xtrack as xt
 import xfields as xf
-import xobjects as xo
 import xcoll as xc
 
 from xtrack.beam_elements import *
@@ -141,7 +140,7 @@ ElementRefData = xt.tracker._element_ref_data_class_from_element_classes(
     + DEFAULT_XCOLL_ELEMENTS,
 )
 if {f.name for f in ElementRefData._fields} != {'elements', 'names'}:
-    raise RunTimeError("The definition of `ElementRefData` has changed inside Xtrack! "
+    raise RuntimeError("The definition of `ElementRefData` has changed inside Xtrack! "
                      + "This renders Xboinc incompatible. Please ask a dev to update Xboinc.")
 
 
