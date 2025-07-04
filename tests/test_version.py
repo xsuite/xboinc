@@ -12,7 +12,7 @@ from xboinc.simulation_io.version import _version_to_int, _int_to_version, asser
 
 
 def test_version():
-    assert __version__ == '0.1.7'
+    assert __version__ == '0.3.0'
 
 
 def test_xb_ver():
@@ -25,12 +25,13 @@ def test_xb_ver():
 
 def test_xsuite_versions():
     expected_version = {
-        'xobjects' : '0.2.10',
-        'xdeps'    : '0.5.2',
-        'xpart'    : '0.16.3',
-        'xtrack'   : '0.48.1',
-        'xfields'  : '0.15.0',
-        'xcoll'    : '0.2.7',
+        'xobjects' : '0.5.0',
+        'xdeps'    : '0.10.5',
+        'xpart'    : '0.23.0',
+        'xtrack'   : '0.84.7',
+        'xfields'  : '0.24.0',
+        'xcoll'    : '0.6.1',
+        'xaux'     : '0.3.5'
     }
     current_version = {}
 
