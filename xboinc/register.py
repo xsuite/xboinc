@@ -4,9 +4,8 @@
 # ######################################### #
 
 import json
-import os
-from pathlib import Path
-from xaux import FsPath, AfsPath, EosPath, LocalPath, eos_accessible, afs_accessible
+from warnings import warn
+from xaux import FsPath, AfsPath, EosPath, LocalPath, eos_accessible, is_egroup_member
 
 from .general import _pkg_root
 from .user import update_user_data, get_user_data, remove_user
@@ -18,7 +17,7 @@ user_data_file = _pkg_root / "user_data.json"
 
 def _create_json(user, directory, remove=False):
     register = "deregister" if remove else "register"
-    user_file = Path.cwd() / f"{register}_{user}.json"
+    user_file = FsPath.cwd() / f"{register}_{user}.json"
     if remove:
         data = {"user": user}
     else:
@@ -41,40 +40,38 @@ def _create_json(user, directory, remove=False):
 def _give_rights(directory, acl="rlwikd"):
     if isinstance(directory, EosPath):
         raise NotImplementedError("Ask CERN IT for explanation...")
-    if isinstance(directory, LocalPath):
+    elif isinstance(directory, LocalPath):
         raise NotImplementedError(
             "Local directories are not supported for BOINC server registration."
         )
-    if isinstance(directory, AfsPath):
+    elif isinstance(directory, AfsPath):
         if not directory.is_dir():
             raise ValueError(
                 f"Directory {directory} not found or not a directory (or no permissions)!"
             )
-        directory.acl = acl
+        directory.acl = {server_account: acl}
     else:
         raise ValueError(
-            f"Directory {directory} not on EOS nor AFS! "
-            + "The xboinc server will not be able to reach it."
+            f"Directory {directory} is an invalid FsPath type!"
         )
 
 
 def _remove_rights(directory):
     if isinstance(directory, EosPath):
         raise NotImplementedError("Ask CERN IT for explanation...")
-    if isinstance(directory, LocalPath):
+    elif isinstance(directory, LocalPath):
         raise NotImplementedError(
             "Local directories are not supported for BOINC server registration."
         )
-    if isinstance(directory, AfsPath):
+    elif isinstance(directory, AfsPath):
         if not directory.is_dir():
             raise ValueError(
                 f"Directory {directory} not found or not a directory (or no permissions)!"
             )
-        del directory.acl
+        directory.acl = {server_account: None}
     else:
         raise ValueError(
-            f"Directory {directory} not on EOS nor AFS! "
-            + "The xboinc server will not be able to reach it."
+            f"Directory {directory} is an invalid FsPath type!"
         )
 
 
@@ -101,6 +98,15 @@ def register(user, directory):
     """
 
     assert eos_accessible
+    try :
+        if not is_egroup_member("xboinc-submitters"):
+            raise RuntimeError(
+                "You are not a member of the xboinc-submitters egroup! "
+                + "Please add yourself to this egroup to register users."
+            )
+    except OSError:
+        warn("Eos command not available, skipping egroup check.\n"
+             "Make sure you are a member of the xboinc-submitters egroup.")
     directory = FsPath(directory)
     if not directory.is_dir():
         raise ValueError(
@@ -130,21 +136,20 @@ def register(user, directory):
     except Exception as e:
         user_file.unlink()
         raise e
-    if FsPath(dropdir / f"de{user_file.name}").exists():
-        FsPath(dropdir / f"de{user_file.name}").rmdir()
+    if (ff := FsPath(dropdir / f"de{user_file.name}")).exists():
+        ff.unlink()
         print("Removed existing deregistration file on server dropdir.")
-    if FsPath(dropdir / f"dev_de{user_file.name}").exists():
-        FsPath(dropdir / f"dev_de{user_file.name}").rmdir()
-    if FsPath(dropdir / user_file.name).exists():
-        FsPath(dropdir / user_file.name).rmdir()
+    if (ff := FsPath(dropdir / f"dev_de{user_file.name}")).exists():
+        ff.unlink()
+        print("Removed existing deregistration file on dev server dropdir.")
+    if (ff := FsPath(dropdir / user_file.name)).exists():
+        ff.unlink()
         print("Replaced existing registration file on server dropdir.")
-    if FsPath(dropdir / f"dev_{user_file.name}").exists():
-        FsPath(dropdir / f"dev_{user_file.name}").rmdir()
+    if (ff := FsPath(dropdir / f"dev_{user_file.name}")).exists():
+        ff.unlink()
+        print("Replaced existing registration file on dev server dropdir.")
     try:
-        FsPath(user_file).copy_to(dropdir)
-        FsPath(
-            dropdir / user_file.name,
-        ).move_to(dropdir / f"dev_{user_file.name}")
+        FsPath(user_file).copy_to(dropdir / f"dev_{user_file.name}")
         FsPath(user_file).copy_to(dropdir)
     except Exception as exc:
         user_file.unlink()
@@ -200,16 +205,14 @@ def deregister(user):
                 )
                 # show the error message
                 print(f"Error: {e}")
-    if FsPath(dropdir / user_file.name[2:]).exists():
-        FsPath(dropdir / user_file.name[2:]).rmdir()
+    if (ff := FsPath(dropdir / user_file.name[2:])).exists():
+        ff.unlink()
         print("Removed existing registration file on server dropdir.")
-    if FsPath(dropdir / f"dev_{user_file.name[2:]}").exists():
-        FsPath(dropdir / f"dev_{user_file.name[2:]}").rmdir()
+    if (ff := FsPath(dropdir / f"dev_{user_file.name[2:]}")).exists():
+        ff.unlink()
+        print("Removed existing registration file on dev server dropdir.")
     try:
-        FsPath(user_file).copy_to(dropdir)
-        FsPath(
-            dropdir / user_file.name,
-        ).move_to(dropdir / f"dev_{user_file.name}")
+        FsPath(user_file).copy_to(dropdir / f"dev_{user_file.name}")
         FsPath(user_file).copy_to(dropdir)
     except Exception as exc:
         user_file.unlink()

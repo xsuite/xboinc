@@ -20,7 +20,7 @@ from .version import XbVersion, assert_versions
 
 
 class XbState(xo.Struct):
-    _version   = XbVersion    # This HAS to be the first field!
+    _version   = XbVersion     # This HAS to be the first field!
     _i_turn    = xo.Int64      # Current turn in tracking (not necessarily the same as particles.at_turn)
     _xsize     = xo.Int64      # Needed to have access to the size in C
     _particles = xt.Particles._XoStruct
@@ -48,12 +48,12 @@ class XbState(xo.Struct):
         """
         Create an XbState from a binary file. The file should not
         contain anything else (otherwise the offset will be wrong).
-    
+
         Parameters
         ----------
         filename : pathlib.Path
             The binary containing the simulation state.
-    
+
         Returns
         -------
         XbState
@@ -81,12 +81,12 @@ class XbState(xo.Struct):
     def to_binary(self, filename):
         """
         Dump the XbState to a binary file.
-    
+
         Parameters
         ----------
         filename : pathlib.Path
             The binary containing the simulation state.
-    
+
         Returns
         -------
         None.

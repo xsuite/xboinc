@@ -5,15 +5,13 @@
 
 import json
 import tarfile
-from pathlib import Path
-import tempfile
 import numpy as np
 from time import sleep
 
 import xobjects as xo
 import xtrack as xt
-from xaux import FsPath
-from xaux.fs import eos_accessible
+from xaux import FsPath, eos_accessible
+from xaux.fs.temp import _tempdir
 
 from .user import get_domain, get_directory
 from .server import timestamp
@@ -46,7 +44,7 @@ def _preprocess_line(line, options):
         has_tracker = True
         buffer = line._buffer
         io_buffer = line.tracker.io_buffer
-        self.discard_tracker()
+        line.discard_tracker()
     # Optimise
     if not this_options["remove_markers"]:
         line.remove_markers()
@@ -142,9 +140,7 @@ class SubmitJobs:
         self._submit_file = f"{self._user}__{self._study_name}__{timestamp()}.tar.gz"
         self._json_files = []
         self._bin_files = []
-        self._temp = tempfile.TemporaryDirectory()
-        self._tempdir = Path(self._temp.name).resolve()
-        self._tempdir.mkdir(parents=True, exist_ok=True)
+        self._tempdir = FsPath(_tempdir).resolve()
         self._submitted = False
 
     def _assert_not_submitted(self):
@@ -219,8 +215,8 @@ class SubmitJobs:
 
         sleep(0.001)  # To enforce different filenames
         filename = f"{self._user}__{timestamp(ms=True)}"
-        json_file = Path(self._tempdir, f"{filename}.json")
-        bin_file = Path(self._tempdir, f"{filename}.bin")
+        json_file = FsPath(self._tempdir, f"{filename}.json")
+        bin_file = FsPath(self._tempdir, f"{filename}.bin")
         # TODO: warn if job expected to be too short ( < 90s)
         json_dict = {
             "user": self._user,

@@ -4,12 +4,13 @@
 # ######################################### #
 
 import json
-from pathlib import Path
+from xaux import FsPath
 
 from .general import _pkg_root
 
 
-user_data_file = _pkg_root / 'user_data.json'
+user_data_file = FsPath(_pkg_root / 'user_data.json')
+
 if not user_data_file.exists():
     with user_data_file.open('w') as fid:
         json.dump({}, fid)
@@ -75,10 +76,10 @@ def get_directory(user):
 
     Returns
     -------
-    directory : pathlib.Path
+    directory : xaux.FsPath
         User metadata.
     """
-    return Path(get_user_data(user)['directory']).resolve()
+    return FsPath(get_user_data(user)['directory']).resolve()
 
 def get_domain(user):
     """
@@ -116,4 +117,4 @@ def remove_user(user):
         userdict.pop(user)
         with user_data_file.open('w') as fid:
             json.dump(userdict, fid)
-    
+
