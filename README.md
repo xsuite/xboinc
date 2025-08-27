@@ -114,8 +114,9 @@ When the jobs are completed, the Xboinc server will store the results in your al
 ```python
 import xboinc as xb
 
-for job_name, result_particles in xb.JobRetriever.iterate("mycernshortname", "a_relevant_study_name", dev_server=True):
+for job_name, job_metadata, result_particles in xb.JobRetriever.iterate("mycernshortname", "a_relevant_study_name", dev_server=True):
     print(f"Job {job_name} completed with particles: {result_particles.to_dict()}")
+    print(f"Job metadata: {job_metadata}")
 
 ```
 
