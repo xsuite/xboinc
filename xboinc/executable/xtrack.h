@@ -32,6 +32,8 @@ void XbState_set__i_turn(XbState,int64_t);
 ParticlesData XbState_getp__particles(XbState);
 int64_t XbState_get__particles__capacity(const XbState);
 int64_t XbState_get__particles_state(const XbState,int64_t);
+int64_t *XbState_getp1__io_buffer(XbState, int64_t);
+int64_t XbState_len__io_buffer(const XbState);
 ElementRefData XbState_getp__monitors_metadata(XbState);
 
 typedef struct XbInput_s * XbInput;
@@ -44,8 +46,11 @@ int64_t XbInput_get_num_elements(const XbInput);
 int64_t XbInput_get_ele_start(const XbInput);
 int64_t XbInput_get_ele_stop(const XbInput);
 int64_t XbInput_get_num_monitors(const XbInput);
+int64_t XbInput_get_size_io_buffer(const XbInput);
 int64_t XbInput_get_idx_monitors(const XbInput, int64_t);
 int64_t XbInput_get_size_monitors(const XbInput, int64_t);
+int64_t *XbInput_getp1_io_buffer(XbInput, int64_t);
+int64_t XbInput_len_io_buffer(const XbInput);
 XbState XbInput_getp_xb_state(XbInput);
 int64_t XbInput_get_xb_state__xsize(const XbInput);
 

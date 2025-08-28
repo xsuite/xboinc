@@ -44,6 +44,8 @@ class XbInput(xo.Struct):
     ele_stop = xo.Int64  # The end index of the elements in the line
     checkpoint_every = xo.Int64
     num_monitors = xo.Int64  # Number of monitors in the line
+    size_io_buffer = xo.Int64 # Size of the I/O buffer
+    io_buffer = xo.Ref(xo.Int64[:])  # will this work?
     idx_monitors = xo.Ref(xo.Int64[:])  # Indices of the monitors in the line
     size_monitors = xo.Ref(xo.Int64[:])  # Buffer size of the monitors
     line_metadata = xo.Ref(ElementRefData)
@@ -72,6 +74,8 @@ class XbInput(xo.Struct):
         checkpoint_every : Int64, optional
             When to checkpoint. The default value -1 represents no
             checkpointing.
+        io_buffer : BufferNumpy, optional
+            The I/O buffer to use for the simulation. By default is None.
         store_element_names : bool, optional
             Whether or not to store the element names in the binary.
             Defaults to True.
@@ -127,6 +131,13 @@ class XbInput(xo.Struct):
         kwargs["idx_monitors"] = np.array(monitor_indices, dtype=np.int64)
         kwargs["size_monitors"] = np.array(monitor_sizes, dtype=np.int64)
 
+        kwargs.setdefault("io_buffer", None)
+        if kwargs["io_buffer"] is None:
+            kwargs["size_io_buffer"] = 0
+        else:
+            kwargs["size_io_buffer"] = kwargs["io_buffer"].capacity
+            kwargs["io_buffer"] = kwargs["io_buffer"].buffer.view(np.int64).copy()
+
         # Initialize the parent class
         super().__init__(**kwargs)
 
@@ -152,6 +163,7 @@ class XbInput(xo.Struct):
                 _i_turn=0,
                 _buffer=self._buffer,
                 store_element_names=store_element_names,
+                _io_buffer=kwargs["io_buffer"],
             )
         elif not isinstance(xb_state, XbState):
             raise ValueError("Need to provide either `xb_state` or `particles`.")

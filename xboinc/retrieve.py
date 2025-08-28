@@ -7,6 +7,7 @@ import json
 from warnings import warn
 
 import pandas as pd
+import xtrack as xt
 from tqdm.auto import tqdm
 
 from xaux import FsPath, eos_accessible
@@ -285,7 +286,7 @@ class ResultRetriever:
 
         return result_job_names, diff_jobs
 
-    def iterate_results(self, study_name):
+    def iterate_results(self, study_name, line=None):
         """
         Iterate over all results for a specific study.
 
@@ -296,14 +297,18 @@ class ResultRetriever:
         ----------
         study_name : str
             Name of the study to iterate over
+        line : xt.Line, optional
+            If provided, the io_buffer from the results will be placed into its tracker and yielded. If not provided, the io_buffer will be yielded as is. By default, None.
 
         Yields
         ------
-        tuple of (str, xtrack.Particles, xtrack.Line)
+        tuple of (str, xtrack.Particles, xtrack.Line, xtrack.Line or BufferNumpy)
             - Job name
             - Corresponding particles object
             - A Line containing the monitors that were contained in the Line
               with the resulting data
+            - The provided line with its updated io_buffer or the original
+              io_buffer
 
         Raises
         ------
@@ -336,7 +341,12 @@ class ResultRetriever:
                     UserWarning,
                 )
                 continue
-            yield job_name, result.particles, result.monitors
+
+            if line is None:
+                yield job_name, result.particles, result.monitors, result.io_buffer
+            else:
+                result.place_io_buffer(line)
+                yield job_name, result.particles, result.monitors, line
 
     def clean(self, study_name):
         """

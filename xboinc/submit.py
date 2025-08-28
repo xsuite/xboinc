@@ -207,6 +207,7 @@ class JobManager:
         particles,
         line=None,
         checkpoint_every=-1,
+        with_records=False,
         **kwargs,
     ):
         """
@@ -240,6 +241,10 @@ class JobManager:
         checkpoint_every : int, optional
             Checkpoint interval in turns. Default is -1 (no checkpointing).
             If positive, simulation state will be saved every N turns.
+        with_records : bool, optional
+            If True, the io_buffer of the line, used for internal logging and
+            impact tables, will be included in the job submission. By default,
+            this is False.
         **kwargs
             Additional job metadata to be included in the job JSON file.
 
@@ -344,6 +349,11 @@ class JobManager:
         }
         with json_file.open("w", encoding="utf-8") as fid:
             json.dump(json_dict, fid, cls=xo.JEncoder)
+
+        if with_records:
+            if not hasattr(line.tracker, "io_buffer"):
+                raise ValueError("Line tracker is missing the io_buffer attribute. Have you built the tracker and activated the internal logging?")
+
         data = XbInput(
             num_turns=num_turns,
             line=line,
@@ -352,6 +362,7 @@ class JobManager:
             store_element_names=False,
             ele_start=ele_start,
             ele_stop=-ele_stop,
+            io_buffer=line.io_buffer if with_records else None,
         )
 
         # check the size of data
