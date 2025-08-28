@@ -18,7 +18,7 @@ from .simulation_io import XbState, assert_versions
 from .user import get_directory, get_domain
 
 
-class ResultRetriever:
+class JobRetriever:
     """
     Class to retrieve and manage results from Xboinc simulations.
 
@@ -41,7 +41,7 @@ class ResultRetriever:
 
     Examples
     --------
-    >>> retriever = ResultRetriever('myuser', dev_server=True)
+    >>> retriever = JobRetriever('myuser', dev_server=True)
     >>> studies = retriever.get_study_list()
     >>> for job_name, particles in retriever.iterate_results('my_study'):
     ...     # Process particles data
@@ -51,7 +51,7 @@ class ResultRetriever:
     def _untar_results(self, path: FsPath, silent: bool = False):
         """
         Untar all compressed result files in the given path.
-        
+
         Parameters
         ----------
         path : FsPath
@@ -117,7 +117,7 @@ class ResultRetriever:
 
     def __init__(self, user, dev_server=False, silent=False):
         """
-        Initialize the ResultRetriever for a specific user.
+        Initialize the JobRetriever for a specific user.
 
         Parameters
         ----------
@@ -138,7 +138,7 @@ class ResultRetriever:
 
         Examples
         --------
-        >>> retriever = ResultRetriever('myuser', dev_server=True, silent=True)
+        >>> retriever = JobRetriever('myuser', dev_server=True, silent=True)
         >>> overview = retriever.get_overview()
         """
 
@@ -322,7 +322,7 @@ class ResultRetriever:
 
         Examples
         --------
-        >>> retriever = ResultRetriever('myuser', dev_server=True)
+        >>> retriever = JobRetriever('myuser', dev_server=True)
         >>> for job_name, particles, monitors in retriever.iterate_results('my_study'):
         ...     print(f"Processing job: {job_name}")
         ...     print(f"Number of particles: {len(particles.x)}")
@@ -389,7 +389,7 @@ class ResultRetriever:
         """
         Class method to directly iterate over results for a user and study.
 
-        Convenient method that creates a ResultRetriever instance and immediately
+        Convenient method that creates a JobRetriever instance and immediately
         starts iterating over results without requiring explicit instantiation.
 
         Parameters
@@ -410,7 +410,7 @@ class ResultRetriever:
 
         Examples
         --------
-        >>> for job_name, particles in ResultRetriever.iterate('myuser', 'my_study', dev_server=True):
+        >>> for job_name, particles in JobRetriever.iterate('myuser', 'my_study', dev_server=True):
         ...     # Process particles data
         ...     pass
         """
@@ -438,7 +438,7 @@ class ResultRetriever:
 
         Examples
         --------
-        >>> overview_df = ResultRetriever.overview('myuser', dev_server=True)
+        >>> overview_df = JobRetriever.overview('myuser', dev_server=True)
         >>> print(overview_df.groupby('study_name').size())
         """
         instance = cls(user, dev_server=dev_server, silent=silent)
@@ -470,7 +470,7 @@ class ResultRetriever:
 
         Examples
         --------
-        >>> available, missing = ResultRetriever.status('myuser', 'my_study', dev_server=True)
+        >>> available, missing = JobRetriever.status('myuser', 'my_study', dev_server=True)
         >>> print(f"Available jobs: {len(available)}, Missing jobs: {len(missing)}")
         """
         instance = cls(user, dev_server=dev_server, silent=silent)
@@ -497,7 +497,7 @@ class ResultRetriever:
 
         Examples
         --------
-        >>> studies = ResultRetriever.study_list('myuser', dev_server=True)
+        >>> studies = JobRetriever.study_list('myuser', dev_server=True)
         >>> print(studies)
         """
         instance = cls(user, dev_server=dev_server, silent=silent)

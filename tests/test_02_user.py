@@ -1,6 +1,6 @@
 # copyright ############################### #
 # This file is part of the Xboinc Package.  #
-# Copyright (c) CERN, 2024.                 #
+# Copyright (c) CERN, 2025.                 #
 ########################################### #
 
 import json
@@ -10,6 +10,8 @@ from pathlib import Path
 from typing import Any, Dict
 
 import pytest
+
+from xaux import FsPath
 
 import xboinc as xb
 from xboinc.server import dropdir
@@ -21,9 +23,9 @@ class TestConfig:
     """Configuration constants for user management tests."""
 
     # Server account to be use for performing the testing
-    TEST_ACCOUNT = "testuser"
-    TEST_AFS = Path(f"/afs/cern.ch/user/{TEST_ACCOUNT[0]}/{TEST_ACCOUNT}/test_xboinc")
-    TEST_EOS = Path(f"/eos/home-{TEST_ACCOUNT[0]}/{TEST_ACCOUNT}/test_xboinc")
+    TEST_ACCOUNT = os.getlogin()
+    TEST_AFS = FsPath(f"/afs/cern.ch/user/{TEST_ACCOUNT[0]}/{TEST_ACCOUNT}/test_xboinc")
+    TEST_EOS = FsPath(f"/eos/home/{TEST_ACCOUNT[0]}/{TEST_ACCOUNT}/test_xboinc")
 
     # Required directory structure for registered users
     REQUIRED_DIRECTORIES = ["input", "output", "input_dev", "output_dev"]
@@ -33,6 +35,7 @@ class TestConfig:
     DEREGISTER_PREFIX = "deregister"
     DEV_REGISTER_PREFIX = "dev_register"
     DEV_DEREGISTER_PREFIX = "dev_deregister"
+
 
 
 def get_server_file_paths(account: str) -> Dict[str, Path]:
@@ -97,7 +100,7 @@ def assert_user_data(
 
     # Check user data dictionary
     user_data = get_user_data(account)
-    assert user_data["directory"] == Path(expected_directory).as_posix()
+    assert user_data["directory"] == FsPath(expected_directory).as_posix()
     assert user_data["domain"] == expected_domain
 
 
@@ -214,7 +217,27 @@ def server_files():
             file_path.unlink()
 
 
-def test_register(server_files):
+@pytest.mark.parametrize(
+    "user_path",
+    [
+        pytest.param(
+            ['afs', TestConfig.TEST_AFS],
+            marks=pytest.mark.skipif(
+                not TestConfig.TEST_AFS.exists(),
+                reason=f"Test user AFS path does not exist ({TestConfig.TEST_AFS})",
+            ),
+        ),
+        pytest.param(
+            ['eos', TestConfig.TEST_EOS],
+            marks=pytest.mark.skipif(
+                not TestConfig.TEST_EOS.exists(),
+                reason=f"Test user EOS path does not exist ({TestConfig.TEST_EOS})",
+            ),
+        ),
+    ],
+    ids=["AFS path", "EOS path"],
+)
+def test_register(server_files, user_path):
     """
     Test user registration with AFS storage backend.
 
@@ -224,25 +247,51 @@ def test_register(server_files):
     - Registration files are created with correct content
     - EOS registration raises NotImplementedError
     """
-    # Test successful AFS registration
-    # print(f"Registering user {TestConfig.TEST_ACCOUNT} with AFS storage")
-    xb.register(TestConfig.TEST_ACCOUNT, TestConfig.TEST_AFS)
 
-    # Verify registration files
-    assert_registration_files(
-        server_files, TestConfig.TEST_ACCOUNT, dropdir, "afs", should_exist=True
-    )
+    if user_path[0] == 'eos':
+        # Test that EOS registration is not yet implemented
+        with pytest.raises(NotImplementedError):
+            xb.register(TestConfig.TEST_ACCOUNT, user_path[1])
 
-    # Verify user data and directory structure
-    assert_user_data(TestConfig.TEST_ACCOUNT, TestConfig.TEST_AFS, "afs")
-    assert_directory_structure(TestConfig.TEST_AFS)
+        # Force usage with flag
+        xb.register(TestConfig.TEST_ACCOUNT, user_path[1], permissions_given=True)
 
-    # Test that EOS registration is not yet implemented
-    with pytest.raises(NotImplementedError):
-        xb.register(TestConfig.TEST_ACCOUNT, TestConfig.TEST_EOS)
+    else:
+        # Test successful registration
+        # print(f"Registering user {TestConfig.TEST_ACCOUNT}")
+        xb.register(TestConfig.TEST_ACCOUNT, user_path[1])
+
+        # Verify registration files
+        assert_registration_files(
+            server_files, TestConfig.TEST_ACCOUNT, dropdir, user_path[0], should_exist=True
+        )
+
+        # Verify user data and directory structure
+        assert_user_data(TestConfig.TEST_ACCOUNT, user_path[1], user_path[0])
+        assert_directory_structure(user_path[1])
 
 
-def test_deregister(server_files):
+@pytest.mark.parametrize(
+    "user_path",
+    [
+        pytest.param(
+            ['afs', TestConfig.TEST_AFS],
+            marks=pytest.mark.skipif(
+                not TestConfig.TEST_AFS.exists(),
+                reason=f"Test user AFS path does not exist ({TestConfig.TEST_AFS})",
+            ),
+        ),
+        pytest.param(
+            ['eos', TestConfig.TEST_EOS],
+            marks=pytest.mark.skipif(
+                not TestConfig.TEST_EOS.exists(),
+                reason=f"Test user EOS path does not exist ({TestConfig.TEST_EOS})",
+            ),
+        ),
+    ],
+    ids=["AFS path", "EOS path"],
+)
+def test_deregister(server_files, user_path):
     """
     Test user deregistration functionality.
 
@@ -252,9 +301,12 @@ def test_deregister(server_files):
     - Registration files are removed
     - Deregistration files are created
     """
-    # Register the user first
-    xb.register(TestConfig.TEST_ACCOUNT, TestConfig.TEST_AFS)
-    # print(os.listdir(dropdir))
+
+    if user_path[0] != 'eos':
+        # Register the user first
+        xb.register(TestConfig.TEST_ACCOUNT, user_path[1])
+        # print(os.listdir(dropdir))
+
     # Perform deregistration
     xb.deregister(TestConfig.TEST_ACCOUNT)
     # print(os.listdir(dropdir))

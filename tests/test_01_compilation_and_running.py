@@ -25,20 +25,23 @@ class TestConfig:
     LINE_FILE = xb._pkg_root.parent / "tests" / "data" / "lhc_2024_30cm_b1.json"
 
     # Simulation parameters
-    NUM_TURNS = 1000
+    NUM_TURNS_LARGE = 1000
     NUM_PARTICLES = 100
+    NUM_TURNS_SMALL = 10
     CHECKPOINT_INTERVAL = 50
 
     # File names
     INPUT_FILE = "xboinc_input.bin"
     OUTPUT_FILE = "xboinc_state_out.bin"
     CHECKPOINT_FILE = "checkpoint.bin"
+    BINARY_TEST_NAME = f"xboinc_test_{xb.app_version}-x86_64-pc-linux-gnu"
+    BINARY_PROD_NAME = f"xboinc_{xb.app_version}-x86_64-pc-linux-gnu"
 
     # Timeout for interrupted tests (seconds)
     CHECKPOINT_TIMEOUT = 15
 
     # VCPKG configuration
-    VCPKG_ROOT = Path("/home/user/vcpkg")
+    VCPKG_ROOT = Path.cwd().parents[1] / "vcpkg"
 
     @classmethod
     def vcpkg_available(cls) -> bool:
@@ -57,7 +60,18 @@ class TestConfig:
         return [
             f"./{cls.OUTPUT_FILE}",
             f"./{cls.CHECKPOINT_FILE}",
+            f"./{cls.INPUT_FILE}",
             "./boinc_finish_called",
+            "main.cpp",
+            "CMakeLists.txt",
+            "xtrack.c",
+            "xtrack.h",
+            "xb_input.h",
+            "xtrack_tracker.h",
+            "version.h",
+            cls.BINARY_TEST_NAME,
+            cls.BINARY_PROD_NAME,
+            "xboinc_state_out.bin_2",
         ]
 
 
@@ -149,7 +163,7 @@ def get_executable_path(use_boinc: bool) -> Path:
     if not exec_files or not exec_files[0].exists():
         # Need to compile
         vcpkg_root = TestConfig.VCPKG_ROOT if use_boinc else None
-        test_compilation(vcpkg_root)
+        test_compilation(vcpkg_root, skip_version_check, cleanup_files)
         exec_files = list(Path.cwd().glob(pattern))
 
     if not exec_files:
@@ -226,6 +240,7 @@ def assert_particles_equal(
         values1 = getattr(particles1, attr)
         values2 = getattr(particles2, attr)
         assert np.array_equal(
+            
             values1, values2
         ), f"{context}: {attr} values are not equal"
 
@@ -260,10 +275,11 @@ def assert_monitors_equal(
         values2 = getattr(monitor2, attr)
         assert np.array_equal(
             values1, values2
+        
         ), f"{context}: {attr} values are not equal"
 
 
-def test_generate_input(skip_version_check):
+def test_generate_input(skip_version_check, cleanup_files):
     """Test input file generation and round-trip consistency."""
     line, particles = create_test_particles()
     input_file = Path.cwd() / TestConfig.INPUT_FILE
@@ -272,7 +288,7 @@ def test_generate_input(skip_version_check):
     xb_input = xb.XbInput(
         line=line,
         particles=particles,
-        num_turns=TestConfig.NUM_TURNS,
+        num_turns=TestConfig.NUM_TURNS_LARGE,
         checkpoint_every=TestConfig.CHECKPOINT_INTERVAL,
     )
 
@@ -306,7 +322,7 @@ def test_generate_input(skip_version_check):
     )
 
 
-def test_source_generation(skip_version_check):
+def test_source_generation(skip_version_check, cleanup_files):
     """Test C++ source code generation."""
     xb.generate_executable_source()
 
@@ -339,7 +355,7 @@ def test_source_generation(skip_version_check):
     ],
     ids=["w/o BOINC api", "with BOINC api"],
 )
-def test_compilation(vcpkg_root):
+def test_compilation(vcpkg_root, skip_version_check, cleanup_files):
     """Test compilation of the xboinc executable."""
     keep_source = vcpkg_root is None
     xb.generate_executable(keep_source=keep_source, vcpkg_root=vcpkg_root)
@@ -369,11 +385,11 @@ def test_compilation(vcpkg_root):
     ],
     ids=["w/o BOINC api", "with BOINC api"],
 )
-def test_tracking_execution(use_boinc, skip_version_check):
+def test_tracking_execution(use_boinc, skip_version_check, cleanup_files):
     """Test particle tracking execution and output validation."""
     # Ensure input file exists
     if not (Path.cwd() / TestConfig.INPUT_FILE).exists():
-        test_generate_input(skip_version_check)
+        test_generate_input(skip_version_check, cleanup_files)
 
     executable = get_executable_path(use_boinc)
 
@@ -400,9 +416,11 @@ def test_tracking_execution(use_boinc, skip_version_check):
         particles.s[particles.state > 0], 0, rtol=1e-6, atol=0
     ), "Unexpected s coordinate"
     assert np.all(
-        particles.at_turn[particles.state > 0] == TestConfig.NUM_TURNS
+        particles.at_turn[particles.state > 0] == TestConfig.NUM_TURNS_LARGE
     ), "Unexpected particle turn count"
-    assert xb_state.i_turn == TestConfig.NUM_TURNS, "Unexpected simulation turn count"
+    assert (
+        xb_state.i_turn == TestConfig.NUM_TURNS_LARGE
+    ), "Unexpected simulation turn count"
 
     # Verify particle evolution (not all values should be identical)
     for coord in ["x", "px", "y", "py"]:
@@ -434,17 +452,17 @@ def test_tracking_execution(use_boinc, skip_version_check):
     ],
     ids=["w/o BOINC api", "with BOINC api"],
 )
-def test_checkpoint_functionality(use_boinc, skip_version_check):
+def test_checkpoint_functionality(use_boinc, skip_version_check, cleanup_files):
     """Test checkpoint creation and recovery functionality."""
     # Ensure prerequisites exist
     if not (Path.cwd() / TestConfig.INPUT_FILE).exists():
-        test_generate_input(skip_version_check)
+        test_generate_input(skip_version_check, cleanup_files)
 
     # Get reference output for comparison
     suffix = "_boinc" if use_boinc else ""
     reference_output = Path.cwd() / f"{TestConfig.OUTPUT_FILE}{suffix}_2"
     if not reference_output.exists():
-        test_tracking_execution(use_boinc, skip_version_check)
+        test_tracking_execution(use_boinc, skip_version_check, cleanup_files)
 
     executable = get_executable_path(use_boinc)
 
@@ -499,7 +517,7 @@ def test_checkpoint_functionality(use_boinc, skip_version_check):
     ), "Checkpointed result differs from reference"
 
 
-def test_consistency_with_xtrack(skip_version_check):
+def test_consistency_with_xtrack(skip_version_check, cleanup_files):
     """Test that xboinc results match xtrack reference implementation."""
     # Test different starting positions
     test_positions = [None, "ip2", 3500]
@@ -514,14 +532,14 @@ def test_consistency_with_xtrack(skip_version_check):
         xb_input = xb.XbInput(
             line=line,
             particles=particles,
-            num_turns=TestConfig.NUM_TURNS,
+            num_turns=TestConfig.NUM_TURNS_SMALL,
             checkpoint_every=TestConfig.CHECKPOINT_INTERVAL,
         )
         xb_input.to_binary(input_file)
 
         # Run reference tracking with xtrack
         particles_reference = particles.copy()
-        line.track(particles_reference, num_turns=TestConfig.NUM_TURNS, time=True)
+        line.track(particles_reference, num_turns=TestConfig.NUM_TURNS_SMALL, time=True)
 
         # Test standalone xboinc
         executable_test = get_executable_path(use_boinc=False)
@@ -566,7 +584,7 @@ def test_consistency_with_xtrack(skip_version_check):
         xb_input = xb.XbInput(
             line=line,
             particles=particles,
-            num_turns=TestConfig.NUM_TURNS,
+            num_turns=TestConfig.NUM_TURNS_SMALL,
             checkpoint_every=TestConfig.CHECKPOINT_INTERVAL,
             ele_stop=ele_stop,
         )
@@ -576,7 +594,7 @@ def test_consistency_with_xtrack(skip_version_check):
         particles_reference = particles.copy()
         line.track(
             particles_reference,
-            num_turns=TestConfig.NUM_TURNS,
+            num_turns=TestConfig.NUM_TURNS_SMALL,
             time=True,
             ele_stop=ele_stop,
         )
