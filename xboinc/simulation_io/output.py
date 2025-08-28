@@ -27,6 +27,7 @@ class XbState(xo.Struct):
     _i_turn = xo.Int64  # Current turn in tracking
     _xsize = xo.Int64  # Needed to have access to the size in C
     _particles = xt.Particles._XoStruct
+    _io_buffer = xo.Ref(xo.Int64[:])  # will this work?
     _monitors_metadata = xo.Ref(ElementRefData)
 
     def __init__(self, monitor_line=None, **kwargs):
@@ -143,6 +144,17 @@ class XbState(xo.Struct):
             digits = int(np.ceil(np.log10(n)))
             names = [f"el_{i:>0{digits}}" for i in range(n)]
         return xt.Line(elements=elements, element_names=names)
+
+    @property
+    def io_buffer(self):
+        return self._io_buffer
+
+    def place_io_buffer(self, line):
+        """Given a xt.Line, place the io_buffer into the tracker."""
+        line.tracker.io_buffer.update_from_nplike(
+            0, "int8", self._io_buffer.to_nparray().view(np.int8)
+        )
+        return line
 
 
 def _check_config(line):
