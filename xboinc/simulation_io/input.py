@@ -16,10 +16,20 @@ from pathlib import Path
 import numpy as np
 import xobjects as xo
 import xtrack as xt
+from xcoll.beam_elements.monitor import EmittanceMonitor
+from xtrack.monitors import (
+    ParticlesMonitor,
+    LastTurnsMonitor,
+    BeamSizeMonitor,
+    BeamProfileMonitor,
+    BeamPositionMonitor,
+)
 
 from .default_tracker import ElementRefData
 from .output import XbState, _build_line_metadata
 from .version import XbVersion, assert_versions
+
+ALLOWED_MONITOR_CLASSES = (EmittanceMonitor, ParticlesMonitor, LastTurnsMonitor, BeamSizeMonitor, BeamProfileMonitor, BeamPositionMonitor)
 
 # TODO: line.particle_ref is not dumped nor retrieved... Why is this no issue?
 # TODO: parity
@@ -122,7 +132,7 @@ class XbInput(xo.Struct):
         monitor_line = xt.Line()
 
         for name, element in line.element_dict.items():
-            if str(type(element)).startswith("<class 'xtrack.monitors.particles_monitor."):
+            if isinstance(element, ALLOWED_MONITOR_CLASSES):
                 monitor_line.append(name, element)
                 monitor_indices.append(line.element_names.index(name))
                 monitor_sizes.append(element._xobject._size)
