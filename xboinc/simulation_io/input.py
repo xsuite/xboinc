@@ -29,7 +29,14 @@ from .default_tracker import ElementRefData
 from .output import XbState, _build_line_metadata
 from .version import XbVersion, assert_versions
 
-ALLOWED_MONITOR_CLASSES = (EmittanceMonitor, ParticlesMonitor, LastTurnsMonitor, BeamSizeMonitor, BeamProfileMonitor, BeamPositionMonitor)
+ALLOWED_MONITOR_CLASSES = (
+    EmittanceMonitor,
+    ParticlesMonitor,
+    LastTurnsMonitor,
+    BeamSizeMonitor,
+    BeamProfileMonitor,
+    BeamPositionMonitor,
+)
 
 # TODO: line.particle_ref is not dumped nor retrieved... Why is this no issue?
 # TODO: parity
@@ -55,7 +62,7 @@ class XbInput(xo.Struct):
     checkpoint_every = xo.Int64
     num_monitors = xo.Int64  # Number of monitors in the line
     size_io_buffer = xo.Int64 # Size of the I/O buffer
-    io_buffer = xo.Ref(xo.Int64[:])  # will this work?
+    io_buffer = xo.Ref(xo.Int64[:])  # I/O buffer to be used in the tracking
     idx_monitors = xo.Ref(xo.Int64[:])  # Indices of the monitors in the line
     size_monitors = xo.Ref(xo.Int64[:])  # Buffer size of the monitors
     line_metadata = xo.Ref(ElementRefData)

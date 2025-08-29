@@ -27,7 +27,7 @@ class XbState(xo.Struct):
     _i_turn = xo.Int64  # Current turn in tracking
     _xsize = xo.Int64  # Needed to have access to the size in C
     _particles = xt.Particles._XoStruct
-    _io_buffer = xo.Ref(xo.Int64[:])  # will this work?
+    _io_buffer = xo.Ref(xo.Int64[:])  # I/O buffer to be returned
     _monitors_metadata = xo.Ref(ElementRefData)
 
     def __init__(self, monitor_line=None, **kwargs):
