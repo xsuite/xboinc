@@ -105,13 +105,22 @@ class JobRetriever:
                 job_name = parts[2]
                 wu_name = bin_file.name.replace(".bin", "")
                 # append to the DataFrame
-                new_row = pd.DataFrame([{
-                    "user": user,
-                    "study_name": study_name,
-                    "job_name": job_name,
-                    "wu_name": wu_name,
-                    "bin_file": bin_file,
-                }])
+                new_row = pd.DataFrame(
+                    [
+                        {
+                            "user": user,
+                            "study_name": study_name,
+                            "job_name": job_name,
+                            "wu_name": wu_name,
+                            "bin_file": bin_file,
+                            "json_file": bin_file.with_name(
+                                bin_file.name.replace(
+                                    "__file_xboinc_state_out.bin", ".json"
+                                )
+                            ),
+                        }
+                    ]
+                )
                 df = pd.concat([df, new_row], ignore_index=True)
         return df
 
@@ -302,8 +311,9 @@ class JobRetriever:
 
         Yields
         ------
-        tuple of (str, xtrack.Particles, xtrack.Line, xtrack.Line or BufferNumpy)
+        tuple of (str, dict, xtrack.Particles, xtrack.Line, xtrack.Line or BufferNumpy)
             - Job name
+            - Metadata about the job
             - Corresponding particles object
             - A Line containing the monitors that were contained in the Line
               with the resulting data
@@ -333,6 +343,7 @@ class JobRetriever:
         for row in self._df[self._df["study_name"] == study_name].itertuples():
             job_name = row.job_name
             bin_file = row.bin_file
+            json_file = row.json_file
             result = XbState.from_binary(bin_file, raise_version_error=False)
             if result is None:
                 warn(
@@ -346,7 +357,22 @@ class JobRetriever:
                 yield job_name, result.particles, result.monitors, result.io_buffer
             else:
                 result.place_io_buffer(line)
-                yield job_name, result.particles, result.monitors, line
+            try:
+                with open(json_file, "r") as f:
+                    metadata = json.load(f)
+                # is metadata an empty dict?
+                if not metadata:
+                    warn(
+                        f"Warning: The JSON file {json_file} is empty.",
+                        UserWarning,
+                    )
+            except FileNotFoundError:
+                warn(
+                    f"Warning: The JSON file {json_file} was not found.",
+                    UserWarning,
+                )
+                metadata = {}
+            yield job_name, metadata, result.particles, result.monitors, line
 
     def clean(self, study_name):
         """
@@ -376,6 +402,9 @@ class JobRetriever:
             bin_file = row.bin_file
             if bin_file.exists():
                 bin_file.unlink()
+            json_file = row.json_file
+            if json_file.exists():
+                json_file.unlink()
         # Remove empty directories
         for folder in self._directory.glob("*/"):
             if not any(folder.iterdir()):

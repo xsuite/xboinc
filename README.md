@@ -120,13 +120,14 @@ When the jobs are completed, the Xboinc server will store the results in your al
 ```python
 import xboinc as xb
 
-for job_name, result_particles, line_of_monitors in xb.JobRetriever.iterate("mycernshortname", "a_relevant_study_name", dev_server=True):
+for job_name, job_metadata, result_particles, line_of_monitors, io_buffer in xb.JobRetriever.iterate("mycernshortname", "a_relevant_study_name", dev_server=True):
     print(f"Job {job_name} completed!")
     # Tracked particles are available directly
     print(result_particles.at_turn)
     # Monitors are stored in a separate line with only monitors inside
     # You can access them by their given name as you would in your original line!
     print(line_of_monitors.element_dict["my_monitor"].x) 
+    print(f"Job metadata: {job_metadata}")
 
 ```
 
