@@ -358,7 +358,7 @@ def test_retrieval(registered_user):
         shutil.copy(tar_file, output_dir)
 
     # Iterate through jobs and validate results
-    for _, result_particles in xb.JobRetriever.iterate(
+    for _, _, result_particles in xb.JobRetriever.iterate(
         "testuser", "example_study_fourth", dev_server=True
     ):
         assert len(result_particles.x) == 100
