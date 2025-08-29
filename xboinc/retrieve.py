@@ -104,13 +104,22 @@ class JobRetriever:
                 job_name = parts[2]
                 wu_name = bin_file.name.replace(".bin", "")
                 # append to the DataFrame
-                new_row = pd.DataFrame([{
-                    "user": user,
-                    "study_name": study_name,
-                    "job_name": job_name,
-                    "wu_name": wu_name,
-                    "bin_file": bin_file,
-                }])
+                new_row = pd.DataFrame(
+                    [
+                        {
+                            "user": user,
+                            "study_name": study_name,
+                            "job_name": job_name,
+                            "wu_name": wu_name,
+                            "bin_file": bin_file,
+                            "json_file": bin_file.with_name(
+                                bin_file.name.replace(
+                                    "__file_xboinc_state_out.bin", ".json"
+                                )
+                            ),
+                        }
+                    ]
+                )
                 df = pd.concat([df, new_row], ignore_index=True)
         return df
 
@@ -299,8 +308,8 @@ class JobRetriever:
 
         Yields
         ------
-        tuple of (str, xpart.Particles)
-            Job name and corresponding particles object for each result
+        tuple of (str, dict, xpart.Particles)
+            Job name, corresponding metadata, and particles object for each result
 
         Raises
         ------
@@ -324,6 +333,7 @@ class JobRetriever:
         for row in self._df[self._df["study_name"] == study_name].itertuples():
             job_name = row.job_name
             bin_file = row.bin_file
+            json_file = row.json_file
             result = XbState.from_binary(bin_file, raise_version_error=False)
             if result is None:
                 warn(
@@ -332,7 +342,22 @@ class JobRetriever:
                     UserWarning,
                 )
                 continue
-            yield job_name, result.particles
+            try:
+                with open(json_file, "r") as f:
+                    metadata = json.load(f)
+                # is metadata an empty dict?
+                if not metadata:
+                    warn(
+                        f"Warning: The JSON file {json_file} is empty.",
+                        UserWarning,
+                    )
+            except FileNotFoundError:
+                warn(
+                    f"Warning: The JSON file {json_file} was not found.",
+                    UserWarning,
+                )
+                metadata = {}
+            yield job_name, metadata, result.particles
 
     def clean(self, study_name):
         """
@@ -362,6 +387,9 @@ class JobRetriever:
             bin_file = row.bin_file
             if bin_file.exists():
                 bin_file.unlink()
+            json_file = row.json_file
+            if json_file.exists():
+                json_file.unlink()
         # Remove empty directories
         for folder in self._directory.glob("*/"):
             if not any(folder.iterdir()):

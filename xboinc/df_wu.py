@@ -94,23 +94,23 @@ def query_registered_work_units(
     return all_df
 
 
-def query_subscribed_users() -> list[str]:
+def query_subscribed_users() -> list[tuple[str, str]]:
     """
-    Get a list of all users subscribed to the work unit database.
+    Get a list of all users subscribed to the work unit database with their status.
 
     Returns
     -------
-    list[str]
-        List of usernames subscribed to the work unit database.
+    list[tuple[str, str]]
+        List of tuples containing (username, status) for users subscribed to the work unit database.
     """
     with _get_read_only_user_db_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT user FROM users")
-        users = [row[0] for row in cursor.fetchall()]
+        cursor.execute("SELECT user, status FROM users")
+        users = [(row[0], row[1]) for row in cursor.fetchall()]
     return users
 
 
-def check_user_subscription(user: str) -> bool:
+def check_user_subscription(user: str) -> str:
     """
     Check if a user is subscribed to the work unit database.
 
@@ -121,7 +121,12 @@ def check_user_subscription(user: str) -> bool:
 
     Returns
     -------
-    bool
-        True if the user is subscribed, False otherwise.
+    str
+        The status of the user if subscribed, "not_subscribed" otherwise,
+        "broken" if the user's directory is invalid.
     """
-    return user in query_subscribed_users()
+    users = query_subscribed_users()
+    for u, status in users:
+        if u == user:
+            return status
+    return "not_subscribed"
