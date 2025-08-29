@@ -7,11 +7,13 @@ import filecmp
 import os
 import subprocess
 import time
+import pandas as pd
 from pathlib import Path
 from typing import Optional, Tuple
 
 import numpy as np
 import pytest
+import xcoll as xc
 import xtrack as xt
 
 import xboinc as xb
@@ -620,3 +622,85 @@ def test_consistency_with_xtrack(skip_version_check, cleanup_files):
                 xb_state.monitors.element_dict["my_monitor"],
                 f"{exec_name} vs xtrack (ele_stop={ele_stop})",
             )
+
+
+@pytest.mark.parametrize(
+    "use_boinc",
+    [
+        False,
+        pytest.param(
+            True,
+            marks=pytest.mark.skipif(
+                not TestConfig.vcpkg_available(),
+                reason="VCPKG + BOINC installation not found",
+            ),
+        ),
+    ],
+    ids=["w/o BOINC api", "with BOINC api"],
+)
+def test_impact_table(use_boinc, skip_version_check, cleanup_files):
+    # Get line and collimators
+    line = xt.Line.from_json(xb._pkg_root.parent / 'tests' / 'data' / 'xcoll' / 'lhc_run3_b1.json')
+    colldb = xc.CollimatorDatabase.from_yaml(xb._pkg_root.parent / 'tests' / 'data' / 'xcoll' / 'lhc_run3.yaml', beam=1)
+    colldb.install_everest_collimators(verbose=True, line=line)
+    df_with_coll = line.check_aperture()
+    assert not np.any(df_with_coll.has_aperture_problem)
+    copy_line = line.copy()
+
+    # Start interaction record
+    impacts = xc.InteractionRecord.start(line=line)
+    copy_impacts = xc.InteractionRecord.start(line=copy_line)
+
+    # Build tracker, assign optics and generate particles
+    line.build_tracker()
+    copy_line.build_tracker()
+
+    # Final touches...
+    line.collimators.assign_optics()
+    part = line['tcp.d6l7.b1'].generate_pencil(5000)
+    line.scattering.enable()
+
+    # Create input file
+    input_file = Path.cwd() / TestConfig.INPUT_FILE
+    xb_input = xb.XbInput(
+        line=line,
+        particles=part,
+        num_turns=20,
+        checkpoint_every=100,
+        io_buffer=line.tracker.io_buffer,
+    )
+    xb_input.to_binary(input_file)
+
+    # Track with Xsuite
+    line.track(part, num_turns=20)
+    ref_df = impacts.to_pandas()
+    blank_df = copy_impacts.to_pandas()
+
+    # They should NOT be equal!!!
+    assert not ref_df.equals(blank_df)
+
+    # Track with Xboinc
+    executable_test = get_executable_path(use_boinc=False)
+    run_xboinc_tracking(executable_test)
+    output_file = Path.cwd() / TestConfig.OUTPUT_FILE
+    xb_state = xb.XbState.from_binary(output_file)
+
+    # Inject xb_state io_buffer into new line
+    xb_state.place_io_buffer(copy_line)
+    xb_df = copy_impacts.to_pandas()
+
+    # Now, these two DataFrames should be equal
+    pd.testing.assert_frame_equal(ref_df, xb_df)
+
+    # If VCPKG is available, re-run the test with BOINC
+    if TestConfig.vcpkg_available():
+        # Track with Xboinc
+        executable_test = get_executable_path(use_boinc=True)
+        run_xboinc_tracking(executable_test)
+        output_file = Path.cwd() / TestConfig.OUTPUT_FILE
+        xb_state = xb.XbState.from_binary(output_file)
+
+        # Inject xb_state io_buffer into new line
+        xb_state.place_io_buffer(copy_line)
+        xb_df = copy_impacts.to_pandas()
+        pd.testing.assert_frame_equal(ref_df, xb_df)
