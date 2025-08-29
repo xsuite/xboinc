@@ -363,7 +363,7 @@ class JobSubmitter:
             store_element_names=False,
             ele_start=ele_start,
             ele_stop=-ele_stop,
-            io_buffer=line.io_buffer if with_records else None,
+            io_buffer=line.tracker.io_buffer if with_records else None,
         )
 
         # check the size of data
