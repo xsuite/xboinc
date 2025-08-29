@@ -391,6 +391,7 @@ class JobSubmitter:
         ele_stop=-1,
         particles,
         line=None,
+        with_records=False,
         checkpoint_every=-1,
         target_execution_time=SWEET_SPOT_TIME,
         **kwargs,
@@ -420,6 +421,9 @@ class JobSubmitter:
             The tracking line for this specific job. If None, uses the line
             provided during JobSubmitter initialization. Providing a line per
             job is slower due to repeated preprocessing.
+        with_records : bool, optional
+            If True, the job will include additional tracking information by
+            passing the io_buffer. Default is False.
         checkpoint_every : int, optional
             Checkpoint interval in turns. Default is -1 (no checkpointing).
             If positive, simulation state will be saved every N turns.
@@ -490,7 +494,17 @@ class JobSubmitter:
                 else:
                     mask[i * part_per_job : (i + 1) * part_per_job] = True
                 sliced_particles = particles.filter(mask)
-                self.add(job_name=f"{base_job_name}_{i}", num_turns=num_turns, ele_start=ele_start, ele_stop=ele_stop, particles=sliced_particles, line=line, checkpoint_every=checkpoint_every, **kwargs)
+                self.add(
+                    job_name=f"{base_job_name}_{i}",
+                    num_turns=num_turns,
+                    ele_start=ele_start,
+                    ele_stop=ele_stop,
+                    particles=sliced_particles,
+                    line=line,
+                    with_records=with_records,
+                    checkpoint_every=checkpoint_every,
+                    **kwargs,
+                )
 
     def submit(self):
         """
