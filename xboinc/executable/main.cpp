@@ -13,11 +13,13 @@
 
 #ifdef __cplusplus
 #include <cstdio>
+#include <chrono>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <cmath>
 #include <cstdarg>
+#include <functional>
 #else
 #include <stdio.h>
 #include <stdint.h>
@@ -85,6 +87,70 @@ static FILE*   XB_fopen_allow_null(char *filename, const char *mode);
 static int8_t* XB_file_to_buffer(FILE *fid, int8_t *buf_in);
 static int     XB_do_checkpoint(XbInput xb_input, XbState xb_state);
 
+class ThrottledReporter
+{
+public:
+    using Clock = std::chrono::steady_clock;
+
+    // interval: minimum time between reports
+    // report:   void(double fraction_done)
+    // check_every: only check the clock every N calls (must be power of two for fast masking)
+    // report_first: if true, allow the very first call to report immediately
+    ThrottledReporter(std::chrono::seconds interval,
+                      std::function<void(double)> report,
+                      uint32_t check_every = 32,
+                      bool report_first = true)
+        : interval_(interval),
+          report_(std::move(report)),
+          mask_(check_every - 1),
+          report_first_(report_first),
+          last_(Clock::now())
+    {
+        // Ensure check_every is a power of two (optional assert in debug)
+        // assert((check_every & (check_every - 1)) == 0 && "check_every must be power of two");
+        if (report_first_)
+            last_ -= interval_; // so first eligible call will pass immediately
+    }
+
+    inline void maybe_report(double fraction_done)
+    {
+        // Amortize clock reads
+        if ((++calls_ & mask_) != 0)
+            return;
+
+        auto now = Clock::now();
+        if (now - last_ >= interval_)
+        {
+            last_ = now;
+            report_(fraction_done);
+        }
+    }
+
+    // If you want to force a final update at the end:
+    inline void flush(double fraction_done)
+    {
+        report_(fraction_done);
+        last_ = Clock::now();
+    }
+
+private:
+    std::chrono::seconds interval_;
+    std::function<void(double)> report_;
+    uint32_t mask_;
+    bool report_first_;
+    Clock::time_point last_;
+    uint32_t calls_ = 0;
+};
+
+ThrottledReporter prog(std::chrono::seconds(1), [](double fd)
+                       {
+                           XB_fprintf(2, stdout, "Percentage done: %f%%\n", fd * 100.);
+#ifdef COMPILE_TO_BOINC
+                           boinc_fraction_done(fd);
+#endif
+                       },
+                       /*check_every=*/32, // read the clock every 32 iterations
+                       /*report_first=*/true);
 
 int main(int argc, char **argv){
     int retval;
@@ -258,14 +324,9 @@ int main(int argc, char **argv){
             boinc_checkpoint_completed();
 #endif
         }
-#ifdef COMPILE_TO_BOINC
         if (report_fraction_done) {
-            double fd = (double)current_turn / (double)num_turns;
-            XB_fprintf(2, stdout, "Percentage done: %f%%\n", fd*100.);
-            // if (cpu_time) fd /= 2;
-            boinc_fraction_done(fd);
+            prog.maybe_report((double)current_turn / (double)num_turns);
         }
-#endif
     }
     // End main loop  ===========
     // ==========================
@@ -277,6 +338,7 @@ int main(int argc, char **argv){
            XbInput_get_xb_state__xsize(xb_input), outfile);
     fclose(outfile);
 
+    prog.flush(1.0);
 #ifdef COMPILE_TO_BOINC
     // BOINC clean up
     // if (trickle_up) {
@@ -290,7 +352,7 @@ int main(int argc, char **argv){
     //         XB_fprintf(0, stderr, "Got trickle-down message: %s\n", buf);
     //     }
     // }
-    boinc_fraction_done(1);
+    // boinc_fraction_done(1);
     boinc_finish(0);
 #endif
 
