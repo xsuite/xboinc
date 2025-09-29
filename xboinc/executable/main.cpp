@@ -83,6 +83,10 @@ static void    XB_fprintf(int8_t verbose_level, FILE *stream, char *format, ...)
 static FILE*   XB_fopen(char *filename, const char *mode);
 static FILE*   XB_fopen_allow_null(char *filename, const char *mode);
 static int8_t* XB_file_to_buffer(FILE *fid, int8_t *buf_in);
+static void    XB_line_to_monitors(XbInput &xb_input, XbState &xb_state);
+static void    XB_monitors_to_line(XbInput &xb_input, XbState &xb_state);
+static void    XB_io_buffer_to_line(XbInput &xb_input, XbState &xb_state);
+static void    XB_line_to_io_buffer(XbInput &xb_input, XbState &xb_state);
 static int     XB_do_checkpoint(XbInput xb_input, XbState xb_state);
 
 
@@ -154,6 +158,8 @@ int main(int argc, char **argv){
     FILE* checkpoint_state = XB_fopen_allow_null(XB_CHECKPOINT_FILE, "rb");
     if (checkpoint_state){
         XB_file_to_buffer(checkpoint_state, (int8_t*) xb_state);
+        XB_monitors_to_line(xb_input, xb_state);
+        XB_io_buffer_to_line(xb_input, xb_state);
         current_turn = XbState_get__i_turn(xb_state);
         XB_fprintf(1, stdout, "Loaded checkpoint, continuing from turn %d.\n", (int) current_turn);
     } else {
@@ -173,6 +179,17 @@ int main(int argc, char **argv){
     const int64_t num_elements = XbInput_get_num_elements(xb_input);
     const int64_t ele_start = XbInput_get_ele_start(xb_input);
     const int64_t ele_stop = XbInput_get_ele_stop(xb_input);
+    const int64_t size_io_buffer = XbInput_get_size_io_buffer(xb_input);
+    int8_t *io_buffer;
+    if (size_io_buffer == 0)
+    {
+        io_buffer = NULL;
+    }
+    else
+    {
+        io_buffer = reinterpret_cast<int8_t *>(XbInput_getp1_io_buffer(xb_input, 0));
+    }
+
     XB_fprintf(1, stdout, "num_turns: %d\n", (int) num_turns);
     XB_fprintf(1, stdout, "num_elements: %d\n", (int) num_elements);
     XB_fprintf(1, stdout, "ele_start: %d\n", (int) ele_start);
@@ -237,7 +254,7 @@ int main(int argc, char **argv){
             0.0,              // double line_length, (needed only for backtracking)
             NULL,             // int8_t* buffer_tbt_monitor,
             0,                // int64_t offset_tbt_monitor
-            NULL              // int8_t* io_buffer,
+            io_buffer         // int8_t* io_buffer,
         );
         current_turn += step_turns;
         XB_fprintf(2, stdout, "Tracked turn %i\n", current_turn);
@@ -248,6 +265,8 @@ int main(int argc, char **argv){
         boinc_time_to_checkpoint() ||
 #endif
         (checkpoint_every > 0 && current_turn % checkpoint_every == 0) ){
+            XB_line_to_monitors(xb_input, xb_state);
+            XB_line_to_io_buffer(xb_input, xb_state);
             retval = XB_do_checkpoint(xb_input, xb_state);
             if (retval) {
                 XB_fprintf(0, stderr, "Checkpointing failed!\n");
@@ -268,7 +287,8 @@ int main(int argc, char **argv){
     }
     // End main loop  ===========
     // ==========================
-
+    XB_line_to_monitors(xb_input, xb_state);
+    XB_line_to_io_buffer(xb_input, xb_state);
     XB_fprintf(1, stdout, "Finished tracking\n");
 
     // Write output
@@ -375,6 +395,119 @@ static int8_t* XB_file_to_buffer(FILE *fid, int8_t *buf_in){
     return (buf);
 }
 
+
+static void XB_line_to_monitors(XbInput &xb_input, XbState &xb_state) {
+    XB_fprintf(1, stdout, "Moving monitors data from line to output.\n");
+    int64_t num_monitors = XbInput_get_num_monitors(xb_input);
+    if (num_monitors == 0) {
+        XB_fprintf(1, stdout, "No monitors in the line.\n");
+        return;
+    }
+    
+    ElementRefData elem_ref_data = XbInput_getp_line_metadata(xb_input);
+    ElementRefData monitors_metadata = XbState_getp__monitors_metadata(xb_state);
+
+    for (int64_t i = 0; i < num_monitors; i++) {
+        int64_t idx = XbInput_get_idx_monitors(xb_input, i);
+        int64_t size = XbInput_get_size_monitors(xb_input, i);
+
+        XB_fprintf(1, stdout, "Monitor %ld size: %ld, idx: %ld\n", i, size, idx);
+
+        if (idx < 0 || idx >= XbInput_get_num_elements(xb_input)) {
+            XB_fprintf(0, stderr, "Monitor index %ld out of bounds.\n", idx);
+            continue;
+        }
+        void* monitor_from = MyElementRefData_member_elements(elem_ref_data, idx);
+        void* monitor_to = MyElementRefData_member_elements(monitors_metadata, i);
+        if (!monitor_from || !monitor_to) {
+            XB_fprintf(0, stderr, "Monitor pointer invalid for index %ld.\n", idx);
+            continue;
+        }
+
+        memcpy(monitor_to, monitor_from, size * sizeof(int8_t));
+    }
+}
+
+
+static void XB_monitors_to_line(XbInput &xb_input, XbState &xb_state) {
+    XB_fprintf(1, stdout, "Moving monitors data from checkpoint to line.\n");
+    int64_t num_monitors = XbInput_get_num_monitors(xb_input);
+    if (num_monitors == 0) {
+        XB_fprintf(1, stdout, "No monitors in the line.\n");
+        return;
+    }
+
+    ElementRefData elem_ref_data = XbInput_getp_line_metadata(xb_input);
+    ElementRefData monitors_metadata = XbState_getp__monitors_metadata(xb_state);
+
+    for (int64_t i = 0; i < num_monitors; i++) {
+        int64_t idx = XbInput_get_idx_monitors(xb_input, i);
+        int64_t size = XbInput_get_size_monitors(xb_input, i);
+        
+        XB_fprintf(1, stdout, "Monitor %ld size: %ld, idx: %ld\n", i, size, idx);
+        
+        if (idx < 0 || idx >= XbInput_get_num_elements(xb_input))
+        {
+            XB_fprintf(0, stderr, "Monitor index %ld out of bounds.\n", idx);
+            continue;
+        }
+        void* monitor_from = MyElementRefData_member_elements(monitors_metadata, i);
+        void* monitor_to = MyElementRefData_member_elements(elem_ref_data, idx);
+        if (!monitor_from || !monitor_to) {
+            XB_fprintf(0, stderr, "Monitor pointer invalid for index %ld.\n", idx);
+            continue;
+        }
+
+        memcpy(monitor_to, monitor_from, size * sizeof(int8_t));
+    }
+}
+
+
+static void XB_io_buffer_to_line(XbInput &xb_input, XbState &xb_state) {
+    XB_fprintf(1, stdout, "Moving I/O buffer data from checkpoint to line.\n");
+    int64_t size_io_buffer = XbInput_get_size_io_buffer(xb_input);
+    if (size_io_buffer == 0) {
+        XB_fprintf(1, stdout, "No I/O buffer data to move.\n");
+        return;
+    }
+
+    int8_t *io_buffer_to = reinterpret_cast<int8_t *>(XbInput_getp1_io_buffer(xb_input, 0));
+    int8_t *io_buffer_from = reinterpret_cast<int8_t *>(XbState_getp1__io_buffer(xb_state, 0));
+
+    if (!io_buffer_from || !io_buffer_to) {
+        XB_fprintf(0, stderr, "Invalid I/O buffer pointer.\n");
+        return;
+    }
+
+    XB_fprintf(1, stdout, "Moving %ld bytes from I/O buffer to line.\n", size_io_buffer);
+
+    memcpy(io_buffer_to, io_buffer_from, size_io_buffer * sizeof(int8_t));
+}
+
+
+static void XB_line_to_io_buffer(XbInput &xb_input, XbState &xb_state) {
+    XB_fprintf(1, stdout, "Moving line data from line to I/O buffer.\n");
+    int64_t size_io_buffer = XbInput_get_size_io_buffer(xb_input);
+    if (size_io_buffer == 0) {
+        XB_fprintf(1, stdout, "No I/O buffer data to move.\n");
+        return;
+    }
+
+    int8_t *io_buffer_from = reinterpret_cast<int8_t *>(XbInput_getp1_io_buffer(xb_input, 0));
+    int8_t *io_buffer_to = reinterpret_cast<int8_t *>(XbState_getp1__io_buffer(xb_state, 0));
+
+    int64_t len_from = XbInput_len_io_buffer(xb_input);
+    int64_t len_to = XbState_len__io_buffer(xb_state);
+
+    if (!io_buffer_from || !io_buffer_to) {
+        XB_fprintf(0, stderr, "Invalid I/O buffer pointer.\n");
+        return;
+    }
+
+    XB_fprintf(1, stdout, "Moving %ld bytes from I/O buffer to line.\n", size_io_buffer);
+
+    memcpy(io_buffer_to, io_buffer_from, size_io_buffer * sizeof(int8_t));
+}
 
 static int XB_do_checkpoint(XbInput xb_input, XbState xb_state) {
     FILE *chkp_fid = XB_fopen(XB_CHECKPOINT_FILE, "wb");

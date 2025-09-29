@@ -45,6 +45,9 @@ LOWER_TIME_BOUND = 90  # seconds, minimum time for a job to be considered valid
 UPPER_TIME_BOUND = 3 * 24 * 60 * 60  # seconds, maximum time, 3 days
 SWEET_SPOT_TIME = 8 * 60 * 60 # seconds, default "ideal" time for a job, 8 hours
 
+# For now, let's set a size limit of 1GB for job inputs, set constant in bytes
+XB_INPUT_SIZE_LIMIT = 1 * 1024 * 1024 * 1024  # 1GB
+
 
 def _get_num_elements_from_line(line):
     """
@@ -205,6 +208,7 @@ class JobSubmitter:
         particles,
         line=None,
         checkpoint_every=-1,
+        with_records=False,
         **kwargs,
     ):
         """
@@ -238,6 +242,10 @@ class JobSubmitter:
         checkpoint_every : int, optional
             Checkpoint interval in turns. Default is -1 (no checkpointing).
             If positive, simulation state will be saved every N turns.
+        with_records : bool, optional
+            If True, the io_buffer of the line, used for internal logging and
+            impact tables, will be included in the job submission. By default,
+            this is False.
         **kwargs
             Additional job metadata to be included in the job JSON file.
 
@@ -342,6 +350,11 @@ class JobSubmitter:
         }
         with json_file.open("w", encoding="utf-8") as fid:
             json.dump(json_dict, fid, cls=xo.JEncoder)
+
+        if with_records:
+            if not hasattr(line.tracker, "io_buffer"):
+                raise ValueError("Line tracker is missing the io_buffer attribute. Have you built the tracker and activated the internal logging?")
+
         data = XbInput(
             num_turns=num_turns,
             line=line,
@@ -350,7 +363,16 @@ class JobSubmitter:
             store_element_names=False,
             ele_start=ele_start,
             ele_stop=-ele_stop,
+            io_buffer=line.tracker.io_buffer if with_records else None,
         )
+
+        # check the size of data
+        if data._buffer.capacity > XB_INPUT_SIZE_LIMIT:
+            raise ValueError(
+                f"Input data size of {data._buffer.capacity} bytes exceeds limit of {XB_INPUT_SIZE_LIMIT} bytes. "
+                "Please reduce the size of the job by revising the number of particles or the extent of the monitors included."
+            )
+
         data.to_binary(bin_file)
         self._json_files += [json_file]
         self._bin_files += [bin_file]
@@ -369,6 +391,7 @@ class JobSubmitter:
         ele_stop=-1,
         particles,
         line=None,
+        with_records=False,
         checkpoint_every=-1,
         target_execution_time=SWEET_SPOT_TIME,
         **kwargs,
@@ -398,6 +421,9 @@ class JobSubmitter:
             The tracking line for this specific job. If None, uses the line
             provided during JobSubmitter initialization. Providing a line per
             job is slower due to repeated preprocessing.
+        with_records : bool, optional
+            If True, the job will include additional tracking information by
+            passing the io_buffer. Default is False.
         checkpoint_every : int, optional
             Checkpoint interval in turns. Default is -1 (no checkpointing).
             If positive, simulation state will be saved every N turns.
@@ -468,7 +494,17 @@ class JobSubmitter:
                 else:
                     mask[i * part_per_job : (i + 1) * part_per_job] = True
                 sliced_particles = particles.filter(mask)
-                self.add(job_name=f"{base_job_name}_{i}", num_turns=num_turns, ele_start=ele_start, ele_stop=ele_stop, particles=sliced_particles, line=line, checkpoint_every=checkpoint_every, **kwargs)
+                self.add(
+                    job_name=f"{base_job_name}_{i}",
+                    num_turns=num_turns,
+                    ele_start=ele_start,
+                    ele_stop=ele_stop,
+                    particles=sliced_particles,
+                    line=line,
+                    with_records=with_records,
+                    checkpoint_every=checkpoint_every,
+                    **kwargs,
+                )
 
     def submit(self):
         """

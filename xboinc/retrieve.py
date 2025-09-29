@@ -7,6 +7,7 @@ import json
 from warnings import warn
 
 import pandas as pd
+import xtrack as xt
 from tqdm.auto import tqdm
 
 from xaux import FsPath, eos_accessible
@@ -294,7 +295,7 @@ class JobRetriever:
 
         return result_job_names, diff_jobs
 
-    def iterate_results(self, study_name):
+    def iterate_results(self, study_name, line=None):
         """
         Iterate over all results for a specific study.
 
@@ -305,11 +306,19 @@ class JobRetriever:
         ----------
         study_name : str
             Name of the study to iterate over
+        line : xt.Line, optional
+            If provided, the io_buffer from the results will be placed into its tracker and yielded. If not provided, the io_buffer will be yielded as is. By default, None.
 
         Yields
         ------
-        tuple of (str, dict, xpart.Particles)
-            Job name, corresponding metadata, and particles object for each result
+        tuple of (str, dict, xtrack.Particles, xtrack.Line, xtrack.Line or BufferNumpy)
+            - Job name
+            - Metadata about the job
+            - Corresponding particles object
+            - A Line containing the monitors that were contained in the Line
+              with the resulting data
+            - The provided line with its updated io_buffer or the original
+              io_buffer
 
         Raises
         ------
@@ -324,9 +333,10 @@ class JobRetriever:
         Examples
         --------
         >>> retriever = JobRetriever('myuser', dev_server=True)
-        >>> for job_name, particles in retriever.iterate_results('my_study'):
+        >>> for job_name, particles, monitors in retriever.iterate_results('my_study'):
         ...     print(f"Processing job: {job_name}")
         ...     print(f"Number of particles: {len(particles.x)}")
+        ...     print(f"Number of monitors: {len(monitors.element_dict)}")
         """
         if study_name not in self._df["study_name"].unique():
             raise ValueError(f"Study name {study_name} not found in results.")
@@ -342,6 +352,11 @@ class JobRetriever:
                     UserWarning,
                 )
                 continue
+
+            if line is None:
+                yield job_name, result.particles, result.monitors, result.io_buffer
+            else:
+                result.place_io_buffer(line)
             try:
                 with open(json_file, "r") as f:
                     metadata = json.load(f)
@@ -357,7 +372,7 @@ class JobRetriever:
                     UserWarning,
                 )
                 metadata = {}
-            yield job_name, metadata, result.particles
+            yield job_name, metadata, result.particles, result.monitors, line
 
     def clean(self, study_name):
         """
@@ -419,8 +434,8 @@ class JobRetriever:
 
         Yields
         ------
-        tuple of (str, xpart.Particles)
-            Job name and corresponding particles object for each result
+        tuple of (str, xtrack.Particles)
+ track.Line)           Job name and corresponding particles object for each result
 
         Examples
         --------

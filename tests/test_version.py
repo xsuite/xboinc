@@ -3,12 +3,17 @@
 # Copyright (c) CERN, 2025.                 #
 ########################################### #
 
-import pytest
 import sys
+
+import pytest
 
 from xboinc import __version__, __xsuite__versions__
 from xboinc.simulation_io import XbVersion
-from xboinc.simulation_io.version import _version_to_int, _int_to_version, assert_versions
+from xboinc.simulation_io.version import (
+    _int_to_version,
+    _version_to_int,
+    assert_versions,
+)
 
 
 def test_version():
@@ -25,13 +30,13 @@ def test_xb_ver():
 
 def test_xsuite_versions():
     expected_version = {
-        'xobjects' : '0.5.0',
+        'xobjects' : '0.5.2',
         'xdeps'    : '0.10.5',
-        'xpart'    : '0.23.0',
-        'xtrack'   : '0.84.7',
-        'xfields'  : '0.24.0',
-        'xcoll'    : '0.6.1',
-        'xaux'     : '0.3.5'
+        'xpart'    : '0.23.1',
+        'xtrack'   : '0.88.2',
+        'xfields'  : '0.25.1',
+        'xcoll'    : '0.6.2',
+        'xaux'     : '0.3.5',
     }
     current_version = {}
 
