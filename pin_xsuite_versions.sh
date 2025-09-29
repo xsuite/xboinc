@@ -22,12 +22,10 @@ cd ..
 echo "The following modules will be pinned:"
 for module in $modules; do
     version=$(python -c "import $module; print($module.__version__)")
-    
     if [[ -z "$version" ]]; then
         echo "Error: Could not retrieve version for $module"
         exit 1
     fi
-    
     echo "  - ${module}: $version"
 done
 
@@ -49,19 +47,33 @@ esac
 echo "Updating version information in configuration files..."
 for module in $modules; do
     version=$(python -c "import $module; print($module.__version__)")
-    
     if [[ -z "$version" ]]; then
         echo "Error: Could not retrieve version for $module"
         exit 1
     fi
-    
-    # Update version in three different files with appropriate patterns
-    sed -i "s/\('${module}' *:\).*/\1 '${version}',/"  xboinc/general.py
-    sed -i "s/\('${module}' *:\).*/\1 '${version}',/"  tests/test_version.py
-    sed -i "s/\(${module} *=\).*/\1 '==${version}'/"   pyproject.toml
-    
+    if [[ "$OSTYPE" == "darwin"* ]]
+    then
+        # Update version in three different files with appropriate patterns
+        sed -i '' "s/\('"${module}"' *:\).*/\1 '"${version}"',/"  xboinc/general.py
+        sed -i '' "s/\("${module}" *=\).*/\1 '=="${version}"'/"   pyproject.toml
+        sed -i '' "s/\('"${module}"' *:\).*/\1 '"${version}"'/"   tests/test_version.py
+    else
+        # Update version in three different files with appropriate patterns
+        sed -i "s/\('"${module}"' *:\).*/\1 '"${version}"',/"  xboinc/general.py
+        sed -i "s/\("${module}" *=\).*/\1 '=="${version}"'/"   pyproject.toml
+        sed -i "s/\('"${module}"' *:\).*/\1 '"${version}"'/"   tests/test_version.py
+    fi
     echo "  - Pinned ${module} to version ${version}"
 done
+
+# ----- Update app version in C source -----
+appver=$(python -c "import xboinc; print(xboinc.app_version_int)")
+if [[ "$OSTYPE" == "darwin"* ]]
+then
+    sed -i '' "s/\(int64_t xboinc_exec_version =\).*/\1 "${appver}";/" xboinc/executable/version.h
+else
+    sed -i "s/\(int64_t xboinc_exec_version =\).*/\1 "${appver}";/" xboinc/executable/version.h
+fi
 
 echo "Version pinning completed successfully."
 exit 0
