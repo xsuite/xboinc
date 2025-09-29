@@ -5,7 +5,7 @@
 
 [tool.poetry]
 name = "xboinc"
-version = "0.4.3"
+version = "0.5.0"
 description = "Xsuite BOINC interface"
 homepage = "https://github.com/xsuite/xboinc"
 repository = "https://github.com/xsuite/xboinc"
@@ -24,7 +24,7 @@ include = [ "LICENSE", "NOTICE" ]
 python    = '>=3.9'
 numpy     = '>=1.0'
 packaging = '>=23.0'
-xobjects  = ">=0.5.0"
+xobjects  = ">=0.5.3"
 xdeps     = '==0.10.5'
 xpart     = '==0.23.0'
 xtrack    = '==0.84.7'
