@@ -2,8 +2,6 @@
 
 Xboinc is a package within the Xsuite project that provides tools for easily submit and manage tracking jobs on the BOINC computing platform. It is designed to streamline the process of job submission, management, and monitoring for users of the Xsuite framework in need for large-scale computing resources, with a project adaptable to volunteer-based computing. Note that the services provided by this package are available only to CERN users with a valid computing account.
 
-**NOTE: CURRENTLY, ONLY THE DEVELOPMENT SERVER IS AVAILABLE! Be sure to always set the `dev_server` parameter to `True` when using the package!**
-
 # How to use Xboinc
 
 ## Install Xboinc
@@ -81,7 +79,7 @@ job_manager = xb.JobSubmitter(
     user="mycernshortname",
     study_name="a_relevant_study_name",
     line=line,
-    dev_server=True # currently, the dev server is the only one available
+    dev_server=False, # set to True to use the Xboinc development server (for testing purposes only), by default False
 )
 
 # prepare a big batch of particles
@@ -114,7 +112,7 @@ When the jobs are completed, the Xboinc server will store the results in your al
 ```python
 import xboinc as xb
 
-for job_name, job_metadata, result_particles in xb.JobRetriever.iterate("mycernshortname", "a_relevant_study_name", dev_server=True):
+for job_name, job_metadata, result_particles in xb.JobRetriever.iterate("mycernshortname", "a_relevant_study_name"):
     print(f"Job {job_name} completed with particles: {result_particles.to_dict()}")
     print(f"Job metadata: {job_metadata}")
 
@@ -132,7 +130,7 @@ print(xb.check_user_subscription("mycernshortname"))
 # Query the registered work units for the user
 print("What are my jobs?")
 # Probes the work units for the user registered in this Xboinc installation
-print(xb.query_registered_work_units(dev_server=True))
+print(xb.query_registered_work_units())
 ```
 
 Other convenience functions are available in the `xboinc` package, be sure to inspect the API documentation and docstrings for more details! 
