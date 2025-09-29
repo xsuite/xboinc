@@ -260,8 +260,9 @@ int main(int argc, char **argv){
         }
 #ifdef COMPILE_TO_BOINC
         if (report_fraction_done) {
-            double fd = (int)current_turn / (int)num_turns;
-            if (cpu_time) fd /= 2;
+            double fd = (double)current_turn / (double)num_turns;
+            XB_fprintf(2, stdout, "Percentage done: %f%%\n", fd*100.);
+            // if (cpu_time) fd /= 2;
             boinc_fraction_done(fd);
         }
 #endif
