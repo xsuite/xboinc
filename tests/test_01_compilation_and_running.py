@@ -63,6 +63,17 @@ class TestConfig:
             f"./{cls.CHECKPOINT_FILE}",
             f"./{cls.INPUT_FILE}",
             "./boinc_finish_called",
+            "boinc_lockfile",
+            "stderr.txt",
+            "stdout.txt",
+            "xboinc_state_out.bin_2",
+            "xboinc_state_out.bin_boinc_2",
+        ]
+
+    @classmethod
+    def source_and_executables_to_clean(cls) -> list[str]:
+        """List of files that should be cleaned up after tests."""
+        return [
             "build",
             "main.cpp",
             "CMakeLists.txt",
@@ -71,16 +82,12 @@ class TestConfig:
             "xb_input.h",
             "xtrack_tracker.h",
             "version.h",
-            "boinc_lockfile",
-            "stderr.txt",
-            "stdout.txt",
             cls.BINARY_TEST_NAME,
             cls.BINARY_PROD_NAME,
-            "xboinc_state_out.bin_2",
         ]
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(autouse=True)
 def cleanup_files():
     """Automatically clean up test files before and after each test."""
 
@@ -101,6 +108,29 @@ def cleanup_files():
     yield
     # Cleanup after test
     safe_remove(*TestConfig.files_to_clean())
+
+
+@pytest.fixture(scope="session")
+def cleanup_source_and_executables():
+    """Automatically clean up test files before and after each test."""
+
+    def safe_remove(*files):
+        """Remove files silently if they exist."""
+        for file_path in files:
+            try:
+                file = Path(file_path)
+                if file.is_dir():
+                    rmtree(file)
+                else:
+                    file.unlink()
+            except FileNotFoundError:
+                pass
+
+    # Cleanup before test
+    safe_remove(*TestConfig.source_and_executables_to_clean())
+    yield
+    # Cleanup after test
+    safe_remove(*TestConfig.source_and_executables_to_clean())
 
 
 @pytest.fixture
@@ -247,7 +277,7 @@ def assert_particles_equal(
         ), f"{context}: {attr} values are not equal"
 
 
-def test_generate_input(skip_version_check, cleanup_files):
+def test_generate_input(skip_version_check, cleanup_files, cleanup_source_and_executables):
     """Test input file generation and round-trip consistency."""
     line, particles = create_test_particles()
     input_file = Path.cwd() / TestConfig.INPUT_FILE
@@ -292,7 +322,7 @@ def test_generate_input(skip_version_check, cleanup_files):
     print("Input file generation and round-trip consistency test passed.")
 
 
-def test_source_generation(skip_version_check, cleanup_files):
+def test_source_generation(skip_version_check, cleanup_files, cleanup_source_and_executables):
     """Test C++ source code generation."""
     print("Generating C++ source code for xboinc executable.")
     xb.generate_executable_source()
@@ -327,7 +357,7 @@ def test_source_generation(skip_version_check, cleanup_files):
     ],
     ids=["w/o BOINC api", "with BOINC api"],
 )
-def test_compilation(vcpkg_root, skip_version_check, cleanup_files):
+def test_compilation(vcpkg_root, skip_version_check, cleanup_files, cleanup_source_and_executables):
     """Test compilation of the xboinc executable."""
     keep_source = vcpkg_root is None
     print(f"Generating and compiling xboinc executable with VCPKG_ROOT={vcpkg_root}.")
@@ -359,11 +389,11 @@ def test_compilation(vcpkg_root, skip_version_check, cleanup_files):
     ],
     ids=["w/o BOINC api", "with BOINC api"],
 )
-def test_tracking_execution(use_boinc, skip_version_check, cleanup_files):
+def test_tracking_execution(use_boinc, skip_version_check, cleanup_files, cleanup_source_and_executables):
     """Test particle tracking execution and output validation."""
     # Ensure input file exists
     if not (Path.cwd() / TestConfig.INPUT_FILE).exists():
-        test_generate_input(skip_version_check, cleanup_files)
+        test_generate_input(skip_version_check, cleanup_files, cleanup_source_and_executables)
 
     executable = get_executable_path(use_boinc)
 
@@ -426,17 +456,17 @@ def test_tracking_execution(use_boinc, skip_version_check, cleanup_files):
     ],
     ids=["w/o BOINC api", "with BOINC api"],
 )
-def test_checkpoint_functionality(use_boinc, skip_version_check, cleanup_files):
+def test_checkpoint_functionality(use_boinc, skip_version_check, cleanup_files, cleanup_source_and_executables):
     """Test checkpoint creation and recovery functionality."""
     # Ensure prerequisites exist
     if not (Path.cwd() / TestConfig.INPUT_FILE).exists():
-        test_generate_input(skip_version_check, cleanup_files)
+        test_generate_input(skip_version_check, cleanup_files, cleanup_source_and_executables)
 
     # Get reference output for comparison
     suffix = "_boinc" if use_boinc else ""
     reference_output = Path.cwd() / f"{TestConfig.OUTPUT_FILE}{suffix}_2"
     if not reference_output.exists():
-        test_tracking_execution(use_boinc, skip_version_check, cleanup_files)
+        test_tracking_execution(use_boinc, skip_version_check, cleanup_files, cleanup_source_and_executables)
 
     executable = get_executable_path(use_boinc)
 
@@ -491,7 +521,7 @@ def test_checkpoint_functionality(use_boinc, skip_version_check, cleanup_files):
     ), "Checkpointed result differs from reference"
 
 
-def test_consistency_with_xtrack(skip_version_check, cleanup_files):
+def test_consistency_with_xtrack(skip_version_check, cleanup_files, cleanup_source_and_executables):
     """Test that xboinc results match xtrack reference implementation."""
     # Test different starting positions
     test_positions = [None, "ip2", 3500]
