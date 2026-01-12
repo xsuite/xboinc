@@ -8,6 +8,23 @@
 cmake_minimum_required(VERSION 3.16)
 project(xboinc VERSION 0.4.0 LANGUAGES C CXX)
 
+
+# === Python: query xobjects include/source roots ===
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+
+execute_process(
+  COMMAND "${Python3_EXECUTABLE}" -c
+          "import xobjects as xo; print(*xo.ContextCpu().get_installed_c_source_paths(), sep='\\n')"
+  OUTPUT_VARIABLE XO_C_SOURCE_PATHS_RAW
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+  COMMAND_ERROR_IS_FATAL ANY
+)
+
+string(REPLACE "\r\n" "\n" XO_C_SOURCE_PATHS_RAW "${XO_C_SOURCE_PATHS_RAW}")
+string(REPLACE "\n" ";" XO_C_SOURCE_PATHS "${XO_C_SOURCE_PATHS_RAW}")
+
+message(STATUS "xobjects installed C source paths: ${XO_C_SOURCE_PATHS}")
+
 # === Compiler and Build Options ===
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_CXX_STANDARD 17)
@@ -41,6 +58,7 @@ add_library(xtrack_obj OBJECT ${XTRACK_SOURCES})
 target_compile_options(xtrack_obj PRIVATE ${COMMON_COMPILE_FLAGS})
 target_compile_definitions(xtrack_obj PRIVATE ${COMMON_DEFINITIONS})
 target_include_directories(xtrack_obj PRIVATE ${XTRACK_PYTHON_DIR})
+target_include_directories(xtrack_obj PRIVATE ${XO_C_SOURCE_PATHS})
 target_link_libraries(xtrack_obj PRIVATE m)
 
 # === Executable: xboinc_test (no BOINC) ===
@@ -48,6 +66,7 @@ add_executable(xboinc_test ${MAIN_SOURCES})
 target_compile_options(xboinc_test PRIVATE ${COMMON_COMPILE_FLAGS})
 target_compile_definitions(xboinc_test PRIVATE ${COMMON_DEFINITIONS})
 target_include_directories(xboinc_test PRIVATE ${XTRACK_PYTHON_DIR})
+target_include_directories(xboinc_test PRIVATE ${XO_C_SOURCE_PATHS})
 target_link_directories(xboinc_test PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(xboinc_test PRIVATE xtrack_obj ${SYSTEM_LIBS})
 
@@ -65,6 +84,7 @@ if(VCPKG_ROOT AND EXISTS "${VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}/lib")
         target_compile_options(xboinc PRIVATE ${COMMON_COMPILE_FLAGS})
         target_compile_definitions(xboinc PRIVATE ${COMMON_DEFINITIONS} COMPILE_TO_BOINC)
         target_include_directories(xboinc PRIVATE ${XTRACK_PYTHON_DIR})
+        target_include_directories(xboinc PRIVATE ${XO_C_SOURCE_PATHS})
         target_link_directories(xboinc PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
         target_link_libraries(xboinc PRIVATE xtrack_obj ${BOINCAPI_LIB} ${BOINC_LIB} ${SYSTEM_LIBS})
         target_link_options(xboinc PRIVATE
