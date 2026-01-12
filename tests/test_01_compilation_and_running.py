@@ -34,6 +34,7 @@ class TestConfig:
     # File names
     INPUT_FILE = "xboinc_input.bin"
     OUTPUT_FILE = "xboinc_state_out.bin"
+    OUTPUT_FILE_REF = "xboinc_state_out_ref.bin"
     CHECKPOINT_FILE = "checkpoint.bin"
     BINARY_TEST_NAME = f"xboinc_test_{xb.app_version}-x86_64-pc-linux-gnu"
     BINARY_PROD_NAME = f"xboinc_{xb.app_version}-x86_64-pc-linux-gnu"
@@ -61,7 +62,6 @@ class TestConfig:
         return [
             f"./{cls.OUTPUT_FILE}",
             f"./{cls.CHECKPOINT_FILE}",
-            f"./{cls.INPUT_FILE}",
             "./boinc_finish_called",
             "boinc_lockfile",
             "stderr.txt",
@@ -84,6 +84,8 @@ class TestConfig:
             "version.h",
             cls.BINARY_TEST_NAME,
             cls.BINARY_PROD_NAME,
+            f"./{cls.INPUT_FILE}",
+            f"./{cls.OUTPUT_FILE_REF}",
         ]
 
 
@@ -112,7 +114,7 @@ def cleanup_files():
 
 @pytest.fixture(scope="session")
 def cleanup_source_and_executables():
-    """Automatically clean up test files before and after each test."""
+    """Automatically clean up test files before and after the full test session."""
 
     def safe_remove(*files):
         """Remove files silently if they exist."""
@@ -408,6 +410,7 @@ def test_tracking_execution(use_boinc, skip_version_check, cleanup_files, cleanu
     # Validate output
     output_file = Path.cwd() / TestConfig.OUTPUT_FILE
     assert output_file.exists(), "Output file was not created"
+    output_file.copy_to(Path.cwd() / TestConfig.OUTPUT_FILE_REF)
 
     xb_state = xb.XbState.from_binary(output_file)
     particles = xb_state.particles
@@ -464,7 +467,7 @@ def test_checkpoint_functionality(use_boinc, skip_version_check, cleanup_files, 
 
     # Get reference output for comparison
     suffix = "_boinc" if use_boinc else ""
-    reference_output = Path.cwd() / f"{TestConfig.OUTPUT_FILE}{suffix}_2"
+    reference_output = Path.cwd() / f"{TestConfig.OUTPUT_FILE_REF}{suffix}"
     if not reference_output.exists():
         test_tracking_execution(use_boinc, skip_version_check, cleanup_files, cleanup_source_and_executables)
 
