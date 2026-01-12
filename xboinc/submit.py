@@ -152,10 +152,6 @@ class JobSubmitter:
         """
 
         assert_versions()
-        # if not dev_server:
-        #     raise NotImplementedError(
-        #         "Regular server not yet operational. " + "Please use dev_server=True."
-        #     )
         self.dev_server = dev_server
         if "__" in study_name:
             raise ValueError(

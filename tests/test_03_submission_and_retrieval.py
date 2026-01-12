@@ -165,6 +165,7 @@ def submit_study_jobs(
     line: xt.Line,
     x_sigma: float = 0.01,
     y_sigma: float = 0.003,
+    dev_server: bool = True,
 ) -> xb.JobSubmitter:
     """
     Submit a complete study with multiple jobs.
@@ -185,7 +186,7 @@ def submit_study_jobs(
     xb.JobSubmitter
         The job manager used for submission.
     """
-    jobs = xb.JobSubmitter(user=user, study_name=study_name, line=line, dev_server=True)
+    jobs = xb.JobSubmitter(user=user, study_name=study_name, line=line, dev_server=dev_server)
 
     for i in range(TestConfig.num_jobs()):
         particles = create_random_particles(
@@ -287,7 +288,10 @@ def find_recent_tar(
     not TestConfig.directories_available(),
     reason="Required directories are not available - Set testuser accordingly",
 )
-def test_submission(monkeypatch, registered_user, clean_directories):
+@pytest.mark.parametrize(
+    "dev_server", [True, False], ids=["dev", "prod"]
+)
+def test_submission(dev_server, monkeypatch, registered_user, clean_directories):
     """Test job submission workflow with multiple studies."""
     monkeypatch.setattr(xb.submit, "LOWER_TIME_BOUND", 0.0)
 
@@ -295,12 +299,13 @@ def test_submission(monkeypatch, registered_user, clean_directories):
 
     # Submit first study
     submit_study_jobs(
-        registered_user, f"{TestConfig.STUDY_NAME}_1", line, x_sigma=0.01, y_sigma=0.003
+        registered_user, f"{TestConfig.STUDY_NAME}_1", line, x_sigma=0.01, y_sigma=0.003,
+        dev_server=dev_server,
     )
 
     # Test that adding jobs after submission fails
     jobs = xb.JobSubmitter(
-        registered_user, f"{TestConfig.STUDY_NAME}_temp", line=line, dev_server=True
+        registered_user, f"{TestConfig.STUDY_NAME}_temp", line=line, dev_server=dev_server
     )
     jobs.submit()
 
@@ -317,14 +322,11 @@ def test_submission(monkeypatch, registered_user, clean_directories):
 
     # Submit second study with different parameters
     submit_study_jobs(
-        registered_user, f"{TestConfig.STUDY_NAME}_2", line, x_sigma=4.7, y_sigma=0.39
+        registered_user, f"{TestConfig.STUDY_NAME}_2", line, x_sigma=4.7, y_sigma=0.39,
+        dev_server=dev_server,
     )
 
     time.sleep(TestConfig.SUBMISSION_DELAY)
-
-    # Test that production server raises NotImplementedError
-    with pytest.raises(NotImplementedError):
-        xb.JobSubmitter(registered_user, f"{TestConfig.STUDY_NAME}_3", line=line)
 
     # Validate submitted tar files
     tar_files = list(
@@ -346,7 +348,10 @@ def test_submission(monkeypatch, registered_user, clean_directories):
     not TestConfig.directories_available(),
     reason="Required directories are not available - Set testuser accordingly",
 )
-def test_retrieval(registered_user):
+@pytest.mark.parametrize(
+    "dev_server", [True, False], ids=["dev", "prod"]
+)
+def test_retrieval(dev_server, registered_user):
     """Test job result retrieval and validation."""
     # prepare the mock output tar files
     output_dir = TestConfig.OUTPUT_DIR
@@ -359,6 +364,6 @@ def test_retrieval(registered_user):
 
     # Iterate through jobs and validate results
     for _, _, result_particles in xb.JobRetriever.iterate(
-        "testuser", "example_study_fourth", dev_server=True
+        "testuser", "example_study_fourth", dev_server=dev_server
     ):
         assert len(result_particles.x) == 100
