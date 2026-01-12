@@ -30,7 +30,7 @@ xpart     = '==0.23.7'
 xtrack    = '==0.98.12'
 xfields   = '==0.25.8'
 xcoll     = '==0.9.1'
-xaux      = '==0.3.10'
+xaux      = '>=0.3.11'
 xsuite    = '==0.45.15'
 
 [poetry.group.dev.dependencies]
