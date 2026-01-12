@@ -177,7 +177,7 @@ def create_test_particles(
     return line, particles
 
 
-def get_executable_path(use_boinc: bool) -> Path:
+def get_executable_path(use_boinc: bool, skip_version_check, cleanup_files, cleanup_source_and_executables) -> Path:
     """
     Get the path to the compiled executable, compiling if necessary.
 
@@ -198,7 +198,7 @@ def get_executable_path(use_boinc: bool) -> Path:
     if not exec_files or not exec_files[0].exists():
         # Need to compile
         vcpkg_root = TestConfig.VCPKG_ROOT if use_boinc else None
-        test_compilation(vcpkg_root, skip_version_check, cleanup_files)
+        test_compilation(vcpkg_root, skip_version_check, cleanup_files, cleanup_source_and_executables)
         exec_files = list(Path.cwd().glob(pattern))
 
     if not exec_files:
@@ -393,11 +393,12 @@ def test_compilation(vcpkg_root, skip_version_check, cleanup_files, cleanup_sour
 )
 def test_tracking_execution(use_boinc, skip_version_check, cleanup_files, cleanup_source_and_executables):
     """Test particle tracking execution and output validation."""
+    print(f"Testing tracking execution with use_boinc={use_boinc}.")
     # Ensure input file exists
     if not (Path.cwd() / TestConfig.INPUT_FILE).exists():
         test_generate_input(skip_version_check, cleanup_files, cleanup_source_and_executables)
 
-    executable = get_executable_path(use_boinc)
+    executable = get_executable_path(use_boinc, skip_version_check, cleanup_files, cleanup_source_and_executables)
 
     # Execute tracking
     start_time = time.time()
@@ -461,6 +462,7 @@ def test_tracking_execution(use_boinc, skip_version_check, cleanup_files, cleanu
 )
 def test_checkpoint_functionality(use_boinc, skip_version_check, cleanup_files, cleanup_source_and_executables):
     """Test checkpoint creation and recovery functionality."""
+    print(f"Testing checkpoint functionality with use_boinc={use_boinc}.")
     # Ensure prerequisites exist
     if not (Path.cwd() / TestConfig.INPUT_FILE).exists():
         test_generate_input(skip_version_check, cleanup_files, cleanup_source_and_executables)
@@ -471,7 +473,7 @@ def test_checkpoint_functionality(use_boinc, skip_version_check, cleanup_files, 
     if not reference_output.exists():
         test_tracking_execution(use_boinc, skip_version_check, cleanup_files, cleanup_source_and_executables)
 
-    executable = get_executable_path(use_boinc)
+    executable = get_executable_path(use_boinc, skip_version_check, cleanup_files, cleanup_source_and_executables)
 
     # Phase 1: Run with timeout to create checkpoint
     print(
@@ -526,6 +528,7 @@ def test_checkpoint_functionality(use_boinc, skip_version_check, cleanup_files, 
 
 def test_consistency_with_xtrack(skip_version_check, cleanup_files, cleanup_source_and_executables):
     """Test that xboinc results match xtrack reference implementation."""
+    print("Testing consistency between xboinc and xtrack.")
     # Test different starting positions
     test_positions = [None, "ip2", 3500]
 
@@ -549,7 +552,7 @@ def test_consistency_with_xtrack(skip_version_check, cleanup_files, cleanup_sour
         line.track(particles_reference, num_turns=TestConfig.NUM_TURNS_SMALL, time=True)
 
         # Test standalone xboinc
-        executable_test = get_executable_path(use_boinc=False)
+        executable_test = get_executable_path(False, skip_version_check, cleanup_files, cleanup_source_and_executables)
         run_xboinc_tracking(executable_test)
 
         output_file = Path.cwd() / TestConfig.OUTPUT_FILE
@@ -563,7 +566,7 @@ def test_consistency_with_xtrack(skip_version_check, cleanup_files, cleanup_sour
 
         # Test BOINC-enabled xboinc if available
         if TestConfig.vcpkg_available():
-            executable_boinc = get_executable_path(use_boinc=True)
+            executable_boinc = get_executable_path(True, skip_version_check, cleanup_files, cleanup_source_and_executables)
             run_xboinc_tracking(executable_boinc)
 
             xb_state_boinc = xb.XbState.from_binary(output_file)
@@ -606,7 +609,7 @@ def test_consistency_with_xtrack(skip_version_check, cleanup_files, cleanup_sour
             if use_boinc and not TestConfig.vcpkg_available():
                 continue
 
-            executable = get_executable_path(use_boinc)
+            executable = get_executable_path(use_boinc, skip_version_check, cleanup_files, cleanup_source_and_executables)
             run_xboinc_tracking(executable)
 
             output_file = Path.cwd() / TestConfig.OUTPUT_FILE
