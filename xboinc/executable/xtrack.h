@@ -10,7 +10,7 @@
 
 typedef struct ElementRefData_s * ElementRefData;
 typedef struct ParticlesData_s * ParticlesData;
-void track_line(int8_t*,ElementRefData,ParticlesData,int,int,int,int,int,int,int,double,int8_t*,int64_t,int8_t*);
+void track_line(int8_t*,ElementRefData,ParticlesData,int,int,int,int,int,int,int,double,int8_t*,int64_t,int8_t*,uint64_t);
 
 typedef struct XbState_s * XbState;
 int64_t XbState_get__i_turn(const XbState);
