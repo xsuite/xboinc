@@ -31,7 +31,6 @@ def test_xsuite_versions():
         'xtrack'   : '0.98.12',
         'xfields'  : '0.25.8',
         'xcoll'    : '0.9.1',
-        'xaux'     : '0.3.10',
     }
     current_version = {}
 
