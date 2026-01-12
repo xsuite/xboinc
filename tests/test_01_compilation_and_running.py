@@ -8,6 +8,7 @@ import os
 import subprocess
 import time
 from pathlib import Path
+from shutil import rmtree
 from typing import Optional, Tuple
 
 import numpy as np
@@ -62,6 +63,7 @@ class TestConfig:
             f"./{cls.CHECKPOINT_FILE}",
             f"./{cls.INPUT_FILE}",
             "./boinc_finish_called",
+            "build",
             "main.cpp",
             "CMakeLists.txt",
             "xtrack.c",
@@ -69,13 +71,16 @@ class TestConfig:
             "xb_input.h",
             "xtrack_tracker.h",
             "version.h",
+            "boinc_lockfile",
+            "stderr.txt",
+            "stdout.txt",
             cls.BINARY_TEST_NAME,
             cls.BINARY_PROD_NAME,
             "xboinc_state_out.bin_2",
         ]
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture(scope="session")
 def cleanup_files():
     """Automatically clean up test files before and after each test."""
 
@@ -83,7 +88,11 @@ def cleanup_files():
         """Remove files silently if they exist."""
         for file_path in files:
             try:
-                os.remove(file_path)
+                file = Path(file_path)
+                if file.is_dir():
+                    rmtree(file)
+                else:
+                    file.unlink()
             except FileNotFoundError:
                 pass
 
@@ -131,6 +140,7 @@ def create_test_particles(
         nemitt_y=3.5e-6,
         at_element=at_element,
     )
+    print("Created test particles.")
 
     return line, particles
 
@@ -191,7 +201,7 @@ def run_xboinc_tracking(
         If the execution times out.
     """
     cmd_args = [str(executable), "--verbose", "1"]
-
+    print(f"Starting tracking with command: {' '.join(cmd_args)}")
     try:
         return subprocess.run(
             cmd_args,
@@ -243,6 +253,7 @@ def test_generate_input(skip_version_check, cleanup_files):
     input_file = Path.cwd() / TestConfig.INPUT_FILE
 
     # Create input object
+    print("Creating XbInput object.")
     xb_input = xb.XbInput(
         line=line,
         particles=particles,
@@ -278,10 +289,12 @@ def test_generate_input(skip_version_check, cleanup_files):
     assert xt.line._dicts_equal(
         line_dict_original["elements"], line_dict_loaded["elements"]
     )
+    print("Input file generation and round-trip consistency test passed.")
 
 
 def test_source_generation(skip_version_check, cleanup_files):
     """Test C++ source code generation."""
+    print("Generating C++ source code for xboinc executable.")
     xb.generate_executable_source()
 
     expected_files = [
@@ -297,6 +310,7 @@ def test_source_generation(skip_version_check, cleanup_files):
     for filename in expected_files:
         file_path = Path.cwd() / filename
         assert file_path.exists(), f"Generated source file {filename} not found"
+    print("C++ source code generation test passed.")
 
 
 @pytest.mark.parametrize(
@@ -316,6 +330,7 @@ def test_source_generation(skip_version_check, cleanup_files):
 def test_compilation(vcpkg_root, skip_version_check, cleanup_files):
     """Test compilation of the xboinc executable."""
     keep_source = vcpkg_root is None
+    print(f"Generating and compiling xboinc executable with VCPKG_ROOT={vcpkg_root}.")
     xb.generate_executable(keep_source=keep_source, vcpkg_root=vcpkg_root)
 
     app_name = "xboinc" if vcpkg_root else "xboinc_test"
@@ -327,6 +342,7 @@ def test_compilation(vcpkg_root, skip_version_check, cleanup_files):
 
     assert executable.exists(), f"Executable {executable} does not exist"
     assert os.access(executable, os.X_OK), f"Executable {executable} is not executable"
+    print("Compilation test passed.")
 
 
 @pytest.mark.parametrize(
