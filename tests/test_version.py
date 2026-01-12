@@ -25,13 +25,13 @@ def test_xb_ver():
 
 def test_xsuite_versions():
     expected_version = {
-        'xobjects' : '0.5.0',
-        'xdeps'    : '0.10.5',
-        'xpart'    : '0.23.0',
-        'xtrack'   : '0.84.7',
-        'xfields'  : '0.24.0',
-        'xcoll'    : '0.6.1',
-        'xaux'     : '0.3.5'
+        'xobjects' : '0.5.12'
+        'xdeps'    : '0.10.10'
+        'xpart'    : '0.23.7'
+        'xtrack'   : '0.98.12'
+        'xfields'  : '0.25.8'
+        'xcoll'    : '0.9.1'
+        'xaux'     : '0.3.10'
     }
     current_version = {}
 
