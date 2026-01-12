@@ -34,8 +34,6 @@ ONLY_XTRACK_ELEMENTS = [
     Multipole,
     Magnet,
     MagnetEdge,
-    DipoleFringe,
-    Wedge,
     DipoleEdge,
     MultipoleEdge,
     Cavity,
@@ -116,6 +114,7 @@ ONLY_XTRACK_ELEMENTS = [
 ]
 
 NO_SYNRAD_ELEMENTS = [
+    ACDipole,
     Exciter,
 ]
 
