@@ -5,8 +5,8 @@
 
 import os
 import time
-import filecmp
 import pytest
+import filecmp
 import subprocess
 import numpy as np
 from shutil import rmtree
@@ -59,13 +59,12 @@ class TestConfig:
         """List of files that should be cleaned up after tests."""
         return [
             f"./{cls.OUTPUT_FILE}",
+            f"./{cls.OUTPUT_FILE}_2",
             f"./{cls.CHECKPOINT_FILE}",
             "./boinc_finish_called",
             "boinc_lockfile",
             "stderr.txt",
             "stdout.txt",
-            "xboinc_state_out.bin_2",
-            "xboinc_state_out.bin_boinc_2",
         ]
 
     @classmethod
@@ -84,6 +83,7 @@ class TestConfig:
             cls.BINARY_PROD_NAME,
             f"./{cls.INPUT_FILE}",
             f"./{cls.OUTPUT_FILE_REF}",
+            f"./{cls.OUTPUT_FILE_REF}_boinc",
         ]
 
 
@@ -324,7 +324,7 @@ def test_generate_input(skip_version_check, cleanup_files, cleanup_files_finally
 
 def test_source_generation(skip_version_check, cleanup_files, cleanup_files_finally):
     """Test C++ source code generation."""
-    print("Generating C++ source code for xboinc executable.")
+    print("\nGenerating C++ source code for xboinc executable.")
     xb.generate_executable_source()
 
     expected_files = [
@@ -359,8 +359,8 @@ def test_source_generation(skip_version_check, cleanup_files, cleanup_files_fina
 )
 def test_compilation(vcpkg_root, skip_version_check, cleanup_files, cleanup_files_finally):
     """Test compilation of the xboinc executable."""
+    print(f"\nGenerating and compiling xboinc executable with VCPKG_ROOT={vcpkg_root}.")
     keep_source = vcpkg_root is None
-    print(f"Generating and compiling xboinc executable with VCPKG_ROOT={vcpkg_root}.")
     xb.generate_executable(keep_source=keep_source, vcpkg_root=vcpkg_root)
 
     app_name = "xboinc" if vcpkg_root else "xboinc_test"
@@ -391,7 +391,7 @@ def test_compilation(vcpkg_root, skip_version_check, cleanup_files, cleanup_file
 )
 def test_tracking_execution(use_boinc, skip_version_check, cleanup_files, cleanup_files_finally):
     """Test particle tracking execution and output validation."""
-    print(f"Testing tracking execution with use_boinc={use_boinc}.")
+    print(f"\nTesting tracking execution with use_boinc={use_boinc}.")
     # Ensure input file exists
     if not (FsPath.cwd() / TestConfig.INPUT_FILE).exists():
         test_generate_input(skip_version_check, cleanup_files, cleanup_files_finally)
@@ -409,7 +409,9 @@ def test_tracking_execution(use_boinc, skip_version_check, cleanup_files, cleanu
     # Validate output
     output_file = FsPath.cwd() / TestConfig.OUTPUT_FILE
     assert output_file.exists(), "Output file was not created"
-    output_file.copy_to(FsPath.cwd() / TestConfig.OUTPUT_FILE_REF)
+    suffix = "_boinc" if use_boinc else ""
+    reference_output = FsPath.cwd() / f"{TestConfig.OUTPUT_FILE_REF}{suffix}"
+    output_file.copy_to(reference_output)
 
     xb_state = xb.XbState.from_binary(output_file)
     particles = xb_state.particles
@@ -436,12 +438,12 @@ def test_tracking_execution(use_boinc, skip_version_check, cleanup_files, cleanu
         ), f"All {coord} values are identical"
 
     # Test output file round-trip
-    suffix = "_boinc" if use_boinc else ""
-    output_file_2 = FsPath.cwd() / f"{TestConfig.OUTPUT_FILE}{suffix}_2"
+    output_file_2 = FsPath.cwd() / f"{TestConfig.OUTPUT_FILE}_2"
     xb_state.to_binary(output_file_2)
     assert filecmp.cmp(
         output_file, output_file_2, shallow=False
     ), "Output file round-trip failed"
+    print("Tracking execution and output validation test passed.")
 
 
 @pytest.mark.parametrize(
@@ -460,18 +462,19 @@ def test_tracking_execution(use_boinc, skip_version_check, cleanup_files, cleanu
 )
 def test_checkpoint_functionality(use_boinc, skip_version_check, cleanup_files, cleanup_files_finally):
     """Test checkpoint creation and recovery functionality."""
-    print(f"Testing checkpoint functionality with use_boinc={use_boinc}.")
+    print(f"\nTesting checkpoint functionality with use_boinc={use_boinc}.")
     # Ensure prerequisites exist
     if not (FsPath.cwd() / TestConfig.INPUT_FILE).exists():
         test_generate_input(skip_version_check, cleanup_files, cleanup_files_finally)
+
+    executable = get_executable_path(use_boinc, skip_version_check, cleanup_files, cleanup_files_finally)
 
     # Get reference output for comparison
     suffix = "_boinc" if use_boinc else ""
     reference_output = FsPath.cwd() / f"{TestConfig.OUTPUT_FILE_REF}{suffix}"
     if not reference_output.exists():
+        print("Generating reference output for checkpoint test.")
         test_tracking_execution(use_boinc, skip_version_check, cleanup_files, cleanup_files_finally)
-
-    executable = get_executable_path(use_boinc, skip_version_check, cleanup_files, cleanup_files_finally)
 
     # Phase 1: Run with timeout to create checkpoint
     print(
@@ -522,11 +525,12 @@ def test_checkpoint_functionality(use_boinc, skip_version_check, cleanup_files, 
     assert filecmp.cmp(
         output_file, reference_output, shallow=False
     ), "Checkpointed result differs from reference"
+    print("Checkpoint functionality test passed.")
 
 
 def test_consistency_with_xtrack(skip_version_check, cleanup_files, cleanup_files_finally):
     """Test that xboinc results match xtrack reference implementation."""
-    print("Testing consistency between xboinc and xtrack.")
+    print("\nTesting consistency between xboinc and xtrack.")
     # Test different starting positions
     test_positions = [None, "ip2", 3500]
 
@@ -618,3 +622,4 @@ def test_consistency_with_xtrack(skip_version_check, cleanup_files, cleanup_file
                 xb_state.particles,
                 f"{exec_name} vs xtrack (ele_stop={ele_stop})",
             )
+    print("Consistency test between xboinc and xtrack passed.")
