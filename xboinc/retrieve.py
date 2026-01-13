@@ -150,10 +150,6 @@ class JobRetriever:
         >>> overview = retriever.get_overview()
         """
 
-        if not dev_server:
-            raise NotImplementedError(
-                "Regular server not yet operational. " + "Please use dev_server=True."
-            )
         assert_versions()
         self._user = user
         self._domain = get_domain(user)

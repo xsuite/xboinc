@@ -20,7 +20,12 @@ The following instructions assume you are operating on an AlmaLinux 9 system wit
     ./vcpkg install boinc:x64-linux
     # for x64 Windows
     ./vcpkg install boinc:x64-mingw-static
+    # for Intel macOS
+    ./vcpkg install --triplet=x64-osx   boinc
+    # for ARM macOS
+    ./vcpkg install --triplet=arm64-osx boinc
     ```
+    Compilation for macOS can only happen on a mac with Xcode Command Line Tools installed.
 * `mingw-w64`: If you are targeting Windows, you will need to install the `mingw-w64` toolchain. On AlmaLinux, you can do this with the following command:
     ```bash
     sudo dnf install mingw64-binutils mingw64-cpp mingw64-crt mingw64-filesystem mingw64-gcc mingw64-gcc-c++ mingw64-headers mingw64-libgcc mingw64-winpthreads mingw64-winpthreads-static

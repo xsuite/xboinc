@@ -102,7 +102,7 @@ def register(user, directory, permissions_given=False):
     None.
     """
 
-    assert eos_accessible
+    assert eos_accessible, "Need EOS access to register users!"
     try :
         if not is_egroup_member("xboinc-submitters"):
             raise RuntimeError(
@@ -130,10 +130,10 @@ def register(user, directory, permissions_given=False):
     input_dev_dir = directory / "input_dev"
     output_dir = directory / "output"
     output_dev_dir = directory / "output_dev"
-    input_dir.mkdir(parents=True, exist_ok=True)
-    input_dev_dir.mkdir(parents=True, exist_ok=True)
-    output_dir.mkdir(parents=True, exist_ok=True)
-    output_dev_dir.mkdir(parents=True, exist_ok=True)
+    input_dir.mkdir(exist_ok=True)
+    input_dev_dir.mkdir(exist_ok=True)
+    output_dir.mkdir(exist_ok=True)
+    output_dev_dir.mkdir(exist_ok=True)
     if not permissions_given:
         try:
             _give_rights(input_dir, acl=acl)

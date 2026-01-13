@@ -150,7 +150,7 @@ def generate_executable(*, keep_source=False, clean=True, vcpkg_root=None,
         "x64-linux":        {'tag': 'x86_64-pc-linux-gnu', 'make': 'make',         'cmake': 'cmake'},
         "x86-linux":        {'tag': 'i686-pc-linux-gnu',   'make': 'make',         'cmake': 'cmake'},
         "arm64-osx":        {'tag': 'arm64-apple-darwin',  'make': 'make',         'cmake': 'cmake'},
-        "x86_64-osx":       {'tag': 'x86_64-apple-darwin', 'make': 'make',         'cmake': 'cmake'},
+        "x64-osx":          {'tag': 'x86_64-apple-darwin', 'make': 'make',         'cmake': 'cmake'},
         "x64-mingw-static": {'tag': 'windows_x86_64',      'make': 'mingw64-make', 'cmake': 'mingw64-cmake'},
         "x86-mingw-static": {'tag': 'windows_intelx86',    'make': 'mingw32-make', 'cmake': 'mingw32-cmake'},
     }
@@ -158,7 +158,7 @@ def generate_executable(*, keep_source=False, clean=True, vcpkg_root=None,
         # detect if we are on macOS
         if sys.platform == "darwin":
             target_triplet = (
-                "x86_64-osx" if platform.machine() == "x86_64" else "arm64-osx"
+                "x64-osx" if platform.machine() == "x86_64" else "arm64-osx"
             )
         elif sys.platform.startswith("linux"):
             target_triplet = (
@@ -174,8 +174,6 @@ def generate_executable(*, keep_source=False, clean=True, vcpkg_root=None,
             )
     if target_triplet not in triplets:
         raise NotImplementedError(f"Target triplet {target_triplet} not supported.")
-    if 'osx' in target_triplet:
-        raise NotImplementedError("macOS still requires testing before support can be added.")
 
     # Check vcpkg path
     if vcpkg_root is not None:
@@ -211,6 +209,40 @@ def generate_executable(*, keep_source=False, clean=True, vcpkg_root=None,
         f"-DXTRACK_PYTHON_DIR={xtrack_dir.as_posix()}",
         "-DCMAKE_BUILD_TYPE=Release",
     ]
+
+    if 'osx' in target_triplet:
+        # Clear environment variables that may interfere with Xcode selection
+        for ff in ['CC', 'CXX', 'LD', 'AR', 'NM', 'RANLIB', 'STRIP',
+                   'CFLAGS', 'CXXFLAGS', 'CPPFLAGS', 'LDFLAGS',
+                   'SDKROOT', 'CONDA_BUILD_SYSROOT']:
+            if ff in env_dict:
+                env_dict.pop(ff)
+        # Locate Apple clang and SDK
+        try:
+            cmd = subprocess.run(["xcrun", "-f", "clang"],
+                capture_output=True,
+                check=True
+            )
+            clang_path = cmd.stdout.decode("UTF-8").strip()
+            cmd = subprocess.run(["xcrun", "-f", "clang++"],
+                capture_output=True,
+                check=True
+            )
+            clangxx_path = cmd.stdout.decode("UTF-8").strip()
+            sdk_path_cmd = subprocess.run(["xcrun", "--sdk", "macosx", "--show-sdk-path"],
+                capture_output=True,
+                check=True
+            )
+            sdk_path = sdk_path_cmd.stdout.decode("UTF-8").strip()
+        except subprocess.CalledProcessError as e:
+            stdout = e.stdout.decode("UTF-8").strip() if e.stdout else ''
+            stderr = e.stderr.decode("UTF-8").strip() if e.stderr else ''
+            raise RuntimeError(f"Issue with Apple compiler\nDo you have the Xcode command line tools "
+                               f"installed?\nStdOut: {stdout}\nStdErr: {stderr}") from e
+        cmake_args.append(f"-DCMAKE_C_COMPILER={clang_path}")
+        cmake_args.append(f"-DCMAKE_CXX_COMPILER={clangxx_path}")
+        cmake_args.append(f"-DCMAKE_OSX_SYSROOT={sdk_path}")
+        cmake_args.append(f"-DCMAKE_OSX_ARCHITECTURES={triplets[target_triplet]['tag'].split('-')[0]}")
 
     # add vcpkg root if provided
     if vcpkg_root is not None:

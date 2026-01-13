@@ -303,7 +303,8 @@ int main(int argc, char **argv){
             0.0,              // double line_length, (needed only for backtracking)
             NULL,             // int8_t* buffer_tbt_monitor,
             0,                // int64_t offset_tbt_monitor
-            NULL              // int8_t* io_buffer,
+            NULL,             // int8_t* io_buffer,
+            0                 // uint64_t track_flags
         );
         current_turn += step_turns;
         XB_fprintf(2, stdout, "Tracked turn %i\n", current_turn);
