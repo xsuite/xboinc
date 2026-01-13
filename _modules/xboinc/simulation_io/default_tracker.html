@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>xboinc.simulation_io.default_tracker &mdash; Xboinc v0.4.1</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=4ae1632d" />
 
   
@@ -152,63 +152,81 @@
 <div class="viewcode-block" id="ONLY_XTRACK_ELEMENTS">
 <a class="viewcode-back" href="../../../api/xboinc/simulation_io/default_tracker/index.html#xboinc.simulation_io.default_tracker.ONLY_XTRACK_ELEMENTS">[docs]</a>
 <span class="n">ONLY_XTRACK_ELEMENTS</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">Marker</span><span class="p">,</span>
     <span class="n">Drift</span><span class="p">,</span>
-    <span class="n">Multipole</span><span class="p">,</span>
+    <span class="n">DriftExact</span><span class="p">,</span>
     <span class="n">Bend</span><span class="p">,</span>
     <span class="n">RBend</span><span class="p">,</span>
     <span class="n">Quadrupole</span><span class="p">,</span>
     <span class="n">Sextupole</span><span class="p">,</span>
     <span class="n">Octupole</span><span class="p">,</span>
+    <span class="n">Multipole</span><span class="p">,</span>
     <span class="n">Magnet</span><span class="p">,</span>
-    <span class="n">SecondOrderTaylorMap</span><span class="p">,</span>
-    <span class="n">Marker</span><span class="p">,</span>
-    <span class="n">ReferenceEnergyIncrease</span><span class="p">,</span>
-    <span class="n">Cavity</span><span class="p">,</span>
-    <span class="n">Elens</span><span class="p">,</span>
-    <span class="n">Wire</span><span class="p">,</span>
-    <span class="n">Solenoid</span><span class="p">,</span>
-    <span class="n">RFMultipole</span><span class="p">,</span>
+    <span class="n">MagnetEdge</span><span class="p">,</span>
     <span class="n">DipoleEdge</span><span class="p">,</span>
     <span class="n">MultipoleEdge</span><span class="p">,</span>
+    <span class="n">Cavity</span><span class="p">,</span>
+    <span class="n">CrabCavity</span><span class="p">,</span>
+    <span class="n">RFMultipole</span><span class="p">,</span>
+    <span class="n">Elens</span><span class="p">,</span>
+    <span class="n">NonLinearLens</span><span class="p">,</span>
+    <span class="n">Wire</span><span class="p">,</span>
+    <span class="n">Solenoid</span><span class="p">,</span>
+    <span class="n">UniformSolenoid</span><span class="p">,</span>
+    <span class="n">VariableSolenoid</span><span class="p">,</span>
     <span class="n">SimpleThinBend</span><span class="p">,</span>
     <span class="n">SimpleThinQuadrupole</span><span class="p">,</span>
     <span class="n">LineSegmentMap</span><span class="p">,</span>
     <span class="n">FirstOrderTaylorMap</span><span class="p">,</span>
-    <span class="n">NonLinearLens</span><span class="p">,</span>
+    <span class="n">SecondOrderTaylorMap</span><span class="p">,</span>
+    <span class="n">ReferenceEnergyIncrease</span><span class="p">,</span>
     <span class="c1"># Slices</span>
     <span class="n">DriftSlice</span><span class="p">,</span>
+    <span class="n">DriftExactSlice</span><span class="p">,</span>
     <span class="n">DriftSliceBend</span><span class="p">,</span>
     <span class="n">DriftSliceRBend</span><span class="p">,</span>
-    <span class="n">DriftSliceOctupole</span><span class="p">,</span>
     <span class="n">DriftSliceQuadrupole</span><span class="p">,</span>
     <span class="n">DriftSliceSextupole</span><span class="p">,</span>
+    <span class="n">DriftSliceOctupole</span><span class="p">,</span>
+    <span class="n">DriftSliceCavity</span><span class="p">,</span>
+    <span class="n">DriftSliceCrabCavity</span><span class="p">,</span>
+    <span class="n">DriftSliceMultipole</span><span class="p">,</span>
     <span class="n">ThickSliceBend</span><span class="p">,</span>
     <span class="n">ThickSliceRBend</span><span class="p">,</span>
-    <span class="n">ThickSliceOctupole</span><span class="p">,</span>
     <span class="n">ThickSliceQuadrupole</span><span class="p">,</span>
     <span class="n">ThickSliceSextupole</span><span class="p">,</span>
-    <span class="n">ThickSliceSolenoid</span><span class="p">,</span>
+    <span class="n">ThickSliceOctupole</span><span class="p">,</span>
+    <span class="n">ThickSliceMultipole</span><span class="p">,</span>
+    <span class="n">ThickSliceCavity</span><span class="p">,</span>
+    <span class="n">ThickSliceCrabCavity</span><span class="p">,</span>
+    <span class="n">ThickSliceUniformSolenoid</span><span class="p">,</span>
     <span class="n">ThinSliceBend</span><span class="p">,</span>
-    <span class="n">ThinSliceRBend</span><span class="p">,</span>
     <span class="n">ThinSliceBendEntry</span><span class="p">,</span>
     <span class="n">ThinSliceBendExit</span><span class="p">,</span>
+    <span class="n">ThinSliceRBend</span><span class="p">,</span>
     <span class="n">ThinSliceRBendEntry</span><span class="p">,</span>
     <span class="n">ThinSliceRBendExit</span><span class="p">,</span>
+    <span class="n">ThinSliceQuadrupole</span><span class="p">,</span>
     <span class="n">ThinSliceQuadrupoleEntry</span><span class="p">,</span>
     <span class="n">ThinSliceQuadrupoleExit</span><span class="p">,</span>
+    <span class="n">ThinSliceSextupole</span><span class="p">,</span>
     <span class="n">ThinSliceSextupoleEntry</span><span class="p">,</span>
     <span class="n">ThinSliceSextupoleExit</span><span class="p">,</span>
+    <span class="n">ThinSliceOctupole</span><span class="p">,</span>
     <span class="n">ThinSliceOctupoleEntry</span><span class="p">,</span>
     <span class="n">ThinSliceOctupoleExit</span><span class="p">,</span>
-    <span class="n">ThinSliceOctupole</span><span class="p">,</span>
-    <span class="n">ThinSliceQuadrupole</span><span class="p">,</span>
-    <span class="n">ThinSliceSextupole</span><span class="p">,</span>
+    <span class="n">ThinSliceMultipole</span><span class="p">,</span>
+    <span class="n">ThinSliceCavity</span><span class="p">,</span>
+    <span class="n">ThinSliceCrabCavity</span><span class="p">,</span>
+    <span class="n">ThinSliceUniformSolenoidEntry</span><span class="p">,</span>
+    <span class="n">ThinSliceUniformSolenoidExit</span><span class="p">,</span>
     <span class="c1"># Transformations</span>
     <span class="n">XYShift</span><span class="p">,</span>
     <span class="n">ZetaShift</span><span class="p">,</span>
     <span class="n">XRotation</span><span class="p">,</span>
     <span class="n">SRotation</span><span class="p">,</span>
     <span class="n">YRotation</span><span class="p">,</span>
+    <span class="n">Misalignment</span><span class="p">,</span>
     <span class="c1"># Apertures</span>
     <span class="n">LimitEllipse</span><span class="p">,</span>
     <span class="n">LimitRectEllipse</span><span class="p">,</span>
@@ -228,6 +246,7 @@
 <div class="viewcode-block" id="NO_SYNRAD_ELEMENTS">
 <a class="viewcode-back" href="../../../api/xboinc/simulation_io/default_tracker/index.html#xboinc.simulation_io.default_tracker.NO_SYNRAD_ELEMENTS">[docs]</a>
 <span class="n">NO_SYNRAD_ELEMENTS</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">ACDipole</span><span class="p">,</span>
     <span class="n">Exciter</span><span class="p">,</span>
 <span class="p">]</span></div>
 
@@ -246,8 +265,10 @@
 <div class="viewcode-block" id="DEFAULT_XCOLL_ELEMENTS">
 <a class="viewcode-back" href="../../../api/xboinc/simulation_io/default_tracker/index.html#xboinc.simulation_io.default_tracker.DEFAULT_XCOLL_ELEMENTS">[docs]</a>
 <span class="n">DEFAULT_XCOLL_ELEMENTS</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="c1"># ZetaShift,</span>
     <span class="n">xc</span><span class="o">.</span><span class="n">BlackAbsorber</span><span class="p">,</span>
+    <span class="n">xc</span><span class="o">.</span><span class="n">BlackCrystal</span><span class="p">,</span>
+    <span class="n">xc</span><span class="o">.</span><span class="n">TransparentCollimator</span><span class="p">,</span>
+    <span class="n">xc</span><span class="o">.</span><span class="n">TransparentCrystal</span><span class="p">,</span>
     <span class="n">xc</span><span class="o">.</span><span class="n">EverestBlock</span><span class="p">,</span>
     <span class="n">xc</span><span class="o">.</span><span class="n">EverestCollimator</span><span class="p">,</span>
     <span class="n">xc</span><span class="o">.</span><span class="n">EverestCrystal</span><span class="p">,</span>
@@ -260,6 +281,7 @@
 <a class="viewcode-back" href="../../../api/xboinc/simulation_io/default_tracker/index.html#xboinc.simulation_io.default_tracker.NON_TRACKING_ELEMENTS">[docs]</a>
 <span class="n">NON_TRACKING_ELEMENTS</span> <span class="o">=</span> <span class="p">[</span>
     <span class="n">RandomUniform</span><span class="p">,</span>
+    <span class="n">RandomUniformAccurate</span><span class="p">,</span>
     <span class="n">RandomExponential</span><span class="p">,</span>
     <span class="n">RandomNormal</span><span class="p">,</span>
     <span class="n">RandomRutherford</span><span class="p">,</span>

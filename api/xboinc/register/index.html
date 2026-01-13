@@ -8,7 +8,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>3.1.1.4. xboinc.register &mdash; Xboinc v0.4.1</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=4ae1632d" />
 
   
@@ -195,11 +195,11 @@ BOINC server periodically parses new users.</p>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>user</strong> (<em>string</em>) – Name of the user to register.</p></li>
-<li><p><strong>directory</strong> (<a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><em>pathlib.Path</em></a>) – Dedicated folder that the BOINC server can reach (i.e. on CERN
+<li><p><strong>directory</strong> (<a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><em>pathlib.Path</em></a>) – Dedicated folder that the BOINC server can reach (i.e. on CERN
 AFS or EOS), which will hold the new submissions and results.
 Should not be accessed manually by the user to avoid syncing
 issues.</p></li>
-<li><p><strong>permissions_given</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a>) – Set it to True to certify that the service account sixtadm has already
+<li><p><strong>permissions_given</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Set it to True to certify that the service account sixtadm has already
 the necessary r/w permissions on the specified directory. Do that for EOS
 paths after giving the appropriate read/write permissions on CERNbox
 to the target folder!</p></li>

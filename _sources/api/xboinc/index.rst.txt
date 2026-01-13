@@ -124,7 +124,7 @@ Package Contents
 
 
 .. py:data:: __version__
-   :value: '0.4.3'
+   :value: '0.6.0'
 
 
 .. py:data:: __xsuite__versions__

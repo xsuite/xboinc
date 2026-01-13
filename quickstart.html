@@ -8,7 +8,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>1. Xboinc &mdash; Xboinc v0.4.1</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=4ae1632d" />
 
   
@@ -129,7 +129,6 @@
   <section id="xboinc">
 <h1><span class="section-number">1. </span>Xboinc<a class="headerlink" href="#xboinc" title="Link to this heading"></a></h1>
 <p>Xboinc is a package within the Xsuite project that provides tools for easily submit and manage tracking jobs on the BOINC computing platform. It is designed to streamline the process of job submission, management, and monitoring for users of the Xsuite framework in need for large-scale computing resources, with a project adaptable to volunteer-based computing. Note that the services provided by this package are available only to CERN users with a valid computing account.</p>
-<p><strong>NOTE: CURRENTLY, ONLY THE DEVELOPMENT SERVER IS AVAILABLE! Be sure to always set the <code class="docutils literal notranslate"><span class="pre">dev_server</span></code> parameter to <code class="docutils literal notranslate"><span class="pre">True</span></code> when using the package!</strong></p>
 </section>
 <section id="how-to-use-xboinc">
 <h1><span class="section-number">2. </span>How to use Xboinc<a class="headerlink" href="#how-to-use-xboinc" title="Link to this heading"></a></h1>
@@ -194,7 +193,7 @@ pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </s
     <span class="n">user</span><span class="o">=</span><span class="s2">&quot;mycernshortname&quot;</span><span class="p">,</span>
     <span class="n">study_name</span><span class="o">=</span><span class="s2">&quot;a_relevant_study_name&quot;</span><span class="p">,</span>
     <span class="n">line</span><span class="o">=</span><span class="n">line</span><span class="p">,</span>
-    <span class="n">dev_server</span><span class="o">=</span><span class="kc">True</span> <span class="c1"># currently, the dev server is the only one available</span>
+    <span class="n">dev_server</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="c1"># set to True to use the Xboinc development server (for testing purposes only), by default False</span>
 <span class="p">)</span>
 
 <span class="c1"># prepare a big batch of particles</span>
@@ -225,7 +224,7 @@ pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </s
 <p>When the jobs are completed, the Xboinc server will store the results in your allocated folder in compressed tar files. You can decompress and explore them by using the <code class="docutils literal notranslate"><span class="pre">JobRetriever</span></code> class from the <code class="docutils literal notranslate"><span class="pre">xboinc</span></code> package. The simplest way to do that is:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">xboinc</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">xb</span>
 
-<span class="k">for</span> <span class="n">job_name</span><span class="p">,</span> <span class="n">job_metadata</span><span class="p">,</span> <span class="n">result_particles</span> <span class="ow">in</span> <span class="n">xb</span><span class="o">.</span><span class="n">JobRetriever</span><span class="o">.</span><span class="n">iterate</span><span class="p">(</span><span class="s2">&quot;mycernshortname&quot;</span><span class="p">,</span> <span class="s2">&quot;a_relevant_study_name&quot;</span><span class="p">,</span> <span class="n">dev_server</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="k">for</span> <span class="n">job_name</span><span class="p">,</span> <span class="n">job_metadata</span><span class="p">,</span> <span class="n">result_particles</span> <span class="ow">in</span> <span class="n">xb</span><span class="o">.</span><span class="n">JobRetriever</span><span class="o">.</span><span class="n">iterate</span><span class="p">(</span><span class="s2">&quot;mycernshortname&quot;</span><span class="p">,</span> <span class="s2">&quot;a_relevant_study_name&quot;</span><span class="p">):</span>
     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Job </span><span class="si">{</span><span class="n">job_name</span><span class="si">}</span><span class="s2"> completed with particles: </span><span class="si">{</span><span class="n">result_particles</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Job metadata: </span><span class="si">{</span><span class="n">job_metadata</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
@@ -242,7 +241,7 @@ pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </s
 <span class="c1"># Query the registered work units for the user</span>
 <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;What are my jobs?&quot;</span><span class="p">)</span>
 <span class="c1"># Probes the work units for the user registered in this Xboinc installation</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">xb</span><span class="o">.</span><span class="n">query_registered_work_units</span><span class="p">(</span><span class="n">dev_server</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">xb</span><span class="o">.</span><span class="n">query_registered_work_units</span><span class="p">())</span>
 </pre></div>
 </div>
 <p>Other convenience functions are available in the <code class="docutils literal notranslate"><span class="pre">xboinc</span></code> package, be sure to inspect the API documentation and docstrings for more details!</p>
