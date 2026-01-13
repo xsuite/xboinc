@@ -19,13 +19,16 @@ from xaux import FsPath
 import xboinc as xb
 
 if sys.platform == "darwin":
-    arch = (
+    trip = (
         "x64-osx" if platform.machine() == "x86_64" else "arm64-osx"
     )
+    arch = f"{platform.machine()}-apple-darwin"
 elif sys.platform.startswith("linux"):
-    arch = (
+    trip = (
         "x64-linux" if platform.machine() == "x86_64" else "x86-linux"
     )
+    arch = f"{platform.machine()}-pc-linux-gnu"
+
 
 class TestConfig:
     """Configuration constants for the test suite."""
@@ -44,8 +47,8 @@ class TestConfig:
     OUTPUT_FILE = "xboinc_state_out.bin"
     OUTPUT_FILE_REF = "xboinc_state_out_ref.bin"
     CHECKPOINT_FILE = "checkpoint.bin"
-    BINARY_TEST_NAME = f"xboinc_test_{xb.app_version}-x86_64-pc-linux-gnu"
-    BINARY_PROD_NAME = f"xboinc_{xb.app_version}-x86_64-pc-linux-gnu"
+    BINARY_TEST_NAME = f"xboinc_test_{xb.app_version}-{arch}"
+    BINARY_PROD_NAME = f"xboinc_{xb.app_version}-{arch}"
 
     # Timeout for interrupted tests (seconds)
     CHECKPOINT_TIMEOUT = 15
@@ -60,7 +63,7 @@ class TestConfig:
             cls.VCPKG_ROOT.is_dir()
             and cls.VCPKG_ROOT.exists()
             and (
-                cls.VCPKG_ROOT / "installed" / arch / "lib" / "libboinc.a"
+                cls.VCPKG_ROOT / "installed" / trip / "lib" / "libboinc.a"
             ).exists()
         )
 
