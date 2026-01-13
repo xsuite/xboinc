@@ -30,7 +30,8 @@ xpart     = '==0.23.7'
 xtrack    = '==0.98.12'
 xfields   = '==0.25.8'
 xcoll     = '==0.9.1'
-xaux      = '>=0.3.11xsuite    = '==0.45.15'
+xsuite    = '==0.45.15'
+xaux      = '>=0.3.11'
 
 [poetry.group.dev.dependencies]
 pytest = ">7"
