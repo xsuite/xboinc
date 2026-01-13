@@ -4,9 +4,11 @@
 ########################################### #
 
 import os
+import sys
 import time
 import pytest
 import filecmp
+import platform
 import subprocess
 import numpy as np
 from shutil import rmtree
@@ -16,6 +18,14 @@ import xtrack as xt
 from xaux import FsPath
 import xboinc as xb
 
+if sys.platform == "darwin":
+    arch = (
+        "x64-osx" if platform.machine() == "x86_64" else "arm64-osx"
+    )
+elif sys.platform.startswith("linux"):
+    arch = (
+        "x64-linux" if platform.machine() == "x86_64" else "x86-linux"
+    )
 
 class TestConfig:
     """Configuration constants for the test suite."""
@@ -50,7 +60,7 @@ class TestConfig:
             cls.VCPKG_ROOT.is_dir()
             and cls.VCPKG_ROOT.exists()
             and (
-                cls.VCPKG_ROOT / "installed" / "x64-linux" / "lib" / "libboinc.a"
+                cls.VCPKG_ROOT / "installed" / arch / "lib" / "libboinc.a"
             ).exists()
         )
 

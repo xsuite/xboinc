@@ -11,7 +11,6 @@ project(xboinc VERSION 0.4.0 LANGUAGES C CXX)
 
 # === Python: query xobjects include/source roots ===
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
-
 execute_process(
   COMMAND "${Python3_EXECUTABLE}" -c
           "import xobjects as xo; print(*xo.ContextCpu().get_installed_c_source_paths(), sep='\\n')"
@@ -19,10 +18,8 @@ execute_process(
   OUTPUT_STRIP_TRAILING_WHITESPACE
   COMMAND_ERROR_IS_FATAL ANY
 )
-
 string(REPLACE "\r\n" "\n" XO_C_SOURCE_PATHS_RAW "${XO_C_SOURCE_PATHS_RAW}")
 string(REPLACE "\n" ";" XO_C_SOURCE_PATHS "${XO_C_SOURCE_PATHS_RAW}")
-
 message(STATUS "xobjects installed C source paths: ${XO_C_SOURCE_PATHS}")
 
 # === Compiler and Build Options ===
@@ -35,7 +32,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(XTRACK_PYTHON_DIR "/path/to/xtrack/" CACHE PATH "XTrack Python package dir")
 
 # === Target developer triplet (overridable) ===
-set(VCPKG_TARGET_TRIPLET "x64-linux" CACHE STRING "VCPKG target triplet")
+if(NOT DEFINED VCPKG_TARGET_TRIPLET)
+  set(VCPKG_TARGET_TRIPLET "x64-linux" CACHE STRING "VCPKG target triplet")
+endif()
 
 # === Add x86 flags if triplet is x86-linux or x86-mingw-static ===
 if(VCPKG_TARGET_TRIPLET MATCHES "x86")
@@ -46,7 +45,8 @@ endif()
 # === Flags and Definitions ===
 set(COMMON_COMPILE_FLAGS -Wall -W -Wshadow -Wpointer-arith -Wcast-qual -Wcast-align -Wunused-parameter -Wno-write-strings -fno-common -O2)
 set(COMMON_DEFINITIONS XO_CONTEXT_CPU XO_CONTEXT_CPU_SERIAL)
-set(SYSTEM_LIBS pthread m)
+find_package(Threads REQUIRED)
+set(SYSTEM_LIBS Threads::Threads)
 
 # === Sources ===
 set(XTRACK_SOURCES xtrack.c)
@@ -59,7 +59,6 @@ target_compile_options(xtrack_obj PRIVATE ${COMMON_COMPILE_FLAGS})
 target_compile_definitions(xtrack_obj PRIVATE ${COMMON_DEFINITIONS})
 target_include_directories(xtrack_obj PRIVATE ${XTRACK_PYTHON_DIR})
 target_include_directories(xtrack_obj PRIVATE ${XO_C_SOURCE_PATHS})
-target_link_libraries(xtrack_obj PRIVATE m)
 
 # === Executable: xboinc_test (no BOINC) ===
 add_executable(xboinc_test ${MAIN_SOURCES})
@@ -70,12 +69,14 @@ target_include_directories(xboinc_test PRIVATE ${XO_C_SOURCE_PATHS})
 target_link_directories(xboinc_test PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(xboinc_test PRIVATE xtrack_obj ${SYSTEM_LIBS})
 
-target_link_options(xboinc_test PRIVATE -static)
+if(NOT APPLE)
+  target_link_options(xboinc_test PRIVATE -static)
+endif()
 
 # === Executable with BOINC integration ===
 if(VCPKG_ROOT AND EXISTS "${VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}/lib")
     find_library(BOINCAPI_LIB boincapi PATHS ${VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}/lib)
-    find_library(BOINC_LIB boinc PATHS ${VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}/lib)
+    find_library(BOINC_LIB    boinc    PATHS ${VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}/lib)
 
     if(BOINCAPI_LIB AND BOINC_LIB)
         add_executable(xboinc ${MAIN_SOURCES})
@@ -83,16 +84,32 @@ if(VCPKG_ROOT AND EXISTS "${VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}/lib")
         link_directories(${VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}/lib)
         target_compile_options(xboinc PRIVATE ${COMMON_COMPILE_FLAGS})
         target_compile_definitions(xboinc PRIVATE ${COMMON_DEFINITIONS} COMPILE_TO_BOINC)
-        target_include_directories(xboinc PRIVATE ${XTRACK_PYTHON_DIR})
-        target_include_directories(xboinc PRIVATE ${XO_C_SOURCE_PATHS})
+        target_include_directories(xboinc PRIVATE ${XTRACK_PYTHON_DIR} ${XO_C_SOURCE_PATHS})
         target_link_directories(xboinc PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
         target_link_libraries(xboinc PRIVATE xtrack_obj ${BOINCAPI_LIB} ${BOINC_LIB} ${SYSTEM_LIBS})
-        target_link_options(xboinc PRIVATE
-            -static
-            -static-libstdc++
-            -static-libgcc
-            -Wl,--exclude-libs,ALL
+        find_package(OpenSSL REQUIRED)
+        if(APPLE)
+            target_link_options(xboinc PRIVATE
+                "LINKER:-force_load,${BOINCAPI_LIB}"
+                "LINKER:-force_load,${BOINC_LIB}"
+            )
+        else()
+            target_link_options(xboinc PRIVATE
+                -static
+                -static-libstdc++
+                -static-libgcc
+                -Wl,--exclude-libs,ALL
+            )
+        endif()
+        target_link_libraries(xboinc PRIVATE
+            xtrack_obj
+            ${BOINCAPI_LIB}
+            ${BOINC_LIB}
+            OpenSSL::SSL
+            OpenSSL::Crypto
+            ${SYSTEM_LIBS}
         )
+
         set(XBOINC_ENABLED TRUE)
     else()
         message(STATUS "BOINC libraries not found; 'xboinc' will not be built.")
