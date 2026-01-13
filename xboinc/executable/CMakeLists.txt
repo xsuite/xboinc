@@ -45,12 +45,12 @@ endif()
 # === Flags and Definitions ===
 set(COMMON_COMPILE_FLAGS -Wall -W -Wshadow -Wpointer-arith -Wcast-qual -Wcast-align -Wunused-parameter -Wno-write-strings -fno-common -O2)
 set(COMMON_DEFINITIONS XO_CONTEXT_CPU XO_CONTEXT_CPU_SERIAL)
-find_package(Threads REQUIRED)
-set(SYSTEM_LIBS Threads::Threads)
-if(UNIX AND NOT APPLE)
-  list(APPEND SYSTEM_LIBS m dl)
+if(APPLE)
+    find_package(Threads REQUIRED)
+    set(SYSTEM_LIBS Threads::Threads)
+else()
+    set(SYSTEM_LIBS pthread m)
 endif()
-
 
 # === Sources ===
 set(XTRACK_SOURCES xtrack.c)
@@ -63,6 +63,9 @@ target_compile_options(xtrack_obj PRIVATE ${COMMON_COMPILE_FLAGS})
 target_compile_definitions(xtrack_obj PRIVATE ${COMMON_DEFINITIONS})
 target_include_directories(xtrack_obj PRIVATE ${XTRACK_PYTHON_DIR})
 target_include_directories(xtrack_obj PRIVATE ${XO_C_SOURCE_PATHS})
+if(NOT APPLE)
+    target_link_libraries(xtrack_obj PRIVATE pthread m)
+endif()
 
 # === Executable: xboinc_test (no BOINC) ===
 add_executable(xboinc_test ${MAIN_SOURCES})
@@ -89,11 +92,19 @@ if(VCPKG_ROOT AND EXISTS "${VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}/lib")
         target_compile_definitions(xboinc PRIVATE ${COMMON_DEFINITIONS} COMPILE_TO_BOINC)
         target_include_directories(xboinc PRIVATE ${XTRACK_PYTHON_DIR} ${XO_C_SOURCE_PATHS})
         target_link_directories(xboinc PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-        find_package(OpenSSL REQUIRED)
         if(APPLE)
             target_link_options(xboinc PRIVATE
                 "LINKER:-force_load,${BOINCAPI_LIB}"
                 "LINKER:-force_load,${BOINC_LIB}"
+            )
+            find_package(OpenSSL REQUIRED)
+            target_link_libraries(xboinc PRIVATE
+                xtrack_obj
+                ${BOINCAPI_LIB}
+                ${BOINC_LIB}
+                OpenSSL::SSL
+                OpenSSL::Crypto
+                ${SYSTEM_LIBS}
             )
         else()
             target_link_options(xboinc PRIVATE
@@ -102,15 +113,8 @@ if(VCPKG_ROOT AND EXISTS "${VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}/lib")
                 -static-libgcc
                 -Wl,--exclude-libs,ALL
             )
+            target_link_libraries(xboinc PRIVATE xtrack_obj ${BOINCAPI_LIB} ${BOINC_LIB} ${SYSTEM_LIBS})
         endif()
-        target_link_libraries(xboinc PRIVATE
-            xtrack_obj
-            ${BOINCAPI_LIB}
-            ${BOINC_LIB}
-            OpenSSL::SSL
-            OpenSSL::Crypto
-            ${SYSTEM_LIBS}
-        )
 
         set(XBOINC_ENABLED TRUE)
     else()
