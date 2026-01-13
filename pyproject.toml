@@ -5,7 +5,7 @@
 
 [tool.poetry]
 name = "xboinc"
-version = "0.6.0rc0"
+version = "0.6.0"
 description = "Xsuite BOINC interface"
 homepage = "https://github.com/xsuite/xboinc"
 repository = "https://github.com/xsuite/xboinc"
@@ -30,8 +30,7 @@ xpart     = '==0.23.7'
 xtrack    = '==0.98.12'
 xfields   = '==0.25.8'
 xcoll     = '==0.9.1'
-xaux      = '>=0.3.11'
-xsuite    = '==0.45.15'
+xaux      = '>=0.3.11xsuite    = '==0.45.15'
 
 [poetry.group.dev.dependencies]
 pytest = ">7"
