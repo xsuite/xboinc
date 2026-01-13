@@ -45,12 +45,12 @@ endif()
 # === Flags and Definitions ===
 set(COMMON_COMPILE_FLAGS -Wall -W -Wshadow -Wpointer-arith -Wcast-qual -Wcast-align -Wunused-parameter -Wno-write-strings -fno-common -O2)
 set(COMMON_DEFINITIONS XO_CONTEXT_CPU XO_CONTEXT_CPU_SERIAL)
-if(APPLE)
-    find_package(Threads REQUIRED)
-    set(SYSTEM_LIBS Threads::Threads)
-else()
-    set(SYSTEM_LIBS pthread m)
+find_package(Threads REQUIRED)
+set(SYSTEM_LIBS Threads::Threads)
+if(UNIX AND NOT APPLE)
+  list(APPEND SYSTEM_LIBS m dl)
 endif()
+
 
 # === Sources ===
 set(XTRACK_SOURCES xtrack.c)
@@ -63,9 +63,6 @@ target_compile_options(xtrack_obj PRIVATE ${COMMON_COMPILE_FLAGS})
 target_compile_definitions(xtrack_obj PRIVATE ${COMMON_DEFINITIONS})
 target_include_directories(xtrack_obj PRIVATE ${XTRACK_PYTHON_DIR})
 target_include_directories(xtrack_obj PRIVATE ${XO_C_SOURCE_PATHS})
-if(NOT APPLE)
-    target_link_libraries(xtrack_obj PRIVATE m)
-endif()
 
 # === Executable: xboinc_test (no BOINC) ===
 add_executable(xboinc_test ${MAIN_SOURCES})
@@ -92,7 +89,6 @@ if(VCPKG_ROOT AND EXISTS "${VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}/lib")
         target_compile_definitions(xboinc PRIVATE ${COMMON_DEFINITIONS} COMPILE_TO_BOINC)
         target_include_directories(xboinc PRIVATE ${XTRACK_PYTHON_DIR} ${XO_C_SOURCE_PATHS})
         target_link_directories(xboinc PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-        target_link_libraries(xboinc PRIVATE xtrack_obj ${BOINCAPI_LIB} ${BOINC_LIB} ${SYSTEM_LIBS})
         find_package(OpenSSL REQUIRED)
         if(APPLE)
             target_link_options(xboinc PRIVATE
